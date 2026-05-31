@@ -60,8 +60,9 @@ Eagle API URL、folder path template、import limit、source tag limit 会在保
 图片二进制由 Comic Looms `IMGFetcher` 在浏览器会话内抓取，导入 Eagle 时使用 `data:<mime>;base64,...`，避免 Eagle 后台 URL 下载触发 403。
 anime-pictures 原图解析优先使用页面暴露的 `images.anime-pictures.net` 直连候选；`api.anime-pictures.net/pictures/download_image/...` 只作为候选回退，避免复现 Eagle 后台下载 403。
 anime-pictures 搜索页采集会排除 `#sidebar`、`.sidebar_block`、`.last-stars` 等侧栏推荐区，避免 `Last stars` 缩略图混入目标搜索结果。
+anime-pictures matcher 支持 `/posts?page=0`、`/stars?page=0`、旧版 `/pictures/view_posts...` 列表页，以及 `/posts/{id}` / `/pictures/view_post/{id}` 单图详情页。详情页只导入当前图片，方便人工调试和观察。
 导入队列沿用上游 zip 保存的 `FetchState.DONE && data` 契约，不导入重置/失败状态里的旧数据。
-默认目标目录模板：`Eagle Looms/{site}/{gallery}`，支持 `{site}`、`{gallery}`、`{chapter}`。
+默认目标目录模板：`Eagle Looms/{site}/{gallery}`，支持 `{site}`、`{gallery}`、`{chapter}`、`{copyright}`、`{character}`、`{author}`。
 每个 item 写入 `website`、`url`、必备 tags 和受上限约束的来源 tags；`copyright`、`character`、`author/artist` 统一归一化为 `copyright:`、`character:`、`author:` 前缀，其他来源 tags 原样导入。普通图片默认不写长 annotation；多文件子项或作者 URL 仅写一行最小 JSON。
 Booru 类 matcher 会把列表页已有 tag 字符串写回图片节点；如果页面暴露 copyright/character/artist 分类属性，则同样进入统一命名空间，否则按 raw source tags 导入。
 Eagle `item/add` 响应会兼容常见 `id`、`itemId`、`item`、`items`、`ids`、`data.*` 包装，避免写入成功但脚本误判失败。

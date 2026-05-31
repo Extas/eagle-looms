@@ -63,6 +63,14 @@ Open:
 https://anime-pictures.net/posts?page=0&search_tag=bang+dream!+it%27s+mygo!!!!!
 ```
 
+Also smoke these anime-pictures entry types:
+
+```text
+https://anime-pictures.net/posts?page=0
+https://anime-pictures.net/stars?page=0
+https://anime-pictures.net/posts/919002
+```
+
 Expected:
 
 ```text
@@ -113,6 +121,9 @@ Supported path tokens:
 {site}
 {gallery}
 {chapter}
+{copyright}
+{character}
+{author}
 ```
 
 For the MyGO target page, the default folder resolves under:
@@ -131,6 +142,8 @@ items have website pointing to anime-pictures post URL and url pointing to the o
 normal image items have an empty or minimal annotation; multi-file subitems or items with multiple author URLs may keep one compact JSON line
 rerunning import skips known source/origin/annotation duplicates by default, using separate exact Eagle queries
 anime-pictures `Last stars` sidebar thumbnails are not imported even when they link to `/posts/...`
+anime-pictures `/stars?page=0` imports its main stars list; only sidebar recommendation blocks are excluded
+anime-pictures `/posts/{id}` imports only the current detail page image and does not paginate `/posts/{id}?page=1`
 rerunning import in the same userscript page session skips assets already written by this session before querying Eagle again
 Import summary appears in the message box: planned, imported, skipped, failed, destination folders, and bounded first failures if any
 Clicking Import to Eagle with no loaded/selected image should show a clear error instead of an empty successful import
