@@ -8,13 +8,15 @@ describe('Eagle options', () => {
   });
 
   it('normalizes folder template and resolves tokens into safe folder segments', () => {
-    const template = normalizeEagleFolderTemplate(' Eagle:Looms / {site} / bad?{gallery} / {chapter} ');
-    expect(template).toBe('Eagle Looms/{site}/bad {gallery}/{chapter}');
+    const template = normalizeEagleFolderTemplate(' Eagle:Looms / {site} / {copyright} / {author} / bad?{gallery} / {chapter} ');
+    expect(template).toBe('Eagle Looms/{site}/{copyright}/{author}/bad {gallery}/{chapter}');
     expect(resolveEagleFolderPath(template, {
       site: 'anime-pictures.net',
       gallery: 'bang:dream? mygo',
       chapter: '',
-    })).toEqual(['Eagle Looms', 'anime-pictures.net', 'bad bang dream mygo']);
+      copyright: 'bang dream',
+      author: 'soha/blan',
+    })).toEqual(['Eagle Looms', 'anime-pictures.net', 'bang dream', 'soha blan', 'bad bang dream mygo']);
   });
 
   it('falls back to the default folder template when input has no valid segments', () => {

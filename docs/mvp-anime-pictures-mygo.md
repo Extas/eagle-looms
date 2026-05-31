@@ -1,6 +1,6 @@
 # MVP - anime-pictures MyGO Import
 
-Status: active 1.0 verification target  
+Status: active 1.0 verification target
 Last updated: 2026-05-31
 
 ## Goal

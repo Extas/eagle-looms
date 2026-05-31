@@ -1,6 +1,6 @@
 # Eagle Looms Implementation Plan
 
-Status: 1.0 implementation note  
+Status: 1.0 implementation note
 Last updated: 2026-05-31
 
 ## Decision

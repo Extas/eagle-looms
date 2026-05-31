@@ -8,6 +8,12 @@ export type EagleImportSummaryStats = {
   failures?: string[];
 };
 
+export type EagleImportPlan = {
+  folderTemplate: string;
+  sourceTagLimit: number;
+  skipDuplicates: boolean;
+};
+
 const MAX_SUMMARY_FOLDERS = 3;
 const MAX_SUMMARY_FAILURES = 3;
 
@@ -29,6 +35,14 @@ export function eagleSummary(stats: EagleImportSummaryStats): string {
     parts.push(`first failures ${failures.join(" | ")}${more > 0 ? ` (+${more})` : ""}`);
   }
   return `Eagle import: ${parts.join(", ")}.`;
+}
+
+export function eaglePlanSummary(plan: EagleImportPlan): string {
+  return [
+    `Eagle import target ${plan.folderTemplate}`,
+    `source tags ${plan.sourceTagLimit}`,
+    `duplicates ${plan.skipDuplicates ? "skip" : "add"}`,
+  ].join(", ") + ".";
 }
 
 function unique(values: string[]): string[] {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { collectAnimePicturesImageCandidates, diagnoseAnimePicturesDocument, extractAnimePicturesSourceMetadata, isAnimePicturesChallengeHtml, parseAnimePicturesPostEntries, selectAnimePicturesImageCandidate } from './anime-pictures';
+import { animePicturesApiDetailUrl, animePicturesApiPostsUrl, collectAnimePicturesImageCandidates, diagnoseAnimePicturesDocument, extractAnimePicturesSourceMetadata, isAnimePicturesChallengeHtml, parseAnimePicturesApiDetail, parseAnimePicturesApiPosts, parseAnimePicturesPostEntries, selectAnimePicturesImageCandidate } from './anime-pictures';
 
 describe('anime-pictures matcher', () => {
   it('parses post cards in stable page order', () => {
@@ -64,6 +64,47 @@ describe('anime-pictures matcher', () => {
 
     const posts = parseAnimePicturesPostEntries(doc, 'https://anime-pictures.net/posts?page=0&search_tag=bang+dream');
     expect(posts.map(post => post.id)).toEqual(['10', '11']);
+  });
+
+  it('keeps standalone stars pages while excluding only sidebar recommendations', () => {
+    const doc = new DOMParser().parseFromString(`
+      <div class="last-stars">
+        <a href="/posts/21?lang=en"><img src="/preview/21.jpg" alt="star 21"></a>
+        <a href="/posts/22?lang=en"><img src="/preview/22.jpg" alt="star 22"></a>
+      </div>
+    `, 'text/html');
+
+    const posts = parseAnimePicturesPostEntries(doc, 'https://anime-pictures.net/stars?page=0&lang=en');
+    expect(posts.map(post => post.id)).toEqual(['21', '22']);
+  });
+
+  it('supports legacy anime-pictures view_post links', () => {
+    const doc = new DOMParser().parseFromString(`
+      <a href="/pictures/view_post/917184?lang=en"><img src="/preview/917184.jpg" alt="legacy"></a>
+    `, 'text/html');
+
+    const posts = parseAnimePicturesPostEntries(doc, 'https://anime-pictures.net/pictures/view_posts/0?lang=en');
+    expect(posts[0]).toMatchObject({
+      id: '917184',
+      postUrl: 'https://anime-pictures.net/pictures/view_post/917184?lang=en',
+    });
+  });
+
+  it('treats a single post detail page as an importable image', () => {
+    const doc = new DOMParser().parseFromString(`
+      <title>Anime picture 908175</title>
+      <img src="https://images.anime-pictures.net/pictures/908175.png">
+      <span>3000x3000</span>
+    `, 'text/html');
+
+    const posts = parseAnimePicturesPostEntries(doc, 'https://anime-pictures.net/posts/908175?lang=en');
+    expect(posts).toHaveLength(1);
+    expect(posts[0]).toMatchObject({
+      id: '908175',
+      thumbnailUrl: 'https://images.anime-pictures.net/pictures/908175.png',
+      width: 3000,
+      height: 3000,
+    });
   });
 
   it('reports diagnostics for result pages', () => {
@@ -158,5 +199,46 @@ describe('anime-pictures matcher', () => {
       tags: ['copyright:project sekai', 'character:kusanagi nene', 'author:soha blan', 'single'],
       authorUrls: ['https://www.pixiv.net/users/81925632', 'https://twitter.com/soha_blan'],
     });
+  });
+
+  it('builds anime-pictures API URLs from page state', () => {
+    expect(animePicturesApiPostsUrl('https://anime-pictures.net/posts?page=2&lang=en&search_tag=project+sekai&order_by=star_date')).toBe(
+      'https://api.anime-pictures.net/api/v3/posts?page=2&lang=en&ldate=0&search_tag=project+sekai&order_by=star_date',
+    );
+    expect(animePicturesApiDetailUrl('908175')).toBe('https://api.anime-pictures.net/api/v3/posts/908175');
+  });
+
+  it('maps anime-pictures API post payloads into import metadata', () => {
+    const payload = {
+      posts: [{
+        id: 908175,
+        width: 3000,
+        height: 3000,
+        ext: '.png',
+        md5: 'abcdef0123456789',
+        file_url: 'abc/abcdef0123456789.png',
+        tags: [
+          { tag: { tag: 'project sekai', type: 'game copyright' } },
+          { tag: { tag: 'kusanagi nene', type: 'character' } },
+          { tag: { tag: 'soha blan', type: 'artist' } },
+          { tag: { tag: 'purple eyes', type: 'reference' } },
+        ],
+      }],
+    };
+
+    expect(parseAnimePicturesApiPosts(payload, 'https://anime-pictures.net/posts?page=0')).toEqual([{
+      id: '908175',
+      postUrl: 'https://anime-pictures.net/posts/908175',
+      thumbnailUrl: 'https://opreviews.anime-pictures.net/abc/abcdef0123456789_cp.avif',
+      title: 'anime-pictures-908175.png',
+      width: 3000,
+      height: 3000,
+      ext: 'png',
+      fileUrl: 'https://api.anime-pictures.net/pictures/get_image/abc/abcdef0123456789.png',
+      tags: ['copyright:project sekai', 'character:kusanagi nene', 'author:soha blan', 'purple eyes'],
+    }]);
+    expect(parseAnimePicturesApiDetail(payload.posts[0], 'https://anime-pictures.net/posts/908175')?.fileUrl).toBe(
+      'https://api.anime-pictures.net/pictures/get_image/abc/abcdef0123456789.png',
+    );
   });
 });

@@ -11,6 +11,9 @@ export type EagleFolderTokens = {
   site: string;
   gallery: string;
   chapter: string;
+  copyright?: string;
+  character?: string;
+  author?: string;
 };
 
 export type EagleConfigPatch = {
@@ -62,10 +65,21 @@ export function normalizeEagleConfigPatch<T extends object>(patch: T): T {
 }
 
 export function resolveEagleFolderPath(template: string, tokens: EagleFolderTokens): string[] {
+  const tokenValues = {
+    site: cleanFolderName(tokens.site),
+    gallery: cleanFolderName(tokens.gallery),
+    chapter: cleanFolderName(tokens.chapter),
+    copyright: cleanFolderName(tokens.copyright || ""),
+    character: cleanFolderName(tokens.character || ""),
+    author: cleanFolderName(tokens.author || ""),
+  };
   const raw = normalizeEagleFolderTemplate(template)
-    .replaceAll("{site}", tokens.site)
-    .replaceAll("{gallery}", tokens.gallery)
-    .replaceAll("{chapter}", tokens.chapter);
+    .replaceAll("{site}", tokenValues.site)
+    .replaceAll("{gallery}", tokenValues.gallery)
+    .replaceAll("{chapter}", tokenValues.chapter)
+    .replaceAll("{copyright}", tokenValues.copyright)
+    .replaceAll("{character}", tokenValues.character)
+    .replaceAll("{author}", tokenValues.author);
   const path = raw
     .split("/")
     .map(cleanFolderName)

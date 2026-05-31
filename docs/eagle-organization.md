@@ -1,6 +1,6 @@
 # Eagle Organization Policy
 
-Status: active planning target  
+Status: active planning target
 Last updated: 2026-05-31
 
 ## Principle

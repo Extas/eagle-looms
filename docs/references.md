@@ -1,6 +1,6 @@
 # Eagle Looms References
 
-Status: active reference index  
+Status: active reference index
 Last updated: 2026-05-31
 
 ## Upstream

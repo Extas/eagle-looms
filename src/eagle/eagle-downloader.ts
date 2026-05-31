@@ -8,11 +8,11 @@ import EBUS from "../event-bus";
 import { EagleWebApi, AddItemInput } from "./eagle-web-api";
 import { ensureFolderPath } from "./folders";
 import { arrayBufferToBase64 } from "./transport";
-import { normalizeEagleBaseUrl, normalizeEagleFolderTemplate, resolveEagleFolderPath } from "./options";
+import { EagleFolderTokens, normalizeEagleBaseUrl, normalizeEagleFolderTemplate, resolveEagleFolderPath } from "./options";
 import { duplicateQueries, isDuplicateItem, isSessionImported, markSessionImported, stableKeyForAsset } from "./duplicates";
 import { eagleExtensionTag, normalizeEagleTags } from "./tags";
 import { isReadyForEagleImport } from "./import-readiness";
-import { eagleSummary, EagleImportSummaryStats } from "./import-summary";
+import { eaglePlanSummary, eagleSummary, EagleImportSummaryStats } from "./import-summary";
 import { createEagleItemName } from "./naming";
 
 const FILENAME_INVALIDCHAR = /[\\/:*?"<>|\n\t]/g;
@@ -33,6 +33,7 @@ type EagleImportAsset = {
   tags: string[];
   annotation?: string;
   website: string;
+  folderTokens: EagleFolderTokens;
 };
 
 export class EagleDownloader extends Downloader {
@@ -48,6 +49,11 @@ export class EagleDownloader extends Downloader {
       const galleryTitle = safeTitle(this.title(chapters));
       const singleChapter = chapters.length === 1;
       const folderTemplate = normalizeEagleFolderTemplate(ADAPTER.conf.eagleFolderPath);
+      EBUS.emit("notify-message", "info", eaglePlanSummary({
+        folderTemplate,
+        sourceTagLimit: ADAPTER.conf.eagleMaxSourceTags,
+        skipDuplicates: ADAPTER.conf.eagleSkipDuplicates,
+      }), 6000);
 
       for (let i = 0; i < chapters.length; i++) {
         if (abortable && !this.downloading) throw new Error("abort");
@@ -60,21 +66,9 @@ export class EagleDownloader extends Downloader {
         stats.planned += assets.length;
         if (assets.length === 0) continue;
 
-        const folderPath = resolveEagleFolderPath(folderTemplate, {
-          site: ADAPTER.matcher?.name || location.hostname,
-          gallery: galleryTitle,
-          chapter: singleChapter ? "" : chapterTitle,
-        });
-        const folderKey = folderPath.join("/");
-        stats.folders.push(folderKey);
-        let folderId = folderIds.get(folderKey);
-        if (!folderId) {
-          folderId = await ensureFolderPath(api, folderPath);
-          folderIds.set(folderKey, folderId);
-        }
-
         for (const asset of assets) {
           if (abortable && !this.downloading) throw new Error("abort");
+          const folderId = await this.folderIdForAsset(api, folderIds, folderTemplate, asset, stats);
           await this.writeAsset(api, folderId, asset, stats);
         }
       }
@@ -120,18 +114,18 @@ export class EagleDownloader extends Downloader {
       await api.probe();
       const chapterTitle = safeTitle(titleToString(chapter.title));
       const singleChapter = this.pageFetcher.chapters.length === 1;
-      const folderPath = resolveEagleFolderPath(normalizeEagleFolderTemplate(ADAPTER.conf.eagleFolderPath), {
-        site: ADAPTER.matcher?.name || location.hostname,
-        gallery: safeTitle(this.title(this.pageFetcher.chapters)),
-        chapter: singleChapter ? "" : chapterTitle,
-      });
-      const folderKey = folderPath.join("/");
-      stats.folders.push(folderKey);
-      const folderId = await ensureFolderPath(api, folderPath);
+      const folderTemplate = normalizeEagleFolderTemplate(ADAPTER.conf.eagleFolderPath);
+      EBUS.emit("notify-message", "info", eaglePlanSummary({
+        folderTemplate,
+        sourceTagLimit: ADAPTER.conf.eagleMaxSourceTags,
+        skipDuplicates: ADAPTER.conf.eagleSkipDuplicates,
+      }), 5000);
+      const folderIds = new Map<string, string>();
       const assets = this.assetsForChapter(chapter, { picked: current => current === index }, singleChapter ? "" : chapterTitle, this.meta(chapter));
       stats.planned = assets.length;
       if (assets.length === 0) throw new Error("Current image is not ready for Eagle import.");
       for (const asset of assets) {
+        const folderId = await this.folderIdForAsset(api, folderIds, folderTemplate, asset, stats);
         await this.writeAsset(api, folderId, asset, stats);
       }
       EBUS.emit("notify-message", stats.failed === 0 ? "info" : "error", eagleSummary(stats), 10000);
@@ -149,11 +143,13 @@ export class EagleDownloader extends Downloader {
       const imf = chapter.filteredQueue[i];
       if (!picked.picked(i) || !isReadyForEagleImport(imf)) continue;
       const baseName = [directory, imf.node.title].filter(Boolean).join(" - ");
+      const tags = eagleTags(imf, meta, chapter);
       const common = {
         sourceUrl: imf.node.href,
         originUrl: imf.node.originSrc,
-        tags: eagleTags(imf, meta, chapter),
+        tags,
         website: imf.node.href,
+        folderTokens: eagleFolderTokens(tags, meta, chapter, directory),
       };
       if (imf.data instanceof SubData) {
         for (const item of imf.data.list) {
@@ -211,6 +207,18 @@ export class EagleDownloader extends Downloader {
       }
     }
   }
+
+  private async folderIdForAsset(api: EagleWebApi, folderIds: Map<string, string>, folderTemplate: string, asset: EagleImportAsset, stats: EagleImportStats): Promise<string> {
+    const folderPath = resolveEagleFolderPath(folderTemplate, asset.folderTokens);
+    const folderKey = folderPath.join("/");
+    stats.folders.push(folderKey);
+    let folderId = folderIds.get(folderKey);
+    if (!folderId) {
+      folderId = await ensureFolderPath(api, folderPath);
+      folderIds.set(folderKey, folderId);
+    }
+    return folderId;
+  }
 }
 
 function toAddItemInput(asset: EagleImportAsset, folderId: string): AddItemInput {
@@ -241,6 +249,22 @@ function eagleTags(imf: IMGFetcher, meta: GalleryMeta, chapter: Chapter): string
     imf.contentType || imf.node.mimeType ? `mime:${imf.contentType || imf.node.mimeType}` : "",
   ];
   return normalizeEagleTags(required, [...imf.node.tags].map(tag => tag.toString()), ADAPTER.conf.eagleMaxSourceTags);
+}
+
+function eagleFolderTokens(tags: string[], meta: GalleryMeta, chapter: Chapter, chapterDirectory: string): EagleFolderTokens {
+  return {
+    site: ADAPTER.matcher?.name || location.hostname,
+    gallery: safeTitle(meta.title || ""),
+    chapter: chapterDirectory,
+    copyright: tagValue(tags, "copyright"),
+    character: tagValue(tags, "character"),
+    author: tagValue(tags, "author"),
+  };
+}
+
+function tagValue(tags: string[], prefix: "copyright" | "character" | "author"): string {
+  const value = tags.find(tag => tag.startsWith(`${prefix}:`))?.slice(prefix.length + 1) || "";
+  return safeTitle(value);
 }
 
 function eagleAnnotation(imf: IMGFetcher, _meta: GalleryMeta, _chapter: Chapter, _name: string, subName?: string): string | undefined {

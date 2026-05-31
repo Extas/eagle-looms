@@ -1,5 +1,8 @@
 const eagleBase = (process.env.EAGLE_API_BASE || 'http://localhost:41595').replace(/\/$/, '');
 const smokePath = ['Eagle Looms', '_Smoke', 'write-smoke'];
+const smokeTag = 'eagle-looms-smoke';
+const smokeWebsitePrefix = 'https://eagle-looms.local/smoke/';
+const smokeSchema = 'eagle-looms/smoke/v1';
 const runId = `write-smoke-${Date.now()}`;
 let createdId = '';
 
@@ -56,16 +59,17 @@ async function readFolders() {
 }
 
 async function addSmokeBookmark(folderId, id) {
+  const smokeUrl = `${smokeWebsitePrefix}${id}`;
   const result = await eagleJson('/api/v2/item/add', {
     method: 'POST',
     body: {
       name: `Eagle Looms Write Smoke ${id}`,
-      bookmarkURL: `https://eagle-looms.local/smoke/${id}`,
-      website: `https://eagle-looms.local/smoke/${id}`,
+      bookmarkURL: smokeUrl,
+      website: smokeUrl,
       folders: [folderId],
-      tags: ['eagle-looms', 'eagle-looms-smoke'],
+      tags: ['eagle-looms', smokeTag],
       annotation: JSON.stringify({
-        schema: 'eagle-looms/smoke/v1',
+        schema: smokeSchema,
         id,
         createdAt: new Date().toISOString(),
       }),
@@ -90,12 +94,15 @@ async function readItemInfo(id) {
 }
 
 async function cleanupStaleSmokeItems() {
-  const rows = await queryByRunId('eagle-looms-smoke').catch(() => []);
-  const staleIds = rows
-    .filter((item) => Array.isArray(item.tags) && item.tags.includes('eagle-looms-smoke'))
-    .filter((item) => !item.isDeleted)
-    .map((item) => item.id)
-    .filter(Boolean);
+  const rows = await queryByRunId(smokeTag).catch(() => []);
+  const staleIds = [];
+  for (const item of rows) {
+    const hydrated = item?.id ? await readItemInfo(item.id).catch(() => item) : item;
+    const id = hydrated?.id || item?.id;
+    if (id && isManagedSmokeItem(hydrated) && !hydrated.isDeleted) {
+      staleIds.push(id);
+    }
+  }
   for (const id of staleIds) {
     await trashItemWithRetry(id).catch(() => undefined);
   }
@@ -173,4 +180,22 @@ function extractItemId(payload) {
   if (payload.item) return extractItemId(payload.item);
   if (payload.data) return extractItemId(payload.data);
   return '';
+}
+
+function isManagedSmokeItem(item) {
+  if (!item || typeof item !== 'object') return false;
+  if (!Array.isArray(item.tags) || !item.tags.includes(smokeTag)) return false;
+  if (typeof item.website !== 'string' || !item.website.startsWith(smokeWebsitePrefix)) return false;
+  const annotation = parseJsonAnnotation(item.annotation);
+  return annotation?.schema === smokeSchema && typeof annotation.id === 'string';
+}
+
+function parseJsonAnnotation(annotation) {
+  if (typeof annotation !== 'string') return undefined;
+  try {
+    const parsed = JSON.parse(annotation);
+    return parsed && typeof parsed === 'object' ? parsed : undefined;
+  } catch {
+    return undefined;
+  }
 }

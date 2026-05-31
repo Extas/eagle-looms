@@ -1,6 +1,6 @@
 # Git and Upstream
 
-Status: active local workflow  
+Status: active local workflow
 Last updated: 2026-05-31
 
 ## Remotes

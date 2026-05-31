@@ -1,6 +1,6 @@
 # Manual QA
 
-Status: active QA checklist  
+Status: active QA checklist
 Last updated: 2026-05-31
 
 ## Automated Gates
@@ -28,8 +28,9 @@ Full local verification:
 npm run verify:all
 ```
 
-This additionally creates one bookmark smoke item in the current Eagle library, verifies write/readback, and moves only that created item to trash.
-It also creates one 1x1 PNG image smoke item through a `data:image/png;base64,...` payload, verifies tags/annotation readback, and moves only that created item to trash.
+Before each smoke run, scripts only pre-clean stale items that match the script-managed smoke tag, local smoke URL prefix, and annotation schema.
+This additionally creates one bookmark smoke item in the current Eagle library, verifies write/readback, and moves that managed smoke item to trash.
+It also creates one 1x1 PNG image smoke item through a `data:image/png;base64,...` payload, verifies tags/annotation readback, and moves that managed smoke item to trash.
 
 ## Install Userscript
 

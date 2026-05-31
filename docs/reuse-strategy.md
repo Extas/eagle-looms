@@ -1,6 +1,6 @@
 # Reuse Strategy
 
-Status: active implementation note  
+Status: active implementation note
 Last updated: 2026-05-31
 
 ## From Comic Looms

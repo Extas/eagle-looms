@@ -1,4 +1,4 @@
-const POST_RE = /\/posts\/(\d+)/;
+const POST_RE = /\/(?:posts|pictures\/view_post)\/(\d+)/;
 const IMAGE_EXT_RE = /\.(?:jpe?g|png|webp|gif)(?:[?#].*)?$/i;
 
 export interface AnimePicturesPostEntry {
@@ -31,6 +31,18 @@ export interface AnimePicturesSourceMetadata {
   authorUrls: string[];
 }
 
+export interface AnimePicturesApiPost {
+  id: string;
+  postUrl: string;
+  thumbnailUrl?: string;
+  title: string;
+  width?: number;
+  height?: number;
+  ext?: string;
+  fileUrl?: string;
+  tags: string[];
+}
+
 export function parseAnimePicturesPostEntries(document: Document, pageUrl = window.location.href, limit = Number.POSITIVE_INFINITY): AnimePicturesPostEntry[] {
   const posts: AnimePicturesPostEntry[] = [];
   const seen = new Set<string>();
@@ -58,6 +70,11 @@ export function parseAnimePicturesPostEntries(document: Document, pageUrl = wind
     });
   }
 
+  const currentPost = currentPostEntry(document, pageUrl);
+  if (currentPost && !seen.has(currentPost.id) && posts.length < limit) {
+    posts.push(currentPost);
+  }
+
   return posts;
 }
 
@@ -70,8 +87,34 @@ export function extractAnimePicturesSourceMetadata(document: Document, pageUrl =
   };
 }
 
+export function animePicturesApiPostsUrl(pageUrl: string): string {
+  const source = new URL(pageUrl, window.location.href);
+  const apiUrl = new URL("https://api.anime-pictures.net/api/v3/posts");
+  apiUrl.searchParams.set("page", source.searchParams.get("page") || "0");
+  apiUrl.searchParams.set("lang", source.searchParams.get("lang") || "en");
+  apiUrl.searchParams.set("ldate", source.searchParams.get("ldate") || "0");
+  const searchTag = source.searchParams.get("search_tag");
+  const orderBy = source.searchParams.get("order_by");
+  if (searchTag) apiUrl.searchParams.set("search_tag", searchTag);
+  if (orderBy) apiUrl.searchParams.set("order_by", orderBy);
+  return apiUrl.toString();
+}
+
+export function animePicturesApiDetailUrl(postId: string): string {
+  return `https://api.anime-pictures.net/api/v3/posts/${encodeURIComponent(postId)}`;
+}
+
+export function parseAnimePicturesApiPosts(data: unknown, pageUrl: string): AnimePicturesApiPost[] {
+  const posts: unknown[] = Array.isArray((data as any)?.posts) ? (data as any).posts : [];
+  return posts.map(post => apiPostToEntry(post, pageUrl)).filter((post): post is AnimePicturesApiPost => Boolean(post));
+}
+
+export function parseAnimePicturesApiDetail(data: unknown, pageUrl: string): AnimePicturesApiPost | undefined {
+  return apiPostToEntry(data, pageUrl);
+}
+
 function resultPostAnchors(document: Document, pageUrl: string): HTMLAnchorElement[] {
-  const rawAnchors = [...document.querySelectorAll<HTMLAnchorElement>('a[href*="/posts/"]')]
+  const rawAnchors = [...document.querySelectorAll<HTMLAnchorElement>('a[href*="/posts/"], a[href*="/pictures/view_post/"]')]
     .filter(anchor => !isSidebarPostAnchor(anchor));
   const imageAnchors = rawAnchors.filter((anchor) => Boolean(anchor.querySelector('img')));
   const anchors = imageAnchors.length ? imageAnchors : rawAnchors;
@@ -88,7 +131,28 @@ function resultPostAnchors(document: Document, pageUrl: string): HTMLAnchorEleme
 }
 
 function isSidebarPostAnchor(anchor: HTMLAnchorElement): boolean {
-  return Boolean(anchor.closest('#sidebar, aside, .sidebar, .sidebar_block, .last-stars'));
+  const sidebar = anchor.closest('#sidebar, aside, .sidebar, .sidebar_block');
+  if (sidebar) return true;
+  const lastStars = anchor.closest('.last-stars');
+  return Boolean(lastStars?.closest('#sidebar, aside, .sidebar, .sidebar_block'));
+}
+
+function currentPostEntry(document: Document, pageUrl: string): AnimePicturesPostEntry | undefined {
+  const id = new URL(pageUrl, window.location.href).pathname.match(POST_RE)?.[1];
+  if (!id) return undefined;
+  const html = document.documentElement.outerHTML || "";
+  const candidates = collectAnimePicturesImageCandidates(document, html, pageUrl);
+  const img = document.querySelector<HTMLImageElement>('.post_content img, .post img, img[src*="/pictures/"], img[src*="/previews/"], img[src*="/preview/"]');
+  const thumbnail = candidates.find(candidate => isPreviewCandidate(candidate.url))?.url
+    || absoluteMaybe(imageSource(img), pageUrl)
+    || candidates[0]?.url;
+  return {
+    id,
+    postUrl: new URL(`/posts/${id}${new URL(pageUrl, window.location.href).search || ""}`, pageUrl).toString(),
+    thumbnailUrl: thumbnail,
+    title: titleFromDocument(document, id),
+    ...(parseResolution(document.body?.textContent || "") || {}),
+  };
 }
 
 function extractCategorizedTags(root: Element, baseUrl: string): string[] {
@@ -182,6 +246,65 @@ function tagNameFromUrl(value: string, baseUrl: string): string {
   } catch {
     return "";
   }
+}
+
+function apiPostToEntry(post: unknown, pageUrl: string): AnimePicturesApiPost | undefined {
+  const raw = post as Record<string, any> | undefined;
+  if (!raw) return undefined;
+  const id = String(raw.id || "");
+  if (!id) return undefined;
+  const width = Number(raw.width);
+  const height = Number(raw.height);
+  const ext = typeof raw.ext === "string" ? raw.ext.replace(/^\./, "").toLowerCase() : "";
+  const fileUrl = typeof raw.file_url === "string" && raw.file_url ? `https://api.anime-pictures.net/pictures/get_image/${raw.file_url}` : undefined;
+  const md5 = typeof raw.md5 === "string" ? raw.md5 : "";
+  const thumbnailUrl = md5 ? `https://opreviews.anime-pictures.net/${md5.slice(0, 3)}/${md5}_cp.avif` : undefined;
+  return {
+    id,
+    postUrl: new URL(`/posts/${id}`, pageUrl).toString(),
+    thumbnailUrl,
+    title: `anime-pictures-${id}.${ext || "jpg"}`,
+    width: Number.isFinite(width) ? width : undefined,
+    height: Number.isFinite(height) ? height : undefined,
+    ext,
+    fileUrl,
+    tags: apiTags(raw.tags),
+  };
+}
+
+function apiTags(tags: unknown): string[] {
+  if (!Array.isArray(tags)) return [];
+  return [...new Set(tags.map((entry) => {
+    const raw = (entry as any)?.tag || entry;
+    const value = typeof raw === "string" ? raw : raw?.tag || raw?.name || raw?.tag_en || "";
+    const category = raw?.type || raw?.category || raw?.tag_type || (entry as any)?.type || (entry as any)?.tag_type || "";
+    const normalized = normalizeApiTagCategory(String(category));
+    const name = cleanSourceTagName(String(value || ""));
+    if (!name) return "";
+    return normalized ? `${normalized}:${name}` : name;
+  }).filter(Boolean))];
+}
+
+function normalizeApiTagCategory(value: string): "copyright" | "character" | "author" | "" {
+  const category = value.toLowerCase().replace(/[_-]+/g, " ").trim();
+  switch (category) {
+    case "copyright":
+    case "game copyright":
+    case "other copyright":
+      return "copyright";
+    case "character":
+      return "character";
+    case "author":
+    case "artist":
+      return "author";
+    default:
+      return "";
+  }
+}
+
+function titleFromDocument(document: Document, id: string): string {
+  const title = compactText(document.querySelector("h1")?.textContent || document.title || "");
+  return title || `anime-pictures-${id}`;
 }
 
 function activeByTagId(anchors: HTMLAnchorElement[], pageUrl: string): string {

@@ -1,6 +1,8 @@
 const eagleBase = (process.env.EAGLE_API_BASE || 'http://localhost:41595').replace(/\/$/, '');
 const smokePath = ['Eagle Looms', '_Smoke', 'import-smoke'];
 const smokeTag = 'eagle-looms-import-smoke';
+const smokeWebsitePrefix = 'https://eagle-looms.local/import-smoke/';
+const smokeSchema = 'eagle-looms/import-smoke/v1';
 const runId = `import-smoke-${Date.now()}`;
 const pixelPngBase64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII=';
 let createdId = '';
@@ -73,7 +75,7 @@ async function addSmokeImage(folderId, id) {
   const body = {
     name: `Eagle Looms Import Smoke ${id}.png`,
     base64: pixelPngBase64,
-    website: `https://eagle-looms.local/import-smoke/${id}`,
+    website: `${smokeWebsitePrefix}${id}`,
     folders: [folderId],
     tags: [
       'eagle-looms',
@@ -92,7 +94,7 @@ async function addSmokeImage(folderId, id) {
       '',
       '```eagle-looms-json',
       JSON.stringify({
-        schema: 'eagle-looms/import-smoke/v1',
+        schema: smokeSchema,
         id,
         stableKey: `eagle-looms:import-smoke:${id}`,
         sourceTags: ['source:smoke', 'post:import-smoke'],
@@ -139,11 +141,14 @@ async function readItemInfo(id) {
 
 async function cleanupStaleSmokeItems() {
   const rows = await queryByText(smokeTag).catch(() => []);
-  const staleIds = rows
-    .filter((item) => Array.isArray(item.tags) && item.tags.includes(smokeTag))
-    .filter((item) => !item.isDeleted)
-    .map((item) => item.id)
-    .filter(Boolean);
+  const staleIds = [];
+  for (const item of rows) {
+    const hydrated = item?.id ? await readItemInfo(item.id).catch(() => item) : item;
+    const id = hydrated?.id || item?.id;
+    if (id && isManagedSmokeItem(hydrated) && !hydrated.isDeleted) {
+      staleIds.push(id);
+    }
+  }
   for (const id of staleIds) {
     await trashItemWithRetry(id).catch(() => undefined);
   }
@@ -245,4 +250,30 @@ function summarizeItem(item) {
     isDeleted: item.isDeleted,
     keys: Object.keys(item).slice(0, 20),
   };
+}
+
+function isManagedSmokeItem(item) {
+  if (!item || typeof item !== 'object') return false;
+  if (!Array.isArray(item.tags) || !item.tags.includes(smokeTag)) return false;
+  if (typeof item.website !== 'string' || !item.website.startsWith(smokeWebsitePrefix)) return false;
+  const annotation = parseSmokeAnnotation(item.annotation);
+  return annotation?.schema === smokeSchema && typeof annotation.id === 'string';
+}
+
+function parseSmokeAnnotation(annotation) {
+  if (typeof annotation !== 'string') return undefined;
+  const direct = parseJson(annotation);
+  if (direct) return direct;
+  const fenced = annotation.match(/```eagle-looms-json\s*([\s\S]*?)```/);
+  return parseJson(fenced?.[1]?.trim());
+}
+
+function parseJson(value) {
+  if (!value) return undefined;
+  try {
+    const parsed = JSON.parse(value);
+    return parsed && typeof parsed === 'object' ? parsed : undefined;
+  } catch {
+    return undefined;
+  }
 }

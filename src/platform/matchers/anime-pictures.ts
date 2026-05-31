@@ -2,9 +2,9 @@ import { GalleryMeta } from "../../download/gallery-meta";
 import ImageNode from "../../img-node";
 import { ADAPTER } from "../adapt";
 import { BaseMatcher, OriginMeta, Result } from "../platform";
-import { collectAnimePicturesImageCandidates, diagnoseAnimePicturesDocument, extractAnimePicturesSourceMetadata, isAnimePicturesChallengeHtml, parseAnimePicturesPostEntries, selectAnimePicturesImageCandidate } from "../anime-pictures";
+import { AnimePicturesImageCandidate, animePicturesApiDetailUrl, diagnoseAnimePicturesDocument, collectAnimePicturesImageCandidates, extractAnimePicturesSourceMetadata, isAnimePicturesChallengeHtml, parseAnimePicturesApiDetail, parseAnimePicturesPostEntries, selectAnimePicturesImageCandidate } from "../anime-pictures";
 
-const POST_RE = /\/posts\/(\d+)/;
+const POST_RE = /\/(?:posts|pictures\/view_post)\/(\d+)/;
 
 class AnimePicturesMatcher extends BaseMatcher<Document> {
   count = 0;
@@ -51,28 +51,47 @@ class AnimePicturesMatcher extends BaseMatcher<Document> {
   }
 
   async fetchOriginMeta(node: ImageNode, retry: boolean): Promise<OriginMeta> {
-    const html = await fetch(withLang(node.href), { credentials: "include" }).then(res => {
-      if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
-      return res.text();
-    });
-    const doc = new DOMParser().parseFromString(html, "text/html");
-    const diagnostics = diagnoseAnimePicturesDocument(doc, node.href);
-    if (diagnostics.challengeDetected) {
-      throw new Error(`anime-pictures returned a challenge page: ${diagnostics.challengeSignals.join(",")}`);
+    const candidates: AnimePicturesImageCandidate[] = [];
+    let detailError: unknown;
+    try {
+      const html = await fetch(withLang(node.href), { credentials: "include" }).then(res => {
+        if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
+        return res.text();
+      });
+      const doc = new DOMParser().parseFromString(html, "text/html");
+      const diagnostics = diagnoseAnimePicturesDocument(doc, node.href);
+      if (diagnostics.challengeDetected) {
+        throw new Error(`anime-pictures returned a challenge page: ${diagnostics.challengeSignals.join(",")}`);
+      }
+      const sourceMetadata = extractAnimePicturesSourceMetadata(doc, node.href);
+      node.setTags(...sourceMetadata.tags);
+      node.setAuthorUrls(...sourceMetadata.authorUrls);
+      candidates.push(...collectAnimePicturesImageCandidates(doc, html, node.href));
+    } catch (error) {
+      detailError = error;
     }
-    const sourceMetadata = extractAnimePicturesSourceMetadata(doc, node.href);
-    node.setTags(...sourceMetadata.tags);
-    node.setAuthorUrls(...sourceMetadata.authorUrls);
+
+    const id = node.href.match(POST_RE)?.[1] || "";
+    const apiDetail = id ? await fetchApiDetail(id, node.href) : undefined;
+    if (apiDetail) {
+      node.setTags(...apiDetail.tags);
+      if (apiDetail.fileUrl) {
+        candidates.push({ url: apiDetail.fileUrl, score: 110 });
+      }
+    }
+
     const triedUrls = this.failedCandidatesFor(node);
     if (retry && node.originSrc) triedUrls.add(node.originSrc);
-    const candidate = selectAnimePicturesImageCandidate(collectAnimePicturesImageCandidates(doc, html, node.href), triedUrls);
+    const candidate = selectAnimePicturesImageCandidate(candidates, triedUrls);
     const url = candidate?.url;
-    if (!url) throw new Error(`cannot find original image url from ${node.href}`);
-    const id = node.href.match(POST_RE)?.[1] || "image";
+    if (!url) {
+      if (detailError) throw detailError;
+      throw new Error(`cannot find original image url from ${node.href}`);
+    }
     const ext = extensionFromUrl(url) || extensionFromUrl(node.title) || "jpg";
     return {
       url,
-      title: `anime-pictures-${id}.${ext}`,
+      title: `anime-pictures-${id || "image"}.${ext}`,
       href: node.href,
     };
   }
@@ -99,7 +118,7 @@ class AnimePicturesMatcher extends BaseMatcher<Document> {
     const searchTag = decodeSearchTag(url.searchParams.get("search_tag") || "posts");
     const title = `anime-pictures_${searchTag || "posts"}_${Math.min(this.count || ADAPTER.conf.eagleImportLimit, ADAPTER.conf.eagleImportLimit)}`;
     const meta = new GalleryMeta(window.location.href, title);
-    meta.downloader = "https://github.com/MapoMagpie/eagle-looms";
+    meta.downloader = "https://github.com/Extas/eagle-looms";
     meta.tags = {
       search_tag: searchTag ? [searchTag] : [],
       site: ["anime-pictures.net"],
@@ -122,8 +141,12 @@ ADAPTER.addSetup({
   name: "anime-pictures.net",
   workURLs: [
     /anime-pictures\.net\/posts(?:\?|$)/,
+    /anime-pictures\.net\/posts\/\d+/,
+    /anime-pictures\.net\/pictures\/view_posts/,
+    /anime-pictures\.net\/pictures\/view_post\/\d+/,
+    /anime-pictures\.net\/stars(?:\?|$)/,
   ],
-  match: ["https://anime-pictures.net/posts*"],
+  match: ["https://anime-pictures.net/posts*", "https://anime-pictures.net/pictures/view_post*", "https://anime-pictures.net/pictures/view_posts*", "https://anime-pictures.net/stars*"],
   constructor: () => new AnimePicturesMatcher(),
 });
 
@@ -153,6 +176,18 @@ function withLang(url: string): string {
   const parsed = new URL(url);
   parsed.searchParams.set("lang", "en");
   return parsed.toString();
+}
+
+async function fetchApiDetail(id: string, pageUrl: string) {
+  try {
+    const data = await fetch(animePicturesApiDetailUrl(id), { credentials: "include" }).then(res => {
+      if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
+      return res.json();
+    });
+    return parseAnimePicturesApiDetail(data, pageUrl);
+  } catch {
+    return undefined;
+  }
 }
 
 function extensionFromUrl(url: string): string {

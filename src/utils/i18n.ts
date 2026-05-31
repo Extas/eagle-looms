@@ -411,10 +411,10 @@ pero desactivará la lupa y la capacidad de arrastrar y mover imágenes.`,
     'Ruta de carpeta Eagle',
   ],
   eagleFolderPathTooltip: [
-    'Use / to separate Eagle folders. Supported tokens: {site}, {gallery}, {chapter}. Invalid folder characters are cleaned when saved.',
-    '用 / 分隔 Eagle 文件夹。支持变量：{site}、{gallery}、{chapter}。保存时会清理非法文件夹字符。',
-    'Use / to separate Eagle folders. Supported tokens: {site}, {gallery}, {chapter}. Invalid folder characters are cleaned when saved.',
-    'Use / para separar carpetas de Eagle. Variables: {site}, {gallery}, {chapter}.',
+    'Use / to separate Eagle folders. Tokens: {site}, {gallery}, {chapter}, {copyright}, {character}, {author}. Invalid folder characters are cleaned when saved.',
+    '用 / 分隔 Eagle 文件夹。支持变量：{site}、{gallery}、{chapter}、{copyright}、{character}、{author}。保存时会清理非法文件夹字符。',
+    'Use / to separate Eagle folders. Tokens: {site}, {gallery}, {chapter}, {copyright}, {character}, {author}. Invalid folder characters are cleaned when saved.',
+    'Use / para separar carpetas de Eagle. Variables: {site}, {gallery}, {chapter}, {copyright}, {character}, {author}.',
   ],
   eagleImportLimit: [
     'Eagle Import Limit',
@@ -959,9 +959,9 @@ pero desactivará la lupa y la capacidad de arrastrar y mover imágenes.`,
 <p>Yes! There&#39;s a <strong>Keyboard</strong> button at the bottom of the configuration panel. Click it to view or configure keyboard operations.</p>
 <p>You can even configure it for one-handed full keyboard operation, freeing up your other hand!</p>
 <h2>[How to Feed the Author]</h2>
-<p>Give Eagle Looms a star on <a target="_blank" href="https://github.com/MapoMagpie/eagle-looms">Github</a>.</p>
+<p>Give Eagle Looms a star on <a target="_blank" href="https://github.com/Extas/eagle-looms">Github</a>.</p>
 <p>Please do not review on Greasyfork, as its notification system cannot track subsequent feedback. Many people leave an issue and never back.
-Report issues here: <a target="_blank" href="https://github.com/MapoMagpie/eagle-looms/issues">issue</a></p>
+Report issues here: <a target="_blank" href="https://github.com/Extas/eagle-looms/issues">issue</a></p>
 <h2>[How to Reopen the Guide?]</h2>
 <p>Click the <strong>Help</strong> button at the bottom of the configuration panel.</p>
 `,
@@ -1038,9 +1038,9 @@ Report issues here: <a target="_blank" href="https://github.com/MapoMagpie/eagle
 <p>可以！在配置面板的下方，有一个<strong>快捷键</strong>按钮，点击后可以查看键盘操作，或进行配置。</p>
 <p>甚至可以配置为单手全键盘操作，解放另一只手！</p>
 <h2>[如何Feed作者。]</h2>
-<p>给 Eagle Looms 一个 <a target="_blank" href="https://github.com/MapoMagpie/eagle-looms">Github</a> 星星。</p>
+<p>给 Eagle Looms 一个 <a target="_blank" href="https://github.com/Extas/eagle-looms">Github</a> 星星。</p>
 <p>请勿在Greasyfork上反馈问题，因为该站点的通知系统无法跟踪后续的反馈。很多人只是留下一个问题，再也没有回来过。
-请在此反馈问题: <a target="_blank" href="https://github.com/MapoMagpie/eagle-looms/issues">issue</a></p>
+请在此反馈问题: <a target="_blank" href="https://github.com/Extas/eagle-looms/issues">issue</a></p>
 <h2>[如何再次打开指南？]</h2>
 <p>在配置面板的下方，点击<strong>帮助</strong>按钮。</p>
 `,
@@ -1118,8 +1118,8 @@ Report issues here: <a target="_blank" href="https://github.com/MapoMagpie/eagle
 <p>사이트를 다시 활성화하려면 제외되지 않은 사이트에서 설정해야 합니다.</p>
 
 <h2>[개발자에게 도움을 주고 싶다면?]</h2>
-<p><a target="_blank" href="https://github.com/MapoMagpie/eagle-looms">Github</a>에 Eagle Looms 별을 주세요.</p>
-<p>단, Greasyfork에 버그 제보 내용의 리뷰를 남기지 마세요. 해당 플랫폼의 알림 시스템이 후속 피드백을 추적할 수 없습니다. 많은 사람들이 문제를 제기하고 다시 돌아오지 않습니다.<br> 문제는 여기에 보고해 주세요: <a target="_blank" href="https://github.com/MapoMagpie/eagle-looms/issues">이슈</a></p>
+<p><a target="_blank" href="https://github.com/Extas/eagle-looms">Github</a>에 Eagle Looms 별을 주세요.</p>
+<p>단, Greasyfork에 버그 제보 내용의 리뷰를 남기지 마세요. 해당 플랫폼의 알림 시스템이 후속 피드백을 추적할 수 없습니다. 많은 사람들이 문제를 제기하고 다시 돌아오지 않습니다.<br> 문제는 여기에 보고해 주세요: <a target="_blank" href="https://github.com/Extas/eagle-looms/issues">이슈</a></p>
 
 <h2>[가이드를 다시 열려면?]</h2>
 <p>설정 패널 하단에 있는 <strong>도움말</strong> 버튼을 클릭하세요.</p>
@@ -1201,9 +1201,9 @@ Report issues here: <a target="_blank" href="https://github.com/MapoMagpie/eagle
 <p>¡Sí! Hay un botón del <strong>Teclado</strong> en la parte inferior del panel de configuración. Haz clic en él para ver o configurar las operaciones del teclado.</p>
 <p>¡Incluso puedes configurarlo para operar con una sola mano, liberando así tu otra mano!</p>
 <h2>[¿Cómo apoyar al autor?]</h2>
-<p>Deja una estrella para Eagle Looms en <a target='_blank' href='https://github.com/MapoMagpie/eagle-looms'>Github</a>.</p>
+<p>Deja una estrella para Eagle Looms en <a target='_blank' href='https://github.com/Extas/eagle-looms'>Github</a>.</p>
 <p>Por favor, no dejes reseñas en Greasyfork, ya que su sistema de notificaciones no puede rastrear comentarios posteriores. Muchas personas dejan un problema y nunca vuelven.
-Reporta problemas aquí: <a target='_blank' href='https://github.com/MapoMagpie/eagle-looms/issues'>issue</a></p>
+Reporta problemas aquí: <a target='_blank' href='https://github.com/Extas/eagle-looms/issues'>issue</a></p>
 <h2>[¿Cómo reabrir la guía?]</h2>
 <p>Haz clic en el botón de <strong>Ayuda</strong> en la parte inferior del panel de configuración.</p>
 `,
