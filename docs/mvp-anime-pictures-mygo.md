@@ -30,6 +30,18 @@ Matcher.fetchPagesSource()
 
 Eagle Looms 只替换最后一步保存目标：`EagleDownloader` 继承 Comic Looms `Downloader`，在图片二进制已经由 `IMGFetcher` 抓取完成后，把数据写入 Eagle。
 
+anime-pictures matcher 额外支持这些入口，便于人工调试和更宽泛采集：
+
+```text
+https://anime-pictures.net/posts?page=0
+https://anime-pictures.net/stars?page=0
+https://anime-pictures.net/posts/{id}
+https://anime-pictures.net/pictures/view_posts...
+https://anime-pictures.net/pictures/view_post/{id}
+```
+
+列表页按 `page` 参数继续翻页；单图详情页只导入当前 item，不自动拼接下一页。
+
 ## Success Criteria
 
 MVP 成功标准：
