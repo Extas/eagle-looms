@@ -99,4 +99,3 @@ function gmRequest<T>(url: string, details: {
     });
   });
 }
-

@@ -21,4 +21,3 @@ async function eagleJson(pathname) {
   }
   return json?.data ?? json;
 }
-
