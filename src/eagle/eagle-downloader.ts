@@ -13,7 +13,7 @@ import { duplicateQueries, isDuplicateItem, isSessionImported, markSessionImport
 import { eagleExtensionTag, normalizeEagleTags } from "./tags";
 import { isReadyForEagleImport } from "./import-readiness";
 import { eaglePlanSummary, eagleSummary, EagleImportSummaryStats } from "./import-summary";
-import { createEagleItemName } from "./naming";
+import { createEagleItemName, normalizeEagleItemName } from "./naming";
 
 const FILENAME_INVALIDCHAR = /[\\/:*?"<>|\n\t]/g;
 
@@ -42,6 +42,7 @@ export class EagleDownloader extends Downloader {
     const abortable = this.downloading;
     const stats: EagleImportStats = { planned: 0, imported: 0, skipped: 0, sessionSkipped: 0, failed: 0, folders: [], failures: [] };
     const folderIds = new Map<string, string>();
+    const folderNames = new Map<string, Set<string>>();
     try {
       this.panel.flushUI("packaging");
       const api = new EagleWebApi(normalizeEagleBaseUrl(ADAPTER.conf.eagleBaseUrl));
@@ -68,8 +69,10 @@ export class EagleDownloader extends Downloader {
 
         for (const asset of assets) {
           if (abortable && !this.downloading) throw new Error("abort");
-          const folderId = await this.folderIdForAsset(api, folderIds, folderTemplate, asset, stats);
-          await this.writeAsset(api, folderId, asset, stats);
+          const folderPath = resolveEagleFolderPath(folderTemplate, asset.folderTokens);
+          const folderKey = folderPath.join("/");
+          const folderId = await this.folderIdForPath(api, folderIds, folderPath, folderKey, stats);
+          await this.writeAsset(api, folderId, asset, stats, usedNamesForFolder(folderNames, folderKey));
         }
       }
 
@@ -121,12 +124,15 @@ export class EagleDownloader extends Downloader {
         skipDuplicates: ADAPTER.conf.eagleSkipDuplicates,
       }), 5000);
       const folderIds = new Map<string, string>();
+      const folderNames = new Map<string, Set<string>>();
       const assets = this.assetsForChapter(chapter, { picked: current => current === index }, singleChapter ? "" : chapterTitle, this.meta(chapter));
       stats.planned = assets.length;
       if (assets.length === 0) throw new Error("Current image is not ready for Eagle import.");
       for (const asset of assets) {
-        const folderId = await this.folderIdForAsset(api, folderIds, folderTemplate, asset, stats);
-        await this.writeAsset(api, folderId, asset, stats);
+        const folderPath = resolveEagleFolderPath(folderTemplate, asset.folderTokens);
+        const folderKey = folderPath.join("/");
+        const folderId = await this.folderIdForPath(api, folderIds, folderPath, folderKey, stats);
+        await this.writeAsset(api, folderId, asset, stats, usedNamesForFolder(folderNames, folderKey));
       }
       EBUS.emit("notify-message", stats.failed === 0 ? "info" : "error", eagleSummary(stats), 10000);
     } catch (error) {
@@ -136,7 +142,6 @@ export class EagleDownloader extends Downloader {
 
   private assetsForChapter(chapter: Chapter, picked: { picked(index: number): boolean }, directory: string, meta: GalleryMeta): EagleImportAsset[] {
     if (!chapter || chapter.filteredQueue.length === 0) return [];
-    const usedNames = new Set<string>();
     const assets: EagleImportAsset[] = [];
 
     for (let i = 0; i < chapter.filteredQueue.length; i++) {
@@ -153,23 +158,22 @@ export class EagleDownloader extends Downloader {
       };
       if (imf.data instanceof SubData) {
         for (const item of imf.data.list) {
-          const name = createEagleItemName(`${baseName} - ${item.name}`, usedNames);
           assets.push({
             ...common,
-            name,
+            name: normalizeEagleItemName(`${baseName} - ${item.name}`),
             data: item.data,
             contentType: item.contentType,
             itemKey: item.name,
-            annotation: eagleAnnotation(imf, meta, chapter, name, item.name),
+            annotation: eagleAnnotation(imf, meta, chapter, item.name),
           });
         }
       } else {
         assets.push({
           ...common,
-          name: createEagleItemName(baseName, usedNames),
+          name: normalizeEagleItemName(baseName),
           data: imf.data,
           contentType: imf.contentType || imf.node.mimeType || "image/jpeg",
-          annotation: eagleAnnotation(imf, meta, chapter, baseName),
+          annotation: eagleAnnotation(imf, meta, chapter),
         });
       }
     }
@@ -184,7 +188,7 @@ export class EagleDownloader extends Downloader {
     return false;
   }
 
-  private async writeAsset(api: EagleWebApi, folderId: string, asset: EagleImportAsset, stats: EagleImportStats): Promise<void> {
+  private async writeAsset(api: EagleWebApi, folderId: string, asset: EagleImportAsset, stats: EagleImportStats, usedNames: Set<string>): Promise<void> {
     try {
       if (isSessionImported(asset)) {
         stats.skipped += 1;
@@ -196,6 +200,7 @@ export class EagleDownloader extends Downloader {
         stats.skipped += 1;
         return;
       }
+      asset.name = createEagleItemName(asset.name, usedNames);
       const id = await api.addItem(toAddItemInput(asset, folderId));
       if (!id) throw new Error("Eagle did not return an item ID.");
       markSessionImported(asset);
@@ -208,9 +213,7 @@ export class EagleDownloader extends Downloader {
     }
   }
 
-  private async folderIdForAsset(api: EagleWebApi, folderIds: Map<string, string>, folderTemplate: string, asset: EagleImportAsset, stats: EagleImportStats): Promise<string> {
-    const folderPath = resolveEagleFolderPath(folderTemplate, asset.folderTokens);
-    const folderKey = folderPath.join("/");
+  private async folderIdForPath(api: EagleWebApi, folderIds: Map<string, string>, folderPath: string[], folderKey: string, stats: EagleImportStats): Promise<string> {
     stats.folders.push(folderKey);
     let folderId = folderIds.get(folderKey);
     if (!folderId) {
@@ -267,7 +270,7 @@ function tagValue(tags: string[], prefix: "copyright" | "character" | "author"):
   return safeTitle(value);
 }
 
-function eagleAnnotation(imf: IMGFetcher, _meta: GalleryMeta, _chapter: Chapter, _name: string, subName?: string): string | undefined {
+function eagleAnnotation(imf: IMGFetcher, _meta: GalleryMeta, _chapter: Chapter, subName?: string): string | undefined {
   const payload: Record<string, unknown> = {
     schema: "eagle-looms/item/v1",
   };
@@ -281,6 +284,15 @@ function eagleAnnotation(imf: IMGFetcher, _meta: GalleryMeta, _chapter: Chapter,
     payload.authorUrls = imf.node.authorUrls;
   }
   return Object.keys(payload).length > 1 ? JSON.stringify(payload) : undefined;
+}
+
+function usedNamesForFolder(folderNames: Map<string, Set<string>>, folderKey: string): Set<string> {
+  let usedNames = folderNames.get(folderKey);
+  if (!usedNames) {
+    usedNames = new Set<string>();
+    folderNames.set(folderKey, usedNames);
+  }
+  return usedNames;
 }
 
 function titleToString(title: string | string[]): string {
