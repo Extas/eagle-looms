@@ -7,10 +7,10 @@ Last updated: 2026-05-31
 
 ```text
 upstream  https://github.com/MapoMagpie/comic-looms.git
-origin    not configured yet
+origin    https://github.com/Extas/eagle-looms.git
 ```
 
-`upstream` is Comic Looms and should be treated as read-only. `origin` should point to the Eagle Looms repository only after that repository exists.
+`upstream` is Comic Looms and should be treated as read-only. `origin` is the user-owned Eagle Looms fork.
 
 Current upstream anchor:
 
@@ -22,11 +22,12 @@ upstream/master  8ce7f98fc2539d8e2a6ba2199b60ea03c6d0ad1f
 
 ```text
 main              Eagle Looms development branch
+origin/master     current GitHub fork branch, still matching Comic Looms at fork time
 upstream/master   Comic Looms source of truth
 upstream/gm_api   Comic Looms upstream branch, fetch-only unless needed
 ```
 
-Do not merge `upstream/master` wholesale into `main`. Eagle Looms is a userscript fork with an Eagle save target, so upstream changes should be ported deliberately.
+Do not merge `upstream/master` wholesale into `main`. Eagle Looms is a userscript fork with an Eagle save target, so upstream changes should be ported deliberately. If publishing local `main`, push it explicitly as `main`; do not overwrite `origin/master` without an intentional branch decision.
 
 ## Upstream Update Workflow
 
@@ -52,4 +53,3 @@ npm run build
 ```
 
 `dist/` is ignored by Git. Treat it as generated release output unless a release process explicitly says otherwise.
-
