@@ -15,6 +15,7 @@ class AnimePicturesMatcher extends BaseMatcher<Document> {
     let doc = document;
     let yieldedPosts = 0;
     const maxItems = Math.max(1, ADAPTER.conf.eagleImportLimit || 100);
+    const singlePostPage = isSinglePostPage(window.location.href);
 
     while (yieldedPosts < maxItems) {
       const diagnostics = diagnoseAnimePicturesDocument(doc, pageUrlFor(window.location.href, page));
@@ -25,6 +26,7 @@ class AnimePicturesMatcher extends BaseMatcher<Document> {
       const postCount = parseAnimePicturesPostEntries(doc, pageUrlFor(window.location.href, page)).length;
       if (postCount === 0) break;
       yield Result.ok(doc);
+      if (singlePostPage) break;
       yieldedPosts += postCount;
       page += 1;
       if (yieldedPosts >= maxItems) break;
@@ -115,12 +117,14 @@ class AnimePicturesMatcher extends BaseMatcher<Document> {
 
   galleryMeta(): GalleryMeta {
     const url = new URL(window.location.href);
-    const searchTag = decodeSearchTag(url.searchParams.get("search_tag") || "posts");
-    const title = `anime-pictures_${searchTag || "posts"}_${Math.min(this.count || ADAPTER.conf.eagleImportLimit, ADAPTER.conf.eagleImportLimit)}`;
+    const searchTag = decodeSearchTag(url.searchParams.get("search_tag") || "");
+    const pageLabel = galleryLabel(url, searchTag);
+    const title = `anime-pictures_${pageLabel}_${Math.min(this.count || ADAPTER.conf.eagleImportLimit, ADAPTER.conf.eagleImportLimit)}`;
     const meta = new GalleryMeta(window.location.href, title);
     meta.downloader = "https://github.com/Extas/eagle-looms";
     meta.tags = {
       search_tag: searchTag ? [searchTag] : [],
+      page: [pageLabel],
       site: ["anime-pictures.net"],
     };
     return meta;
@@ -170,6 +174,21 @@ function pageNumberFromUrl(url: string): number {
   } catch {
     return 0;
   }
+}
+
+function isSinglePostPage(url: string): boolean {
+  try {
+    return /\/(?:posts|pictures\/view_post)\/\d+/.test(new URL(url).pathname);
+  } catch {
+    return false;
+  }
+}
+
+function galleryLabel(url: URL, searchTag: string): string {
+  const postId = url.pathname.match(POST_RE)?.[1];
+  if (postId) return `post_${postId}`;
+  if (url.pathname.includes("/stars")) return "stars";
+  return searchTag || "posts";
 }
 
 function withLang(url: string): string {
