@@ -1,161 +1,212 @@
 # Manual QA
 
-Status: active QA checklist
-Last updated: 2026-05-31
+Use this checklist when code changes touch collection, Eagle import, organization rules, or userscript packaging.
 
 ## Automated Gates
 
-Run from `eagle-looms/`:
+From the repo root:
 
 ```powershell
-npm run verify:local
+npm run test:unit
+npm run build
+npm run verify:eagle
 ```
 
-This verifies:
-
-```text
-unit parser, Eagle option normalization, duplicate query, folder path, and transport invariants
-Eagle item/add response shape extraction
-Eagle import readiness follows upstream DONE-and-data filtering
-TypeScript build
-userscript bundle generation
-current Eagle Web API read probe
-```
-
-Full local verification:
+Full local gate:
 
 ```powershell
 npm run verify:all
 ```
 
-Before each smoke run, scripts only pre-clean stale items that match the script-managed smoke tag, local smoke URL prefix, and annotation schema.
-This additionally creates one bookmark smoke item in the current Eagle library, verifies write/readback, and moves that managed smoke item to trash.
-It also creates one 1x1 PNG image smoke item through a `data:image/png;base64,...` payload, verifies tags/annotation readback, and moves that managed smoke item to trash.
+`verify:all` creates small managed smoke items in the current Eagle library, verifies readback, then moves only those smoke items to trash.
 
-## Install Userscript
+## Install Check
 
-Build:
-
-```powershell
-npm run build
-```
-
-Install:
+Build output:
 
 ```text
 dist/eagle-looms.user.js
 ```
 
-Use Tampermonkey or Violentmonkey. Confirm the script header includes:
+Install in Tampermonkey or Violentmonkey and confirm the userscript header includes broad source-page matching and GM request permissions:
 
 ```text
-@name    Eagle Looms
 @match   *://*/*
 @connect *
 @grant   GM.xmlHttpRequest / GM_xmlhttpRequest
 ```
 
-## Target Page
-
-Open:
+## Primary Target
 
 ```text
 https://anime-pictures.net/posts?page=0&search_tag=bang+dream!+it%27s+mygo!!!!!
 ```
 
-Also smoke these anime-pictures entry types:
+Also smoke:
 
 ```text
 https://anime-pictures.net/posts?page=0
 https://anime-pictures.net/stars?page=0
 https://anime-pictures.net/posts/919002
+https://danbooru.donmai.us/posts
+https://danbooru.donmai.us/posts/{id}
+https://gelbooru.com/index.php?page=post&s=list
+https://gelbooru.com/index.php?page=post&s=view&id={id}
 ```
+
+## UI Checks
 
 Expected:
 
 ```text
-Comic Looms style control bar appears.
-Enter/Open shows the full-view grid.
-The Config panel contains Eagle API URL, Eagle Folder Path, Eagle Import Limit, Eagle Source Tag Limit, and Skip Eagle Duplicates.
-Default Eagle API URL is `http://localhost:41595`.
-If a user pastes `http://localhost:41595/api/v2/`, the Config panel stores it as `http://localhost:41595`.
-Default Eagle folder template is `Eagle Looms/{site}/{gallery}`.
-Whitespace around folder path segments is trimmed, illegal Eagle folder characters are cleaned, and an empty path falls back to the default template.
-Default Eagle Import Limit is `100`.
-Out-of-range import limits are clamped to `1..1000`.
-Default Eagle Source Tag Limit is `20`.
-Out-of-range source tag limits are clamped to `0..100`; `0` keeps only required Eagle Looms tags.
-Global and site-level Eagle settings are normalized before import.
-The Download panel button says Import to Eagle / 导入 Eagle.
-Clicking Import to Eagle reuses chapter selection, cherry-pick ranges, progress canvas, retry failed, and loaded item states.
-The script fetches original image binaries in the browser session before Eagle write, and imports only items whose fetch state is DONE with data.
-On anime-pictures detail pages, direct `images.anime-pictures.net` candidates are preferred over `api.anime-pictures.net/pictures/download_image/...` API endpoints.
-If one original-image candidate returns a Cloudflare `Just a moment...` HTML page, retry switches to another original-image candidate instead of retrying the same URL three times.
+Comic Looms control bar appears
+Enter/Open shows the full-view grid
+existing chapter selection, cherry-pick ranges, loading status, progress canvas, retry failed still work
+Import panel primary action says Load missing & import / 加载缺失并导入
+loaded-only action says Import loaded only / 只导入已加载
+while import is running, the loaded-only action is hidden and the primary action becomes a stop action
+import panel status text uses load/import/write wording, not zip/download wording
+status reset actions say Mark loaded as missing / 已加载改为未加载 and Retry failed images / 重试失败图片, with tooltips explaining they only reset local load state
+Config panel contains Eagle API URL, folder preset, folder path, import limit, source tag limit, skip duplicates
+Folder preset dropdown uses the current UI language instead of raw internal preset names
+Config panel labels the former download concurrency setting as import loading threads
+Eagle import preview appears under the Eagle settings
+Eagle import preview has a Test Eagle action that reports connection success or failure for the configured Web API URL
+Eagle connection test result stays visible when unrelated non-Eagle settings change
+Eagle import preview updates after changing folder preset/path or source tag limit
+Eagle import preview shows folder preset, saved folder rule, and example resolved folders as separate rows
+Eagle import preview shows batch limit and duplicate policy
+Eagle import preview explains source fields: website stores the source page, url stores the original image, duplicate checks use source/original URL and legacy keys
+Eagle import preview explains visible tag priority: copyright:/character:/author: first, then other source tags within the cap
+Eagle import preview shows whether the current tab uses global settings, inherits global Eagle settings, or overrides specific Eagle fields
+switching between global and site config keeps exactly one Eagle import preview
+settings persist after reload
+manual folder path edits switch preset to Custom path
+matching saved paths infer the correct built-in preset
 ```
 
-If collection fails, inspect the browser console and visible error message:
+## E2E Import Flow
+
+Expected bulk-import path:
 
 ```text
-challenge page: complete anime-pictures browser verification, then retry.
-no thumbnails: target markup likely changed or the script is on the wrong page.
-original URL failure: detail-page original image extraction needs inspection.
+user opens a supported source page
+Comic Looms entry appears and opens the full-view grid
+user optionally cherry-picks or excludes ranges
+Cherry Pick range actions use the current UI language for pick, exclude, and clear buttons
+chapter range actions use the current UI language for select all, unselect all, and add new chapters
+chapter titles in the range selector render as plain text, even when the source page title contains HTML-like markup
+Config preview makes Eagle API URL, folder template, duplicate policy, source tag cap, and config scope visible before import
+Load missing & import loads selected gray missing images first, then writes loaded images to Eagle
+Import loaded only uses the same Eagle preflight, confirmation, duplicate handling, and stop behavior as Load missing & import, but only writes green loaded images and does not fetch additional images
+Eagle preflight checks duplicates and resolves destination folders before writing
+confirmation panel appears before writing to Eagle when at least one item will be written
+confirmation panel lists the same plan details as the toast summary
+confirmation panel and toast put decision counts first: selected, planned, limit omissions, will-write, skips/failures
+confirmation panel, toast, and final result summary use the current UI language for fixed import-summary labels
+confirmation panel uses user-facing wording such as visible tags max, duplicates skipped, and will skip before writing
+confirmation panel says writes image items only when new items will be written, and does not show that line for all-skipped duplicate imports
+confirmation panel can copy the import plan before writing without confirming the import
+long confirmation details scroll inside the body while Copy plan, Cancel, and Write remain visible
+confirmation panel focuses the write button, keeps Tab focus inside the panel, restores focus after close, Enter confirms, Escape cancels, and keyboard shortcuts do not trigger page actions while focused inside the panel
+Cancel closes the confirmation without writing new Eagle items
+clicking either import button again while import/confirmation/write is active stops the pending import and closes the confirmation
+Write to Eagle creates image items only, plus the destination folders required by those items
+final summary reports planned, imported, skipped, failed, and destination folders
+all-skipped duplicate imports show No new items / 没有新项目 instead of Imported / 导入完成
+right click / context menu Import current to Eagle shows the same confirmation, running, and No new items / Imported / Failed end states as bulk import
+right click / context menu Import current to Eagle reports missing current-image targets in the import result panel
+import panel keeps the latest Eagle import result visible until the user clears it or starts a new import
+import result panel can copy counts, skipped/failure details, and destination folder links for troubleshooting
+long import result details scroll inside the result body while Clear and Copy remain visible
+failure details copied from the result panel use the current UI language for Eagle connection, timeout, missing image, canceled, and skipped-reason labels
+Eagle connection failures point users to start Eagle, check the Eagle API URL, and use Config > Test Eagle
+Eagle connection failures and no-loaded-image failures also appear in the import result panel and can be copied
+when no images are loaded/selected, the import result reports that local selection issue before trying Eagle connection
 ```
 
-## Import Verification
-
-Default import destination template:
+Default settings:
 
 ```text
-Eagle Looms/{site}/{gallery}
+Eagle API URL: http://localhost:41595
+Folder template: Eagle Looms/{site}/{copyright}
+Import limit: 100
+Source tag limit: 20
+Skip duplicates: enabled
 ```
 
-The Settings folder path field uses slash-separated Eagle folders:
+## Import Checks
+
+Before writing, the import plan should show:
 
 ```text
-Root/Child/Leaf
+resolved destination folders
+selected and planned counts
+omitted count when over Eagle Import Limit
+will-write count
+session and Eagle duplicate preflight skips
+missing folder metadata counts for used metadata tokens
+folder fallback counts when the default Site / Copyright preset has to replace missing copyright
+sample resolved copyright/character/author values when present
+source tag limit and duplicate policy
 ```
 
-Supported path tokens:
+After import, inspect Eagle:
 
 ```text
-{site}
-{gallery}
-{chapter}
-{copyright}
-{character}
-{author}
+item names use source identity, without generated 001_ order prefixes
+default MyGO folder resolves under Eagle Looms/anime-pictures.net/bang dream when copyright metadata is present
+items have website pointing to source post URL
+items have original image url when Eagle preserves it
+visible tags contain source semantic tags only
+items do not force eagle-looms, site:*, gallery:*, chapter:*, ext:*, mime:*, or post:* tags
+copyright/character/author tags are normalized and prioritized within the cap
+general raw source tags are copied within the cap
+normal image item annotation is empty / clean
+no _eagle-looms/Data folder or Eagle Looms raw bookmark item is created by the import
+legacy raw records, if already present from older versions, are only used for duplicate compatibility
 ```
 
-For the MyGO target page, the default folder resolves under:
+Folder-token behavior:
 
 ```text
-Eagle Looms/anime-pictures.net/anime-pictures_bang dream! it's mygo!!!!!_100
+folder tokens resolve from uncapped source metadata even when visible source tag limit is low
+multiple copyright values choose the shortest normalized folder value
+default Site / Copyright preset falls back to gallery, author, chapter, then Unsorted when copyright is missing
+templates using {character} add the same image to multiple character folders when distinct characters exist
+longer outfit-style character variants fold into the shorter character name
 ```
 
-Inspect in Eagle:
+Duplicate behavior:
 
 ```text
-item names use source identity such as `anime-pictures-{post-id}.{ext}` without generated `001_` order prefixes
-items have required `eagle-looms`, `site:*`, `gallery:*`, `chapter:*`, `ext:*`, and `mime:*` style tags
-source-site tags are copied up to Eagle Source Tag Limit; `copyright`/`character`/`author` are normalized to `copyright:`/`character:`/`author:`, and other tags are imported as raw tags
-items have website pointing to anime-pictures post URL and url pointing to the original image URL when Eagle preserves it
-normal image items have an empty or minimal annotation; multi-file subitems or items with multiple author URLs may keep one compact JSON line
-rerunning import skips known source/origin/annotation duplicates by default, using separate exact Eagle queries
-anime-pictures `Last stars` sidebar thumbnails are not imported even when they link to `/posts/...`
-anime-pictures `/stars?page=0` imports its main stars list; only sidebar recommendation blocks are excluded
-anime-pictures `/posts/{id}` imports only the current detail page image and does not paginate `/posts/{id}?page=1`
-rerunning import in the same userscript page session skips assets already written by this session before querying Eagle again
-Import summary appears in the message box: planned, imported, skipped, failed, destination folders, and bounded first failures if any
-Clicking Import to Eagle with no loaded/selected image should show a clear error instead of an empty successful import
+rerunning import skips exact source/origin/legacy-raw-record/legacy-annotation duplicates
+same-session re-import skips before querying Eagle again
+same-plan duplicate stable keys are counted as session skips
+duplicate-only reruns do not create fresh empty destination folders
+multi-file subitems sharing an origin URL are not skipped unless itemKey/stable raw identity also matches
+```
+
+Folder naming behavior:
+
+```text
+Twitter / X home folders use twitter-home-YYYY-MM-DD instead of parsed post/media counts
+Twitter / X user and list timelines include user/list identity plus local date
+booru search/gallery fallback folders use semantic source labels and never parsed result counts
+anime-pictures detail pages do not use post id as gallery/folder fallback; post id stays item/source identity
+ArtStation user folders use artstation-{username}, without project/asset counters
+```
+
+anime-pictures behavior:
+
+```text
+posts search excludes Last stars/sidebar thumbnails
+/stars?page=0 imports the main stars list while excluding recommendation sidebars
+/posts/{id} imports only the current detail-page image
+detail pages prefer direct images.anime-pictures.net candidates over api download_image endpoints
+Cloudflare challenge HTML should trigger candidate retry/failure messaging, not a false successful image import
 ```
 
 ## Known External Limitation
 
-Command-line requests to the anime-pictures target page currently return HTTP 403 from this environment. The collector is therefore designed to run as a userscript in the real browser page context and parse the live DOM, then use `GM_xmlhttpRequest` for pagination/detail/image/API requests.
-
-Current CLI check on 2026-05-31:
-
-```text
-https://anime-pictures.net/posts?page=0&search_tag=bang+dream!+it%27s+mygo!!!!!
-HTTP 403 Forbidden
-```
+Command-line requests to anime-pictures may return HTTP 403 from this environment. The collector is designed to run inside the real browser page context and use userscript requests for pagination, detail pages, and image/API fetches.

@@ -1,6 +1,6 @@
 import { saveConf } from "../config";
 import type { Config, ConfigBooleanType, ConfigTextType, ConfigNumberType, ConfigSelectType, ReadMode } from "../config";
-import { EAGLE_IMPORT_LIMIT_RANGE, EAGLE_MAX_SOURCE_TAGS_RANGE, normalizeEagleBaseUrl, normalizeEagleFolderTemplate, normalizeEagleImportLimit, normalizeEagleMaxSourceTags } from "../eagle/options";
+import { EAGLE_IMPORT_LIMIT_RANGE, EAGLE_MAX_SOURCE_TAGS_RANGE, eagleFolderPresetForTemplate, eagleFolderTemplateForPreset, normalizeEagleBaseUrl, normalizeEagleFolderPreset, normalizeEagleFolderTemplate, normalizeEagleImportLimit, normalizeEagleMaxSourceTags } from "../eagle/options";
 import EBUS from "../event-bus";
 import { IMGFetcherQueue } from "../fetcher-queue";
 import { IdleLoader } from "../idle-loader";
@@ -93,6 +93,7 @@ export function initEvents(HTML: Elements, BIFM: BigImageFrameManager, FVGM: Ful
     const name = configName(siteName);
     if (name) {
       (ADAPTER.conf as any)[key] = value;
+      ADAPTER.siteConf = { ...(ADAPTER.siteConf || {}), [key]: value };
     } else {
       (ADAPTER.globalConf as any)[key] = value;
       if (!ADAPTER.siteConf || !(key in ADAPTER.siteConf)) {
@@ -208,6 +209,18 @@ export function initEvents(HTML: Elements, BIFM: BigImageFrameManager, FVGM: Ful
       changeReadModeEvent(value);
       return;
     }
+    if (key === "eagleFolderPreset") {
+      const preset = normalizeEagleFolderPreset(value);
+      inputElement.value = preset;
+      setConfigValue("eagleFolderPreset", preset);
+      const template = eagleFolderTemplateForPreset(preset);
+      if (template) {
+        setConfigValue("eagleFolderPath", template);
+        const folderInput = HTML.config.panel.querySelector<HTMLInputElement>("#eagleFolderPathTextInput");
+        if (folderInput) folderInput.value = template;
+      }
+      return;
+    }
     setConfigValue(key, value as any);
     if (key === "minifyPageHelper") {
       switch (ADAPTER.conf.minifyPageHelper) {
@@ -237,6 +250,12 @@ export function initEvents(HTML: Elements, BIFM: BigImageFrameManager, FVGM: Ful
     if (key === "eagleFolderPath") value = normalizeEagleFolderTemplate(value);
     inputElement.value = value;
     setConfigValue(key, value as Config[ConfigTextType]);
+    if (key === "eagleFolderPath") {
+      const preset = eagleFolderPresetForTemplate(value);
+      setConfigValue("eagleFolderPreset", preset);
+      const presetSelect = HTML.config.panel.querySelector<HTMLSelectElement>("#eagleFolderPresetSelect");
+      if (presetSelect) presetSelect.value = preset;
+    }
   }
 
   const cancelIDContext: Record<string, number> = {};

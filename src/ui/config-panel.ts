@@ -1,4 +1,6 @@
-import { ConfigBooleanType, ConfigTextType, ConfigItem, ConfigItems, ConfigNumberType, ConfigSelectType, defaultConf, resetConf } from "../config";
+import { Config, ConfigBooleanType, ConfigTextType, ConfigItem, ConfigItems, ConfigNumberType, ConfigSelectType, defaultConf, resetConf } from "../config";
+import { EagleWebApi } from "../eagle/eagle-web-api";
+import { resolveEagleFolderPaths } from "../eagle/options";
 import { ADAPTER } from "../platform/adapt";
 import { I18nValue, i18n } from "../utils/i18n";
 import q from "../utils/query-element";
@@ -46,7 +48,13 @@ export class ConfigPanel {
     q("#reset-config-element", this.panel).addEventListener("click", () => {
       const selectedConfig = ADAPTER.conf.selectedSiteNameConfig;
       if (resetConf(selectedConfig)) {
-        ADAPTER.conf = ADAPTER.globalConf = selectedConfig ? ADAPTER.globalConf : defaultConf();
+        if (selectedConfig) {
+          ADAPTER.siteConf = {};
+          ADAPTER.conf = { ...ADAPTER.globalConf };
+        } else {
+          ADAPTER.globalConf = defaultConf();
+          ADAPTER.conf = ADAPTER.siteConf ? { ...ADAPTER.globalConf, ...ADAPTER.siteConf } : ADAPTER.globalConf;
+        }
         ADAPTER.conf.selectedSiteNameConfig = selectedConfig;
         this.flushConfigItems(events);
       }
@@ -55,7 +63,7 @@ export class ConfigPanel {
 
   flushConfigItems(events: Events) {
     const header = q("#config-panel-header", this.panel);
-    Array.from(this.panel.querySelectorAll<HTMLElement>(".config-panel-item")).forEach(elem => elem.remove());
+    Array.from(this.panel.querySelectorAll<HTMLElement>(".config-panel-item, .eagle-config-preview")).forEach(elem => elem.remove());
     const nodes = ConfigItems.map(createOption).map(str => {
       const template = document.createElement("template");
       template.innerHTML = str.trim();
@@ -66,8 +74,14 @@ export class ConfigPanel {
     ConfigItems.forEach(item => {
       switch (item.typ) {
         case "number":
-          q(`#${item.key}MinusBTN`, this.panel).addEventListener("click", () => events.modNumberConfigEvent(item.key as ConfigNumberType, 'minus'));
-          q(`#${item.key}AddBTN`, this.panel).addEventListener("click", () => events.modNumberConfigEvent(item.key as ConfigNumberType, 'add'));
+          q(`#${item.key}MinusBTN`, this.panel).addEventListener("click", () => {
+            events.modNumberConfigEvent(item.key as ConfigNumberType, 'minus');
+            this.refreshEagleConfigPreviewFor(item.key);
+          });
+          q(`#${item.key}AddBTN`, this.panel).addEventListener("click", () => {
+            events.modNumberConfigEvent(item.key as ConfigNumberType, 'add');
+            this.refreshEagleConfigPreviewFor(item.key);
+          });
           q(`#${item.key}Input`, this.panel).addEventListener("wheel", (event: WheelEvent) => {
             event.preventDefault();
             if (event.deltaY < 0) {
@@ -75,19 +89,31 @@ export class ConfigPanel {
             } else if (event.deltaY > 0) {
               events.modNumberConfigEvent(item.key as ConfigNumberType, 'minus');
             }
+            this.refreshEagleConfigPreviewFor(item.key);
           });
           break;
         case "boolean":
-          q(`#${item.key}Checkbox`, this.panel).addEventListener("click", () => events.modBooleanConfigEvent(item.key as ConfigBooleanType));
+          q(`#${item.key}Checkbox`, this.panel).addEventListener("click", () => {
+            events.modBooleanConfigEvent(item.key as ConfigBooleanType);
+            this.refreshEagleConfigPreviewFor(item.key);
+          });
           break;
         case "select":
-          q(`#${item.key}Select`, this.panel).addEventListener("change", () => events.modSelectConfigEvent(item.key as ConfigSelectType));
+          q(`#${item.key}Select`, this.panel).addEventListener("change", () => {
+            events.modSelectConfigEvent(item.key as ConfigSelectType);
+            this.refreshEagleConfigPreviewFor(item.key);
+          });
           break;
         case "input":
-          q(`#${item.key}TextInput`, this.panel).addEventListener("change", () => events.modTextConfigEvent(item.key as ConfigTextType));
+          q(`#${item.key}TextInput`, this.panel).addEventListener("change", () => {
+            events.modTextConfigEvent(item.key as ConfigTextType);
+            this.refreshEagleConfigPreviewFor(item.key);
+          });
           break;
       }
     });
+    this.insertEagleConfigPreview();
+    this.bindEagleConfigPreview();
     // tooltip hovering
     this.panel.querySelectorAll<HTMLElement>(".p-tooltip").forEach(element => {
       const child = element.querySelector<HTMLElement>(".p-tooltiptext");
@@ -97,6 +123,55 @@ export class ConfigPanel {
         relocateElement(child, element, this.root.offsetWidth, this.root.offsetHeight);
       });
       element.addEventListener("mouseleave", () => child.style.display = "none");
+    });
+  }
+
+  private insertEagleConfigPreview() {
+    const anchor = q("#eagleSkipDuplicatesConfigItem", this.panel);
+    const preview = document.createElement("template");
+    preview.innerHTML = eagleConfigPreviewHTML();
+    anchor.after(preview.content.firstElementChild!);
+  }
+
+  private refreshEagleConfigPreview() {
+    const preview = this.panel.querySelector("#eagle-config-preview");
+    if (!preview) return;
+    const next = document.createElement("template");
+    next.innerHTML = eagleConfigPreviewHTML();
+    preview.replaceWith(next.content.firstElementChild!);
+    this.bindEagleConfigPreview();
+  }
+
+  private refreshEagleConfigPreviewFor(key: ConfigItem["key"]) {
+    if (isEaglePreviewConfigKey(key)) this.refreshEagleConfigPreview();
+  }
+
+  private bindEagleConfigPreview() {
+    const button = this.panel.querySelector<HTMLButtonElement>("#eagle-config-test-connection");
+    const status = this.panel.querySelector<HTMLElement>("#eagle-config-connection-status");
+    if (!button || !status) return;
+    button.addEventListener("click", async () => {
+      const conf = ADAPTER.conf.selectedSiteNameConfig ? ADAPTER.conf : ADAPTER.globalConf;
+      const api = new EagleWebApi(conf.eagleBaseUrl);
+      button.disabled = true;
+      button.textContent = i18n.eagleConfigTestChecking.get();
+      status.classList.remove("eagle-config-connection-ok", "eagle-config-connection-error");
+      status.textContent = i18n.eagleConfigTestChecking.get();
+      try {
+        const result = await api.probe();
+        status.textContent = i18n.eagleConfigTestOk.get()
+          .replace("{version}", eagleVersion(result.app))
+          .replace("{url}", api.baseUrl);
+        status.classList.add("eagle-config-connection-ok");
+      } catch (error) {
+        status.textContent = i18n.eagleConfigTestFailed.get()
+          .replace("{url}", api.baseUrl)
+          .replace("{message}", errorMessage(error));
+        status.classList.add("eagle-config-connection-error");
+      } finally {
+        button.disabled = false;
+        button.textContent = i18n.eagleConfigTestConnection.get();
+      }
     });
   }
 
@@ -158,7 +233,7 @@ function createOption(item: ConfigItem) {
       if (!item.options) {
         throw new Error(`options for ${item.key} not found`);
       }
-      const optionsStr = item.options.map(o => `<option value="${o.value}" ${conf[item.key as ConfigSelectType] == o.value ? "selected" : ""}>${o.display}</option>`).join("");
+      const optionsStr = item.options.map(o => `<option value="${escapeAttr(o.value)}" ${conf[item.key as ConfigSelectType] == o.value ? "selected" : ""}>${escapeHTML(configOptionDisplay(item.key, o.value, o.display))}</option>`).join("");
       input = `<select id="${item.key}Select">${optionsStr}</select>`;
       break;
     case "input":
@@ -167,7 +242,7 @@ function createOption(item: ConfigItem) {
 
   }
   const [start, end] = item.gridColumnRange ? item.gridColumnRange : [1, 11];
-  return `<div class="config-panel-item" style="grid-column-start: ${start}; grid-column-end: ${end}; padding-left: 5px;${display ? "" : " display: none;"}"><label class="p-label"><span><span>${i18nValue.get()}</span><span class="p-tooltip">${i18nValueTooltip ? " ?:" : " :"}<span class="p-tooltiptext">${i18nValueTooltip?.get() || ""}</span></span></span>${input}</label></div>`;
+  return `<div id="${item.key}ConfigItem" class="config-panel-item" style="grid-column-start: ${start}; grid-column-end: ${end}; padding-left: 5px;${display ? "" : " display: none;"}"><label class="p-label"><span><span>${i18nValue.get()}</span><span class="p-tooltip">${i18nValueTooltip ? " ?:" : " :"}<span class="p-tooltiptext">${i18nValueTooltip?.get() || ""}</span></span></span>${input}</label></div>`;
 }
 
 function escapeAttr(value: string): string {
@@ -176,4 +251,127 @@ function escapeAttr(value: string): string {
     .replaceAll("\"", "&quot;")
     .replaceAll("<", "&lt;")
     .replaceAll(">", "&gt;");
+}
+
+function configOptionDisplay(key: ConfigItem["key"], value: string, fallback: string): string {
+  if (key === "eagleFolderPreset") return eagleFolderPresetLabel(value);
+  return fallback;
+}
+
+function eagleConfigPreviewHTML(): string {
+  const conf = ADAPTER.conf.selectedSiteNameConfig ? ADAPTER.conf : ADAPTER.globalConf;
+  const site = ADAPTER.matcher?.name || location.hostname || "site";
+  const samplePaths = resolveEagleFolderPaths(conf.eagleFolderPath, {
+    site,
+    gallery: "gallery",
+    chapter: "chapter",
+    copyright: "series",
+    character: "character",
+    author: "artist",
+    characters: ["character a", "character b"],
+  }).slice(0, 2).map(path => path.join("/"));
+  const visibleTags = conf.eagleMaxSourceTags === 0
+    ? i18n.eagleConfigPreviewNoTags.get()
+    : i18n.eagleConfigPreviewTags.get().replace("{count}", String(conf.eagleMaxSourceTags));
+  const itemNames = conf.eagleNameDatePrefix
+    ? i18n.eagleConfigPreviewDateNames.get()
+    : i18n.eagleConfigPreviewSourceNames.get();
+  const batchPolicy = i18n.eagleConfigPreviewBatchText.get()
+    .replace("{count}", String(conf.eagleImportLimit))
+    .replace("{duplicates}", conf.eagleSkipDuplicates ? i18n.eagleConfigPreviewSkipDuplicates.get() : i18n.eagleConfigPreviewAddDuplicates.get());
+  return `
+<div id="eagle-config-preview" class="eagle-config-preview">
+  <div class="eagle-config-preview-title"><span>${escapeHTML(i18n.eagleConfigPreview.get())}</span><button type="button" id="eagle-config-test-connection" class="ehvp-custom-btn ehvp-custom-btn-plain">${escapeHTML(i18n.eagleConfigTestConnection.get())}</button></div>
+  <div><b>${escapeHTML(i18n.eagleConfigPreviewScope.get())}</b><span>${escapeHTML(eagleConfigScopeText())}</span></div>
+  <div><b>${escapeHTML(i18n.eagleConfigPreviewConnection.get())}</b><span id="eagle-config-connection-status">${escapeHTML(conf.eagleBaseUrl)}</span></div>
+  <div><b>${escapeHTML(i18n.eagleConfigPreviewPreset.get())}</b><span>${escapeHTML(eagleFolderPresetLabel(conf.eagleFolderPreset))}</span></div>
+  <div><b>${escapeHTML(i18n.eagleConfigPreviewFolderTemplate.get())}</b><code>${escapeHTML(conf.eagleFolderPath)}</code></div>
+  <div><b>${escapeHTML(i18n.eagleConfigPreviewFolder.get())}</b><code>${escapeHTML(samplePaths.join(" | "))}</code></div>
+  <div><b>${escapeHTML(i18n.eagleConfigPreviewNames.get())}</b><span>${escapeHTML(itemNames)}</span></div>
+  <div><b>${escapeHTML(i18n.eagleConfigPreviewSourceFields.get())}</b><span>${escapeHTML(i18n.eagleConfigPreviewSourceFieldsText.get())}</span></div>
+  <div><b>${escapeHTML(i18n.eagleConfigPreviewBatch.get())}</b><span>${escapeHTML(batchPolicy)}</span></div>
+  <div><b>${escapeHTML(i18n.eagleConfigPreviewVisibleTags.get())}</b><span>${escapeHTML(visibleTags)}</span></div>
+  <div><b>${escapeHTML(i18n.eagleConfigPreviewExtraAssets.get())}</b><span>${escapeHTML(i18n.eagleConfigPreviewNoExtraAssets.get())}</span></div>
+</div>`;
+}
+
+function eagleFolderPresetLabel(value: string): string {
+  switch (value) {
+    case "custom":
+      return i18n.eagleFolderPresetCustom.get();
+    case "copyright":
+      return i18n.eagleFolderPresetCopyright.get();
+    case "gallery":
+      return i18n.eagleFolderPresetGallery.get();
+    case "chapter":
+      return i18n.eagleFolderPresetChapter.get();
+    case "copyrightAuthor":
+      return i18n.eagleFolderPresetCopyrightAuthor.get();
+    case "copyrightCharacter":
+      return i18n.eagleFolderPresetCopyrightCharacter.get();
+    default:
+      return value;
+  }
+}
+
+const EAGLE_PREVIEW_CONFIG_KEYS = [
+  "eagleBaseUrl",
+  "eagleFolderPreset",
+  "eagleFolderPath",
+  "eagleImportLimit",
+  "eagleMaxSourceTags",
+  "eagleNameDatePrefix",
+  "eagleSkipDuplicates",
+] as const satisfies readonly (keyof Config)[];
+
+function isEaglePreviewConfigKey(key: ConfigItem["key"]): boolean {
+  return (EAGLE_PREVIEW_CONFIG_KEYS as readonly string[]).includes(key);
+}
+
+function eagleConfigScopeText(): string {
+  if (!ADAPTER.conf.selectedSiteNameConfig) {
+    return i18n.eagleConfigPreviewGlobalScope.get();
+  }
+  const overridden = EAGLE_PREVIEW_CONFIG_KEYS.filter(key => Object.prototype.hasOwnProperty.call(ADAPTER.siteConf || {}, key));
+  if (overridden.length === 0) {
+    return i18n.eagleConfigPreviewInheritsGlobal.get();
+  }
+  return i18n.eagleConfigPreviewOverrides.get().replace("{fields}", overridden.map(eagleConfigFieldLabel).join(", "));
+}
+
+function eagleConfigFieldLabel(key: typeof EAGLE_PREVIEW_CONFIG_KEYS[number]): string {
+  switch (key) {
+    case "eagleBaseUrl":
+      return i18n.eagleBaseUrl.get();
+    case "eagleFolderPreset":
+      return i18n.eagleFolderPreset.get();
+    case "eagleFolderPath":
+      return i18n.eagleFolderPath.get();
+    case "eagleImportLimit":
+      return i18n.eagleImportLimit.get();
+    case "eagleMaxSourceTags":
+      return i18n.eagleMaxSourceTags.get();
+    case "eagleNameDatePrefix":
+      return i18n.eagleNameDatePrefix.get();
+    case "eagleSkipDuplicates":
+      return i18n.eagleSkipDuplicates.get();
+  }
+}
+
+function eagleVersion(value: unknown): string {
+  if (!value || typeof value !== "object") return "unknown";
+  const data = value as { version?: unknown; data?: { version?: unknown } };
+  return String(data.version || data.data?.version || "unknown");
+}
+
+function errorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error || "unknown error");
+}
+
+function escapeHTML(value: string): string {
+  return value
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll("\"", "&quot;");
 }

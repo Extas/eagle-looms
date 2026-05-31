@@ -8,98 +8,111 @@ primary_language: zh-CN
 
 # Eagle Looms
 
-Eagle Looms 是一个基于 MapoMagpie/comic-looms 的 userscript：保留 Comic Looms 的 matcher、章节、图片队列、懒加载、范围选择和控制栏 UI/UE，把最终“下载成 zip”的保存落点扩展为“通过 Eagle Web API 导入当前 Eagle 资料库”。
+Eagle Looms 是基于 [MapoMagpie/comic-looms](https://github.com/MapoMagpie/comic-looms) 的 userscript fork。它保留 Comic Looms 的 matcher、章节、图片队列、懒加载、范围选择和控制栏 UI，把最终“下载成 zip”的保存落点扩展为“导入当前 Eagle 资料库”。
 
-项目名 `eagle-looms` 合适：`looms` 保留 Comic Looms 的“织机/批量编织图库”心智，`eagle` 明确最终资产归档目的地。
-
-## Core Loop
+## How It Works
 
 ```text
-Open supported gallery page
+Open supported source page
 -> Comic Looms matcher extracts chapters/images
--> Comic Looms queue fetches original binary data in browser session
--> User uses the existing Download panel/chapter/cherry-pick UI
--> EagleDownloader ensures Eagle folders
--> EagleDownloader imports base64 data URLs into Eagle
--> Eagle stores folders, tags, website, and original URL
+-> Comic Looms queue fetches original binary data in the browser session
+-> user selects ranges in the existing UI
+-> EagleDownloader writes base64 data URLs to Eagle Web API
+-> Eagle stores image items with folders, website/original URL, and semantic tags
 ```
 
-## Boundary
-
-```text
-Source site owns page content and original media URLs.
-Comic Looms owns site matchers, lazy fetching, browse UI, and binary image pipeline.
-Eagle owns asset storage, folders, tags, preview, search, and library state.
-Eagle Looms owns the Eagle save target, Eagle API calls, folder path template, duplicate skipping, and tags.
-```
-
-默认写入是 additive：创建 folders、创建 tag groups/tags、添加新 items。除非用户明确选择 update action，否则不修改既有 Eagle assets。
-
-## Initial Documents
-
-| File | Role |
-|---|---|
-| `AGENTS.md` | agent/contributor operating guide |
-| `docs/mvp-anime-pictures-mygo.md` | 当前 MVP 目标：采集 anime-pictures MyGO 前 100 张 |
-| `docs/reuse-strategy.md` | 复用 Comic Looms 和 eagle-plus 的具体边界 |
-| `docs/manual-qa.md` | 本地自动验证和目标页手动 QA 清单 |
-| `docs/references.md` | upstream 和 Eagle API reference index |
-| `docs/git-upstream.md` | 本地 Git remote 和 Comic Looms upstream 更新流程 |
-| `docs/implementation-plan.md` | implementation architecture 和 phased work |
-| `docs/eagle-organization.md` | 推荐的 Eagle folder/tag/annotation strategy |
-| `src/README.md` | planned source layout |
+Eagle Looms 不绕过 Comic Looms 的采集链路，也不让 Eagle 后台直接下载受保护图片 URL。图片二进制先在源页面浏览器会话中抓取，再通过 Eagle Web API 写入。
 
 ## Current Behavior
 
 ```text
-入口、浏览、章节选择、范围选择、加载状态、失败重试沿用 Comic Looms UI。
-Download panel 的 Start action 写入 Eagle，而不是打包 zip。
-配置面板新增 Eagle API URL、Eagle folder path、Eagle import limit、Eagle source tag limit、Skip duplicates。
-Eagle API URL、folder path template、import limit、source tag limit 会在保存和启动时归一化，避免空路径、非法 URL、越界数量或标签爆炸造成整批失败。
-全局配置和站点级配置都会对 Eagle 字段做归一化；路由切换时从 global config 重新合并，避免上一个站点的 Eagle 覆盖项污染当前站点。
-图片二进制由 Comic Looms `IMGFetcher` 在浏览器会话内抓取，导入 Eagle 时使用 `data:<mime>;base64,...`，避免 Eagle 后台 URL 下载触发 403。
-anime-pictures 原图解析优先使用页面暴露的 `images.anime-pictures.net` 直连候选；`api.anime-pictures.net/pictures/download_image/...` 只作为候选回退，避免复现 Eagle 后台下载 403。
-anime-pictures 搜索页采集会排除 `#sidebar`、`.sidebar_block`、`.last-stars` 等侧栏推荐区，避免 `Last stars` 缩略图混入目标搜索结果。
-anime-pictures matcher 支持 `/posts?page=0`、`/stars?page=0`、旧版 `/pictures/view_posts...` 列表页，以及 `/posts/{id}` / `/pictures/view_post/{id}` 单图详情页。详情页只导入当前图片，方便人工调试和观察。
-导入队列沿用上游 zip 保存的 `FetchState.DONE && data` 契约，不导入重置/失败状态里的旧数据。
-默认目标目录模板：`Eagle Looms/{site}/{gallery}`，支持 `{site}`、`{gallery}`、`{chapter}`、`{copyright}`、`{character}`、`{author}`。
-每个 item 写入 `website`、`url`、必备 tags 和受上限约束的来源 tags；`copyright`、`character`、`author/artist` 统一归一化为 `copyright:`、`character:`、`author:` 前缀，其他来源 tags 原样导入。普通图片默认不写长 annotation；多文件子项或作者 URL 仅写一行最小 JSON。
-Booru 类 matcher 会把列表页已有 tag 字符串写回图片节点；如果页面暴露 copyright/character/artist 分类属性，则同样进入统一命名空间，否则按 raw source tags 导入。
-Eagle `item/add` 响应会兼容常见 `id`、`itemId`、`item`、`items`、`ids`、`data.*` 包装，避免写入成功但脚本误判失败。
-duplicate check 默认分别按 source URL、origin URL、annotation stable key 精确查询 Eagle，不依赖复杂搜索语法，不静默修改既有 items。
-导入 summary 显示 planned/imported/skipped/failed、目标文件夹和前几个失败原因；如果没有已加载且选中的图片，会明确失败而不是显示空成功。
+default Eagle API URL: http://localhost:41595
+default folder template: Eagle Looms/{site}/{copyright}
+default folder fallback: gallery, author, chapter, then Unsorted when copyright is missing
+default import limit: 100
+default visible source tag limit: 20
+duplicate skip: enabled by default
+item names: source date prefix when available, then source identity
+config preview: shows config scope, resolved example folder, visible tag policy, and extra-asset policy
+bulk import: shows an Eagle preflight confirmation before writing when writable items exist
+result review: keeps the latest Eagle import result in the import panel until cleared
 ```
 
-## Current MVP
-
-当前目标先收缩到一个可验证任务：
+导入项写入：
 
 ```text
-采集 https://anime-pictures.net/posts?page=0&search_tag=bang+dream!+it%27s+mygo!!!!! 的前 100 张图片，并导入 Eagle。
+name       source identity name, no 001_ zip order prefix
+website    source page URL
+url        original image URL when Eagle preserves it
+folders    resolved Eagle folder IDs; multiple folders are allowed
+tags       capped source semantic tags only
 ```
 
-具体执行标准见 `docs/mvp-anime-pictures-mygo.md`。
+普通图片 item 不强制写 `eagle-looms`、`site:*`、`gallery:*`、`chapter:*`、`ext:*`、`mime:*`、`post:*` 这类重复信息，也默认不写长 annotation。导入只创建正常图片资产和必要文件夹，不额外创建 `_eagle-looms` 这类 bookmark / raw record 资产污染资料库。旧版本 raw record 仍只读兼容，用于识别历史导入重复项。
 
-## Build
+## Supported Highlights
+
+```text
+anime-pictures:
+  /posts?page=0
+  /stars?page=0
+  /posts/{id}
+  legacy /pictures/view_posts and /pictures/view_post/{id}
+  excludes sidebar recommendation blocks such as Last stars
+
+booru / moebooru style sites:
+  Danbooru, Gelbooru, yande.re, konachan and similar categorized tag sources
+
+other source metadata:
+  E-Hentai / ExHentai, Pixiv, Twitter / X where existing matchers expose reliable metadata
+```
+
+Target smoke page:
+
+```text
+https://anime-pictures.net/posts?page=0&search_tag=bang+dream!+it%27s+mygo!!!!!
+```
+
+## Project Docs
+
+```text
+docs/architecture.md
+  code boundaries, import flow, upstream workflow, site coverage
+
+docs/eagle-organization.md
+  folder, tag, naming, extra-asset, and duplicate policy
+
+docs/manual-qa.md
+  automated gates and focused manual checks
+
+docs/references.md
+  upstream, Eagle API, and source metadata references
+```
+
+## Build And Verify
 
 ```powershell
 npm install
 npm run test:unit
 npm run build
-npm run verify:eagle
-npm run verify:eagle:write-smoke
 ```
 
-构建产物是 `dist/eagle-looms.user.js`，安装到 Tampermonkey/Violentmonkey 后，在 Comic Looms 支持的页面显示原有控制栏；在 anime-pictures posts 搜索页可使用新增 matcher 导入 Eagle。
-
-日常本地门禁：
+Local Eagle read probe:
 
 ```powershell
-npm run verify:local
+npm run verify:eagle
 ```
 
-包含 self-cleaning Eagle 写入 smoke 的完整本地门禁：
+Full local verification, including self-cleaning Eagle write/import smoke items:
 
 ```powershell
 npm run verify:all
 ```
+
+Build output:
+
+```text
+dist/eagle-looms.user.js
+```
+
+Install that userscript in Tampermonkey or Violentmonkey.

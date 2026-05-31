@@ -6,6 +6,7 @@ export interface AnimePicturesPostEntry {
   postUrl: string;
   thumbnailUrl?: string;
   title: string;
+  publishedAt?: string;
   width?: number;
   height?: number;
   score?: string;
@@ -29,6 +30,7 @@ export interface AnimePicturesImageCandidate {
 export interface AnimePicturesSourceMetadata {
   tags: string[];
   authorUrls: string[];
+  publishedAt?: string;
 }
 
 export interface AnimePicturesApiPost {
@@ -36,6 +38,7 @@ export interface AnimePicturesApiPost {
   postUrl: string;
   thumbnailUrl?: string;
   title: string;
+  publishedAt?: string;
   width?: number;
   height?: number;
   ext?: string;
@@ -81,10 +84,13 @@ export function parseAnimePicturesPostEntries(document: Document, pageUrl = wind
 export function extractAnimePicturesSourceMetadata(document: Document, pageUrl = window.location.href): AnimePicturesSourceMetadata {
   const tagPanel = findSmallestPanel(document, ["tags"], ["game copyright", "copyright", "character", "author", "artist"]);
   const authorPanel = findSmallestPanel(document, ["about artists"], []);
-  return {
+  const metadata: AnimePicturesSourceMetadata = {
     tags: tagPanel ? dedupeStrings(extractCategorizedTags(tagPanel, pageUrl)) : [],
     authorUrls: authorPanel ? dedupeStrings(extractAuthorUrls(authorPanel, pageUrl)) : [],
   };
+  const publishedAt = extractPublishedAt(document);
+  if (publishedAt) metadata.publishedAt = publishedAt;
+  return metadata;
 }
 
 export function animePicturesApiPostsUrl(pageUrl: string): string {
@@ -151,6 +157,7 @@ function currentPostEntry(document: Document, pageUrl: string): AnimePicturesPos
     postUrl: new URL(`/posts/${id}${new URL(pageUrl, window.location.href).search || ""}`, pageUrl).toString(),
     thumbnailUrl: thumbnail,
     title: titleFromDocument(document, id),
+    publishedAt: extractPublishedAt(document),
     ...(parseResolution(document.body?.textContent || "") || {}),
   };
 }
@@ -264,6 +271,7 @@ function apiPostToEntry(post: unknown, pageUrl: string): AnimePicturesApiPost | 
     postUrl: new URL(`/posts/${id}`, pageUrl).toString(),
     thumbnailUrl,
     title: `anime-pictures-${id}.${ext || "jpg"}`,
+    publishedAt: apiPublishedAt(raw),
     width: Number.isFinite(width) ? width : undefined,
     height: Number.isFinite(height) ? height : undefined,
     ext,
@@ -300,6 +308,42 @@ function normalizeApiTagCategory(value: string): "copyright" | "character" | "au
     default:
       return "";
   }
+}
+
+function extractPublishedAt(document: Document): string | undefined {
+  const selectors = [
+    "time[datetime]",
+    "[itemprop='datePublished'][datetime]",
+    "[data-created-at]",
+    "[data-published-at]",
+  ];
+  for (const selector of selectors) {
+    const element = document.querySelector<HTMLElement>(selector);
+    const value = element?.getAttribute("datetime")
+      || element?.getAttribute("data-created-at")
+      || element?.getAttribute("data-published-at")
+      || compactText(element?.textContent || "");
+    if (value) return value;
+  }
+  const meta = document.querySelector<HTMLMetaElement>([
+    "meta[property='article:published_time']",
+    "meta[name='date']",
+    "meta[name='pubdate']",
+    "meta[itemprop='datePublished']",
+  ].join(","));
+  const metaValue = meta?.getAttribute("content") || "";
+  if (metaValue) return metaValue;
+  const text = compactText(document.body?.textContent || "");
+  return text.match(/\b(?:posted|published|uploaded|date)\s*:?\s*(\d{4}[-/.]\d{1,2}[-/.]\d{1,2}(?:\s+\d{1,2}:\d{2}(?::\d{2})?)?)/i)?.[1];
+}
+
+function apiPublishedAt(raw: Record<string, any>): string | undefined {
+  for (const key of ["published_at", "posted_at", "post_date", "created_at", "createdAt", "created", "pubtime", "date", "datetime", "time"]) {
+    const value = raw[key];
+    if (typeof value === "string" && value.trim()) return value.trim();
+    if (typeof value === "number" && Number.isFinite(value) && value > 0) return String(value);
+  }
+  return undefined;
 }
 
 function titleFromDocument(document: Document, id: string): string {

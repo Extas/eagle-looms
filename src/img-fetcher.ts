@@ -122,6 +122,9 @@ export class IMGFetcher {
                 this.node.imgElement.title = meta.title;
               }
             }
+            if (meta.publishedAt) {
+              this.node.setPublishedAt(meta.publishedAt);
+            }
             this.node.href = meta.href || this.node.href;
             this.stage = FetchState.DATA;
             return fetchMachine();

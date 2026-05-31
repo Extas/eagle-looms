@@ -1,6 +1,7 @@
 import { GalleryMeta } from "../../download/gallery-meta";
 import ImageNode from "../../img-node";
 import { ADAPTER } from "../adapt";
+import { searchGalleryTitle } from "../gallery-title";
 import { BaseMatcher, OriginMeta, Result } from "../platform";
 import { AnimePicturesImageCandidate, animePicturesApiDetailUrl, diagnoseAnimePicturesDocument, collectAnimePicturesImageCandidates, extractAnimePicturesSourceMetadata, isAnimePicturesChallengeHtml, parseAnimePicturesApiDetail, parseAnimePicturesPostEntries, selectAnimePicturesImageCandidate } from "../anime-pictures";
 
@@ -48,6 +49,7 @@ class AnimePicturesMatcher extends BaseMatcher<Document> {
       const title = `anime-pictures-${entry.id}.${extensionFromUrl(entry.thumbnailUrl || "") || "jpg"}`;
       const node = new ImageNode(entry.thumbnailUrl || "", entry.postUrl, title, undefined, undefined, entry.width && entry.height ? { w: entry.width, h: entry.height } : undefined);
       node.setTags("site:anime-pictures.net", `post:${entry.id}`);
+      node.setPublishedAt(entry.publishedAt);
       return node;
     });
   }
@@ -68,6 +70,7 @@ class AnimePicturesMatcher extends BaseMatcher<Document> {
       const sourceMetadata = extractAnimePicturesSourceMetadata(doc, node.href);
       node.setTags(...sourceMetadata.tags);
       node.setAuthorUrls(...sourceMetadata.authorUrls);
+      node.setPublishedAt(sourceMetadata.publishedAt);
       candidates.push(...collectAnimePicturesImageCandidates(doc, html, node.href));
     } catch (error) {
       detailError = error;
@@ -77,6 +80,7 @@ class AnimePicturesMatcher extends BaseMatcher<Document> {
     const apiDetail = id ? await fetchApiDetail(id, node.href) : undefined;
     if (apiDetail) {
       node.setTags(...apiDetail.tags);
+      node.setPublishedAt(apiDetail.publishedAt);
       if (apiDetail.fileUrl) {
         candidates.push({ url: apiDetail.fileUrl, score: 110 });
       }
@@ -95,6 +99,7 @@ class AnimePicturesMatcher extends BaseMatcher<Document> {
       url,
       title: `anime-pictures-${id || "image"}.${ext}`,
       href: node.href,
+      publishedAt: node.publishedAt,
     };
   }
 
@@ -119,7 +124,7 @@ class AnimePicturesMatcher extends BaseMatcher<Document> {
     const url = new URL(window.location.href);
     const searchTag = decodeSearchTag(url.searchParams.get("search_tag") || "");
     const pageLabel = galleryLabel(url, searchTag);
-    const title = `anime-pictures_${pageLabel}_${Math.min(this.count || ADAPTER.conf.eagleImportLimit, ADAPTER.conf.eagleImportLimit)}`;
+    const title = searchGalleryTitle("anime-pictures", pageLabel === "posts" || pageLabel === "stars" ? "" : searchTag, pageLabel);
     const meta = new GalleryMeta(window.location.href, title);
     meta.downloader = "https://github.com/Extas/eagle-looms";
     meta.tags = {
@@ -185,8 +190,7 @@ function isSinglePostPage(url: string): boolean {
 }
 
 function galleryLabel(url: URL, searchTag: string): string {
-  const postId = url.pathname.match(POST_RE)?.[1];
-  if (postId) return `post_${postId}`;
+  if (url.pathname.match(POST_RE)) return "posts";
   if (url.pathname.includes("/stars")) return "stars";
   return searchTag || "posts";
 }

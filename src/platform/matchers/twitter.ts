@@ -5,6 +5,7 @@ import { evLog } from "../../utils/ev-log";
 import { GM_XHR } from "../../utils/query";
 import { transactionId, uuid } from "../../utils/random";
 import { ADAPTER } from "../adapt";
+import { cleanGalleryTitlePart, datedGalleryTitle } from "../gallery-title";
 import { BaseMatcher, OriginMeta, Result } from "../platform";
 
 type Size = {
@@ -38,8 +39,10 @@ type Media = {
   video_info?: VideoInfo,
 }
 type Legacy = {
+  created_at?: string,
   entities: {
     media: Media[],
+    hashtags?: { text?: string }[],
   },
   id_str: string,
   full_text: string,
@@ -366,6 +369,9 @@ class TwitterMatcher extends BaseMatcher<Item[]> {
     const list: ImageNode[] = [];
     for (const item of items) {
       const [mediaList, tweetID] = checkoutMedias(item);
+      const sourceTags = twitterSourceTags(item);
+      const authorUrls = twitterAuthorUrls(item);
+      const publishedAt = twitterPublishedAt(item);
       if (mediaList.length === 0) {
         const user = item.itemContent?.tweet_results?.result?.core?.user_results?.result?.legacy?.screen_name ?? item.itemContent?.tweet_results?.result?.core?.user_results?.result?.core?.screen_name;
         const rest_id = item.itemContent.tweet_results.result.rest_id;
@@ -418,6 +424,9 @@ class TwitterMatcher extends BaseMatcher<Item[]> {
         const title = `${media.id_str}-${baseSrc.split("/").pop()}.${ext}`
         const wh = { w: media.sizes.small.w, h: media.sizes.small.h };
         const node = new ImageNode(src, href, title, undefined, largeSrc, wh);
+        node.setTags(...sourceTags);
+        node.setAuthorUrls(...authorUrls);
+        node.setPublishedAt(publishedAt);
         if (actionLike) node.actions.push(actionLike);
         if (actionBookmark) node.actions.push(actionBookmark);
 
@@ -444,10 +453,19 @@ class TwitterMatcher extends BaseMatcher<Item[]> {
   }
 
   galleryMeta(): GalleryMeta {
-    const userName = window.location.href.match(/(twitter|x).com\/(\w+)\/?/)?.[2];
-    return new GalleryMeta(window.location.href, `twitter-${userName || document.title}-${this.postCount}-${this.mediaCount}`);
+    return new GalleryMeta(window.location.href, twitterGalleryTitleFromURL(window.location.href, document.title));
   }
 
+}
+
+export function twitterGalleryTitleFromURL(href: string, fallbackTitle = "twitter", date = new Date()): string {
+  const url = new URL(href, "https://x.com/");
+  const path = url.pathname.replace(/\/+$/, "") || "/";
+  if (path === "/home") return datedGalleryTitle(["twitter", "home"], date);
+  const listId = path.match(/^\/i\/lists\/([^/]+)/)?.[1];
+  if (listId) return datedGalleryTitle(["twitter", "list", listId], date);
+  const userName = path.match(/^\/([^/]+)/)?.[1];
+  return datedGalleryTitle(["twitter", "user", cleanGalleryTitlePart(userName || fallbackTitle).replace(/^@/, "")], date);
 }
 
 function getMyID(): string | undefined {
@@ -462,6 +480,47 @@ function getUserID(): string | undefined {
   if (followBTNs.length === 0) return undefined;
   const theBTN = followBTNs.find(btn => (btn.getAttribute("aria-label") ?? "").toLowerCase().includes(`@${userName.toLowerCase()}`)) || followBTNs[0];
   return theBTN.getAttribute("data-testid")!.match(/(\d+)/)?.[1];
+}
+
+function twitterSourceTags(item: Item): string[] {
+  const tags = new Set<string>();
+  const user = twitterScreenName(item);
+  if (user) tags.add(`author:${user}`);
+  for (const legacy of twitterLegacyCandidates(item)) {
+    legacy?.entities?.hashtags?.forEach(hashtag => {
+      const tag = hashtag.text?.trim();
+      if (tag) tags.add(tag);
+    });
+  }
+  return [...tags];
+}
+
+function twitterAuthorUrls(item: Item): string[] {
+  const user = twitterScreenName(item);
+  return user ? [`https://x.com/${user}`] : [];
+}
+
+function twitterPublishedAt(item: Item): string {
+  return twitterLegacyCandidates(item)
+    .map(legacy => legacy?.created_at || "")
+    .find(Boolean) || "";
+}
+
+function twitterScreenName(item: Item): string {
+  const user = item.itemContent?.tweet_results?.result?.core?.user_results?.result;
+  return user?.legacy?.screen_name || user?.core?.screen_name || "";
+}
+
+function twitterLegacyCandidates(item: Item): Array<Legacy | undefined> {
+  const result = item.itemContent?.tweet_results?.result;
+  return [
+    result?.legacy,
+    result?.tweet?.legacy,
+    result?.legacy?.retweeted_status_result?.result?.legacy,
+    result?.legacy?.retweeted_status_result?.result?.tweet?.legacy,
+    result?.tweet?.legacy?.retweeted_status_result?.result?.legacy,
+    result?.tweet?.legacy?.retweeted_status_result?.result?.tweet?.legacy,
+  ];
 }
 // authorization: "Bearer AAAAAAAAAAAAAAAAAAAAANRILgAAAAAAnNwIzUejRCOuH5E6I8xnZz4puTs%3D1Zv7ttfk8LF81IUq16cHjhLTvJu4FA33AGWWjCpTnA"
 // "cache-control": "no-cache"

@@ -176,6 +176,7 @@ describe('anime-pictures matcher', () => {
 
   it('extracts namespaced source tags and author urls from post detail pages', () => {
     const doc = new DOMParser().parseFromString(`
+      <time datetime="2025-07-08T12:34:56Z">8 July 2025</time>
       <aside>
         <h2>Tags</h2>
         <span>game copyright</span>
@@ -198,6 +199,7 @@ describe('anime-pictures matcher', () => {
     expect(extractAnimePicturesSourceMetadata(doc, 'https://anime-pictures.net/posts/908175')).toEqual({
       tags: ['copyright:project sekai', 'character:kusanagi nene', 'author:soha blan', 'single'],
       authorUrls: ['https://www.pixiv.net/users/81925632', 'https://twitter.com/soha_blan'],
+      publishedAt: '2025-07-08T12:34:56Z',
     });
   });
 
@@ -217,6 +219,7 @@ describe('anime-pictures matcher', () => {
         ext: '.png',
         md5: 'abcdef0123456789',
         file_url: 'abc/abcdef0123456789.png',
+        created_at: '2025-07-08T12:34:56Z',
         tags: [
           { tag: { tag: 'project sekai', type: 'game copyright' } },
           { tag: { tag: 'kusanagi nene', type: 'character' } },
@@ -231,6 +234,7 @@ describe('anime-pictures matcher', () => {
       postUrl: 'https://anime-pictures.net/posts/908175',
       thumbnailUrl: 'https://opreviews.anime-pictures.net/abc/abcdef0123456789_cp.avif',
       title: 'anime-pictures-908175.png',
+      publishedAt: '2025-07-08T12:34:56Z',
       width: 3000,
       height: 3000,
       ext: 'png',

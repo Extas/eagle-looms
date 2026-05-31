@@ -2,6 +2,8 @@ import { GalleryMeta } from "../../download/gallery-meta";
 import ImageNode from "../../img-node";
 import { evLog } from "../../utils/ev-log";
 import { ADAPTER } from "../adapt";
+import { searchGalleryTitle } from "../gallery-title";
+import { MoebooruTagTypes, normalizeMoebooruSourceTags, parseMoebooruTagTypes } from "../moebooru-tags";
 import { BaseMatcher, OriginMeta, Result } from "../platform";
 
 const POST_INFO_REGEX = /Post\.register\((.*)\)/g;
@@ -16,10 +18,13 @@ type YandereKonachanPostInfo = {
   jpeg_url: string,
   width: number,
   height: number,
+  tags?: string,
+  created_at?: string | number,
 }
 export class KonachanMatcher extends BaseMatcher<Document> {
 
   infos: Record<string, YandereKonachanPostInfo> = {};
+  tagTypes: MoebooruTagTypes = {};
   count: number = 0;
 
   async *fetchPagesSource(): AsyncGenerator<Result<Document>> {
@@ -44,6 +49,7 @@ export class KonachanMatcher extends BaseMatcher<Document> {
   async parseImgNodes(doc: Document): Promise<ImageNode[]> {
     const raw = doc.querySelector("body > script + script")?.textContent;
     if (!raw) throw new Error("cannot find post list from script");
+    this.tagTypes = parseMoebooruTagTypes(doc);
     const matches = raw.matchAll(POST_INFO_REGEX);
     const ret = [];
     for (const match of matches) {
@@ -53,7 +59,10 @@ export class KonachanMatcher extends BaseMatcher<Document> {
         this.infos[info.id.toString()] = info;
         this.count++;
         const ext = info.file_ext || info.file_url.split(".").pop();
-        ret.push(new ImageNode(info.preview_url, `${window.location.origin}/post/show/${info.id}`, `${info.id}.${ext}`));
+        const node = new ImageNode(info.preview_url, `${window.location.origin}/post/show/${info.id}`, `${info.id}.${ext}`);
+        node.setTags(...normalizeMoebooruSourceTags(info.tags, this.tagTypes));
+        node.setPublishedAt(info.created_at);
+        ret.push(node);
       } catch (error) {
         evLog("error", "parse post info failed", error);
         continue;
@@ -76,13 +85,13 @@ export class KonachanMatcher extends BaseMatcher<Document> {
       throw new Error(`cannot find url for id ${id}`);
     }
 
-    return { url };
+    return { url, publishedAt: this.infos[id]?.created_at ? String(this.infos[id].created_at) : undefined };
   }
 
   galleryMeta(): GalleryMeta {
     const url = new URL(window.location.href);
     const tags = url.searchParams.get("tags")?.trim();
-    const meta = new GalleryMeta(window.location.href, `konachan_${tags}_${this.count}`);
+    const meta = new GalleryMeta(window.location.href, searchGalleryTitle("konachan", tags));
     (meta as any)["infos"] = this.infos;
     return meta;
   }

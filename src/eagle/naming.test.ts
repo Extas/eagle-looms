@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { createEagleItemName, normalizeEagleItemName } from './naming';
+import { createEagleItemName, normalizeEagleItemName, normalizeEagleItemNameWithDatePrefix, sourceDatePrefix } from './naming';
 
 describe('Eagle item naming', () => {
   it('keeps source identity names without adding Comic Looms order prefixes', () => {
@@ -25,5 +25,18 @@ describe('Eagle item naming', () => {
     const used = new Set<string>(['Image.jpg', 'image (2).jpg']);
 
     expect(createEagleItemName('image.JPG', used)).toBe('image (3).jpg');
+  });
+
+  it('can prefix source publish dates without losing source identity or extensions', () => {
+    expect(normalizeEagleItemNameWithDatePrefix('anime-pictures-917184.png', '2025-07-08T12:34:56Z')).toBe('2025-07-08 anime-pictures-917184.png');
+    expect(normalizeEagleItemNameWithDatePrefix('2025-07-08 anime-pictures-917184.png', '2025-07-08')).toBe('2025-07-08 anime-pictures-917184.png');
+    expect(normalizeEagleItemNameWithDatePrefix('anime-pictures-917184.png', '')).toBe('anime-pictures-917184.png');
+  });
+
+  it('normalizes common source date formats for sortable prefixes', () => {
+    expect(sourceDatePrefix('2025/7/8 12:34:56')).toBe('2025-07-08');
+    expect(sourceDatePrefix('Wed Oct 10 20:19:24 +0000 2018')).toBe('2018-10-10');
+    expect(sourceDatePrefix(1719792000)).toBe('2024-07-01');
+    expect(sourceDatePrefix('2025-02-31')).toBe('');
   });
 });

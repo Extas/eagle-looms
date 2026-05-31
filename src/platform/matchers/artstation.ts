@@ -4,6 +4,7 @@ import ImageNode from "../../img-node";
 import { evLog } from "../../utils/ev-log";
 import { batchFetch } from "../../utils/query";
 import { ADAPTER } from "../adapt";
+import { galleryTitle } from "../gallery-title";
 import { BaseMatcher, OriginMeta, Result } from "../platform";
 
 class ArtStationMatcher extends BaseMatcher<ArtStationProject[]> {
@@ -11,7 +12,7 @@ class ArtStationMatcher extends BaseMatcher<ArtStationProject[]> {
   info: { username: string, projects: number, assets: number } = { username: "", projects: 0, assets: 0 };
   tags: Record<string, string[]> = {};
   galleryMeta(): GalleryMeta {
-    const meta = new GalleryMeta(window.location.href, `artstaion-${this.info.username}-w${this.info.projects}-p${this.info.assets}`);
+    const meta = new GalleryMeta(window.location.href, galleryTitle(["artstation", this.info.username || document.title]));
     meta.tags = this.tags;
     return meta;
   }

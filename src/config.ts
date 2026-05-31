@@ -2,7 +2,8 @@ import { GM_getValue, GM_setValue } from "$";
 import type { AppEventIDInBigImgFrame, AppEventIDInFullViewGrid, AppEventIDInMain } from "./ui/event";
 import { i18n } from "./utils/i18n";
 import { b64EncodeUnicode, uuid } from "./utils/random";
-import { DEFAULT_EAGLE_BASE_URL, DEFAULT_EAGLE_FOLDER_TEMPLATE, DEFAULT_EAGLE_IMPORT_LIMIT, DEFAULT_EAGLE_MAX_SOURCE_TAGS, normalizeEagleBaseUrl, normalizeEagleFolderTemplate, normalizeEagleImportLimit, normalizeEagleMaxSourceTags } from "./eagle/options";
+import { DEFAULT_EAGLE_BASE_URL, DEFAULT_EAGLE_FOLDER_PRESET, DEFAULT_EAGLE_FOLDER_TEMPLATE, DEFAULT_EAGLE_IMPORT_LIMIT, DEFAULT_EAGLE_MAX_SOURCE_TAGS, DEFAULT_EAGLE_NAME_DATE_PREFIX, EAGLE_FOLDER_PRESET_OPTIONS, eagleFolderPresetForTemplate, normalizeEagleBaseUrl, normalizeEagleBoolean, normalizeEagleFolderPreset, normalizeEagleFolderTemplate, normalizeEagleImportLimit, normalizeEagleMaxSourceTags } from "./eagle/options";
+import type { EagleFolderPreset } from "./eagle/options";
 
 export const IS_MOBILE = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|Mobile/i.test(navigator.userAgent);
 
@@ -131,9 +132,11 @@ export type Config = {
   /** minRatio indicates the minimum ratio of thumbnail display to prevent the thumbnail from being too thin. */
   minRatio: number,
   eagleBaseUrl: string,
+  eagleFolderPreset: EagleFolderPreset,
   eagleFolderPath: string,
   eagleImportLimit: number,
   eagleMaxSourceTags: number,
+  eagleNameDatePrefix: boolean,
   eagleSkipDuplicates: boolean,
 };
 
@@ -209,9 +212,11 @@ export function defaultConf(): Config {
     imgNodeActions: [],
     minRatio: 0.5,
     eagleBaseUrl: DEFAULT_EAGLE_BASE_URL,
+    eagleFolderPreset: DEFAULT_EAGLE_FOLDER_PRESET,
     eagleFolderPath: DEFAULT_EAGLE_FOLDER_TEMPLATE,
     eagleImportLimit: DEFAULT_EAGLE_IMPORT_LIMIT,
     eagleMaxSourceTags: DEFAULT_EAGLE_MAX_SOURCE_TAGS,
+    eagleNameDatePrefix: DEFAULT_EAGLE_NAME_DATE_PREFIX,
     eagleSkipDuplicates: true,
   };
 }
@@ -314,9 +319,19 @@ function confHealthCheck(cf: Config): Config {
     cf.eagleBaseUrl = normalizedEagleBaseUrl;
     changed = true;
   }
+  const normalizedEagleFolderPreset = normalizeEagleFolderPreset(cf.eagleFolderPreset);
+  if (cf.eagleFolderPreset !== normalizedEagleFolderPreset) {
+    cf.eagleFolderPreset = normalizedEagleFolderPreset;
+    changed = true;
+  }
   const normalizedEagleFolderPath = normalizeEagleFolderTemplate(cf.eagleFolderPath);
   if (cf.eagleFolderPath !== normalizedEagleFolderPath) {
     cf.eagleFolderPath = normalizedEagleFolderPath;
+    changed = true;
+  }
+  const inferredEagleFolderPreset = eagleFolderPresetForTemplate(cf.eagleFolderPath);
+  if (cf.eagleFolderPreset !== inferredEagleFolderPreset) {
+    cf.eagleFolderPreset = inferredEagleFolderPreset;
     changed = true;
   }
   const normalizedEagleImportLimit = normalizeEagleImportLimit(cf.eagleImportLimit);
@@ -327,6 +342,16 @@ function confHealthCheck(cf: Config): Config {
   const normalizedEagleMaxSourceTags = normalizeEagleMaxSourceTags(cf.eagleMaxSourceTags);
   if (cf.eagleMaxSourceTags !== normalizedEagleMaxSourceTags) {
     cf.eagleMaxSourceTags = normalizedEagleMaxSourceTags;
+    changed = true;
+  }
+  const normalizedEagleNameDatePrefix = normalizeEagleBoolean(cf.eagleNameDatePrefix, DEFAULT_EAGLE_NAME_DATE_PREFIX);
+  if (cf.eagleNameDatePrefix !== normalizedEagleNameDatePrefix) {
+    cf.eagleNameDatePrefix = normalizedEagleNameDatePrefix;
+    changed = true;
+  }
+  const normalizedEagleSkipDuplicates = normalizeEagleBoolean(cf.eagleSkipDuplicates, true);
+  if (cf.eagleSkipDuplicates !== normalizedEagleSkipDuplicates) {
+    cf.eagleSkipDuplicates = normalizedEagleSkipDuplicates;
     changed = true;
   }
 
@@ -421,9 +446,11 @@ export type ConfigBooleanType = "fetchOriginal"
   | "dragImageOut"
   | "excludeVideo"
   | "smartScrolling"
+  | "eagleNameDatePrefix"
   | "eagleSkipDuplicates"
   ;
 export type ConfigSelectType = "readMode"
+  | "eagleFolderPreset"
   | "gridMode"
   | "minifyPageHelper"
   | "hitomiFormat"
@@ -455,9 +482,11 @@ export type ConfigItem = {
 
 export const ConfigItems: ConfigItem[] = [
   { key: "eagleBaseUrl", typ: "input", gridColumnRange: [1, 11], placeholder: DEFAULT_EAGLE_BASE_URL },
+  { key: "eagleFolderPreset", typ: "select", gridColumnRange: [1, 11], options: EAGLE_FOLDER_PRESET_OPTIONS },
   { key: "eagleFolderPath", typ: "input", gridColumnRange: [1, 11], placeholder: DEFAULT_EAGLE_FOLDER_TEMPLATE },
   { key: "eagleImportLimit", typ: "number", gridColumnRange: [1, 11] },
   { key: "eagleMaxSourceTags", typ: "number", gridColumnRange: [1, 11] },
+  { key: "eagleNameDatePrefix", typ: "boolean", gridColumnRange: [1, 11] },
   { key: "eagleSkipDuplicates", typ: "boolean", gridColumnRange: [1, 11] },
   { key: "colCount", typ: "number" },
   { key: "rowHeight", typ: "number" },

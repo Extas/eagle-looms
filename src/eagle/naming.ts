@@ -26,6 +26,28 @@ export function normalizeEagleItemName(rawTitle: string, fallback = "image"): st
   return joinName(truncateStem(safeStem, extension), extension);
 }
 
+export function normalizeEagleItemNameWithDatePrefix(rawTitle: string, publishedAt?: unknown, fallback = "image"): string {
+  const name = normalizeEagleItemName(rawTitle, fallback);
+  const prefix = sourceDatePrefix(publishedAt);
+  if (!prefix) return name;
+  const { stem, extension } = splitExtension(name);
+  if (/^\d{4}-\d{2}-\d{2}\b/.test(stem)) return name;
+  return joinName(truncateStem(`${prefix} ${stem || fallback}`, extension), extension);
+}
+
+export function sourceDatePrefix(value: unknown): string {
+  const raw = String(value ?? "").trim();
+  if (!raw) return "";
+  const directDate = raw.match(/\b(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})\b/);
+  if (directDate) return datePartsToPrefix(directDate[1], directDate[2], directDate[3]);
+  const numeric = Number(raw);
+  const time = Number.isFinite(numeric)
+    ? timestampToMilliseconds(numeric)
+    : Date.parse(raw);
+  if (!Number.isFinite(time) || time <= 0) return "";
+  return dateToPrefix(new Date(time));
+}
+
 function normalizeNameCore(rawTitle: string): string {
   return decodePercentEncoded(decodeHtmlEntities(candidateFromRawTitle(String(rawTitle || ""))))
     .normalize("NFKC")
@@ -94,6 +116,30 @@ function splitExtension(name: string): { stem: string; extension: string } {
   const match = name.match(EXTENSION_RE);
   if (!match) return { stem: name, extension: "" };
   return { stem: match[1].replace(/[. ]+$/g, ""), extension: match[2].toLowerCase() };
+}
+
+function timestampToMilliseconds(value: number): number {
+  return Math.abs(value) < 1_000_000_000_000 ? value * 1000 : value;
+}
+
+function dateToPrefix(date: Date): string {
+  if (Number.isNaN(date.getTime())) return "";
+  return datePartsToPrefix(
+    String(date.getUTCFullYear()),
+    String(date.getUTCMonth() + 1),
+    String(date.getUTCDate()),
+  );
+}
+
+function datePartsToPrefix(year: string, month: string, day: string): string {
+  const y = Number(year);
+  const m = Number(month);
+  const d = Number(day);
+  if (!Number.isInteger(y) || !Number.isInteger(m) || !Number.isInteger(d)) return "";
+  if (y < 1970 || y > 9999 || m < 1 || m > 12 || d < 1 || d > 31) return "";
+  const date = new Date(Date.UTC(y, m - 1, d));
+  if (date.getUTCFullYear() !== y || date.getUTCMonth() !== m - 1 || date.getUTCDate() !== d) return "";
+  return `${String(y).padStart(4, "0")}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
 }
 
 function safeReservedName(stem: string): string {

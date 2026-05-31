@@ -14,20 +14,21 @@ try {
   createdId = await addSmokeImage(folderId, runId);
   if (!createdId) throw new Error('item/add did not return an item id for image smoke.');
   const readBack = await waitForCreated(createdId, runId);
-  if (!readBack || readBack.isDeleted || !readBack.annotation?.includes(runId)) {
+  if (!readBack || readBack.isDeleted) {
     throw new Error(`Created image smoke item did not round-trip through item/info. ${JSON.stringify({ createdId, lastReadDebug })}`);
   }
   if (!Array.isArray(readBack.tags) || !readBack.tags.includes(smokeTag)) {
     throw new Error('Created image smoke item did not preserve smoke tag.');
   }
-  for (const tag of ['eagle-looms', 'site:smoke.local', 'gallery:import-smoke', 'chapter:default', 'ext:png', 'mime:image/png']) {
-    if (!readBack.tags.includes(tag)) {
-      throw new Error(`Created image smoke item did not preserve required organization tag: ${tag}`);
+  for (const tag of ['eagle-looms', 'site:smoke.local', 'gallery:import-smoke', 'chapter:default', 'ext:png', 'mime:image/png', 'post:import-smoke']) {
+    if (readBack.tags.includes(tag)) {
+      throw new Error(`Created image smoke item should not use duplicate infrastructure tag: ${tag}`);
     }
   }
-  if (!readBack.annotation.includes('"sourceTags":["source:smoke","post:import-smoke"]')) {
-    throw new Error('Created image smoke item did not preserve sourceTags in annotation JSON.');
+  if (typeof readBack.annotation === 'string' && readBack.annotation.includes('sourceTags')) {
+    throw new Error('Created image smoke item should not store Eagle Looms sourceTags in its visible annotation.');
   }
+  await assertNoSmokeRawRecords(runId);
   await trashItemWithRetry(createdId);
   const trashed = await waitForTrash(createdId);
   if (!trashed) throw new Error(`Image smoke item was not moved to trash: ${createdId}`);
@@ -78,30 +79,11 @@ async function addSmokeImage(folderId, id) {
     website: `${smokeWebsitePrefix}${id}`,
     folders: [folderId],
     tags: [
-      'eagle-looms',
       smokeTag,
-      'site:smoke.local',
-      'gallery:import-smoke',
-      'chapter:default',
-      'ext:png',
-      'mime:image/png',
-      'source:smoke',
-      'post:import-smoke',
+      'copyright:import smoke',
+      'character:smoke asset',
+      'author:eagle looms smoke',
     ],
-    annotation: [
-      'Imported by Eagle Looms',
-      `Smoke run: ${id}`,
-      '',
-      '```eagle-looms-json',
-      JSON.stringify({
-        schema: smokeSchema,
-        id,
-        stableKey: `eagle-looms:import-smoke:${id}`,
-        sourceTags: ['source:smoke', 'post:import-smoke'],
-        createdAt: new Date().toISOString(),
-      }),
-      '```',
-    ].join('\n'),
   };
 
   try {
@@ -155,6 +137,14 @@ async function cleanupStaleSmokeItems() {
   return staleIds;
 }
 
+async function assertNoSmokeRawRecords(id) {
+  const rows = await queryByText(id).catch(() => []);
+  const rawItems = rows.filter((item) => Array.isArray(item?.tags) && item.tags.includes('eagle-looms:raw'));
+  if (rawItems.length > 0) {
+    throw new Error(`Import smoke should not create Eagle Looms raw bookmark items. ${JSON.stringify(rawItems.map(summarizeItem))}`);
+  }
+}
+
 async function trashItem(id) {
   await eagleJson('/api/v2/item/update', {
     method: 'POST',
@@ -176,13 +166,16 @@ async function trashItemWithRetry(id) {
   throw lastError || new Error(`Could not move image smoke item to trash: ${id}`);
 }
 
-async function waitForCreated(id, text) {
-  for (let i = 0; i < 20; i += 1) {
+async function waitForCreated(id, text, predicate = () => true, attempts = 20) {
+  for (let i = 0; i < attempts; i += 1) {
     const row = await readItemInfo(id).catch(() => undefined);
     lastReadDebug = summarizeItem(row);
-    if (row?.annotation?.includes(text)) return row;
-    const rows = await queryByText(text).catch(() => []);
-    const match = rows.find((item) => item.id === id || item.annotation?.includes(text));
+    if ((row?.id === id || itemMatchesText(row, text)) && predicate(row)) return row;
+    const rows = [
+      ...await queryByText(text).catch(() => []),
+      ...await queryByText(smokeTag).catch(() => []),
+    ];
+    const match = rows.find((item) => (item.id === id || itemMatchesText(item, text)) && predicate(item));
     if (match) lastReadDebug = summarizeItem(match);
     if (match) return match;
     await new Promise((resolve) => setTimeout(resolve, 500));
@@ -246,6 +239,7 @@ function summarizeItem(item) {
     name: item.name,
     annotation: item.annotation,
     website: item.website,
+    bookmarkURL: item.bookmarkURL,
     tags: item.tags,
     isDeleted: item.isDeleted,
     keys: Object.keys(item).slice(0, 20),
@@ -255,9 +249,10 @@ function summarizeItem(item) {
 function isManagedSmokeItem(item) {
   if (!item || typeof item !== 'object') return false;
   if (!Array.isArray(item.tags) || !item.tags.includes(smokeTag)) return false;
-  if (typeof item.website !== 'string' || !item.website.startsWith(smokeWebsitePrefix)) return false;
   const annotation = parseSmokeAnnotation(item.annotation);
-  return annotation?.schema === smokeSchema && typeof annotation.id === 'string';
+  if (typeof item.website === 'string' && item.website.startsWith(smokeWebsitePrefix)) return true;
+  if (annotation?.schema === smokeSchema && typeof annotation.id === 'string') return true;
+  return Array.isArray(item.tags) && item.tags.includes('eagle-looms:raw');
 }
 
 function parseSmokeAnnotation(annotation) {
@@ -276,4 +271,10 @@ function parseJson(value) {
   } catch {
     return undefined;
   }
+}
+
+function itemMatchesText(item, text) {
+  if (!item) return false;
+  return [item.annotation, item.website, item.bookmarkURL, item.url, item.name]
+    .some((value) => typeof value === 'string' && value.includes(text));
 }

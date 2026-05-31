@@ -6,6 +6,8 @@ import q from "../utils/query-element";
 import relocateElement from "../utils/relocate-element";
 
 type TabID = "status" | "chapters" | "cherry-pick";
+type ResultLink = { label: string; url: string };
+export type DownloaderPanelStage = "downloadFailed" | "downloaded" | "downloadStart" | "downloading" | "importNoNewItems" | "packaging";
 
 export class DownloaderPanel {
 
@@ -19,9 +21,11 @@ export class DownloaderPanel {
   chaptersElement: HTMLElement;
   cherryPickElement: HTMLElement;
   noticeElement: HTMLElement;
+  eagleResultElement: HTMLElement;
   forceBTN: HTMLAnchorElement;
   startBTN: HTMLAnchorElement;
   btn: HTMLElement
+  private activeEagleImportConfirm?: (value: boolean) => void;
 
   constructor(root: HTMLElement) {
     this.root = root;
@@ -35,6 +39,7 @@ export class DownloaderPanel {
     this.chaptersElement = q("#download-chapters", root);
     this.cherryPickElement = q("#download-cherry-pick", root);
     this.noticeElement = q("#download-notice", root);
+    this.eagleResultElement = q("#download-eagle-result", root);
     this.forceBTN = q<HTMLAnchorElement>("#download-force", root);
     this.startBTN = q<HTMLAnchorElement>("#download-start", root);
     this.panel.addEventListener("transitionend", () => EBUS.emit("downloader-canvas-resize"));
@@ -90,6 +95,7 @@ export class DownloaderPanel {
       // <a class='clickable' style='color:gray;'>Enable RawImage Transient</a>
       const a = document.createElement("a");
       a.textContent = b.btn;
+      if (b.tooltip) a.title = b.tooltip;
       a.classList.add("clickable");
       a.style.color = "gray";
       a.style.margin = "0em 0.5em";
@@ -98,14 +104,21 @@ export class DownloaderPanel {
     });
   }
 
-  abort(stage: "downloadFailed" | "downloaded" | "downloadStart") {
+  abort(stage: "downloadFailed" | "downloaded" | "downloadStart" | "importNoNewItems") {
+    this.closeEagleImportConfirm(false);
     this.flushUI(stage);
     this.normalizeBTN();
   }
 
-  flushUI(stage: "downloadFailed" | "downloaded" | "downloading" | "downloadStart" | "packaging") {
+  flushUI(stage: DownloaderPanelStage) {
+    const running = stage === "downloading" || stage === "packaging";
+    if (stage === "downloading" || stage === "packaging") {
+      this.clearEagleImportResult();
+    }
+    this.forceBTN.hidden = running;
     this.startBTN.style.color = stage === "downloadFailed" ? "red" : "";
     this.startBTN.textContent = i18n[stage].get();
+    this.startBTN.title = running ? i18n.downloadStopTooltip.get() : i18n.downloadStartTooltip.get();
     this.btn.style.color = stage === "downloadFailed" ? "red" : "";
   }
 
@@ -123,17 +136,115 @@ export class DownloaderPanel {
     this.btn.classList.remove("lightgreen");
   }
 
+  confirmEagleImportPlan(details: string[], headline?: string): Promise<boolean> {
+    return new Promise(resolve => {
+      this.closeEagleImportConfirm(false);
+      const previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : undefined;
+      const planText = eagleImportPlanText(details, headline);
+      const div = document.createElement("div");
+      div.className = "ehvp-modal ehvp-eagle-import-confirm";
+      div.tabIndex = -1;
+      div.setAttribute("role", "dialog");
+      div.setAttribute("aria-modal", "true");
+      div.innerHTML = `
+        <div class="ehvp-modal-title">${escapeHTML(i18n.eagleImportConfirmTitle.get())}</div>
+        <div class="ehvp-modal-body">
+          <p class="ehvp-modal-lede">${escapeHTML(headline || i18n.eagleImportConfirmMessage.get())}</p>
+          ${headline ? `<p class="ehvp-modal-help">${escapeHTML(i18n.eagleImportConfirmMessage.get())}</p>` : ""}
+          <ul>${details.map(detail => `<li>${escapeHTML(detail)}</li>`).join("")}</ul>
+        </div>
+        <div class="ehvp-modal-actions">
+          <button class="ehvp-custom-btn ehvp-custom-btn-plain ehvp-modal-btn-copy" type="button">${escapeHTML(i18n.eagleImportConfirmCopy.get())}</button>
+          <button class="ehvp-custom-btn ehvp-modal-btn-cancel">${escapeHTML(i18n.modalCancel.get())}</button>
+          <button class="ehvp-custom-btn ehvp-custom-btn-green ehvp-modal-btn-confirm">${escapeHTML(i18n.eagleImportConfirmButton.get())}</button>
+        </div>
+      `;
+      let closed = false;
+      const cleanup = (value: boolean) => {
+        if (closed) return;
+        closed = true;
+        div.remove();
+        if (this.activeEagleImportConfirm === cleanup) {
+          this.activeEagleImportConfirm = undefined;
+        }
+        if (previousFocus?.isConnected) {
+          previousFocus.focus();
+        }
+        resolve(value);
+      };
+      this.activeEagleImportConfirm = cleanup;
+      this.root.appendChild(div);
+      const copyButton = div.querySelector<HTMLButtonElement>(".ehvp-modal-btn-copy");
+      const cancelButton = div.querySelector<HTMLButtonElement>(".ehvp-modal-btn-cancel");
+      const confirmButton = div.querySelector<HTMLButtonElement>(".ehvp-modal-btn-confirm");
+      div.addEventListener("keydown", event => {
+        event.stopPropagation();
+        if (event.key === "Escape") {
+          event.preventDefault();
+          cleanup(false);
+        } else if (event.key === "Tab") {
+          event.preventDefault();
+          focusNextInDialog(div, event.shiftKey);
+        } else if (event.key === "Enter" && document.activeElement === confirmButton) {
+          event.preventDefault();
+          cleanup(true);
+        }
+      });
+      copyButton?.addEventListener("click", async () => {
+        copyButton.textContent = await copyText(planText) ? i18n.eagleImportResultCopied.get() : i18n.eagleImportResultCopyFailed.get();
+      });
+      cancelButton?.addEventListener("click", () => cleanup(false));
+      confirmButton?.addEventListener("click", () => cleanup(true));
+      relocateElement(div, this.startBTN, this.root.offsetWidth, this.root.offsetHeight);
+      (confirmButton || div).focus();
+    });
+  }
+
+  closeEagleImportConfirm(value = false) {
+    this.activeEagleImportConfirm?.(value);
+  }
+
+  showEagleImportResult(details: string[], failed: boolean, links: ResultLink[] = []) {
+    const resultText = eagleImportResultText(details, links);
+    this.eagleResultElement.hidden = false;
+    this.eagleResultElement.classList.toggle("download-eagle-result-error", failed);
+    this.eagleResultElement.innerHTML = `
+      <div class="download-eagle-result-title">
+        <strong>${escapeHTML(i18n.eagleImportResultTitle.get())}</strong>
+        <span class="download-eagle-result-actions">
+          <button type="button" class="ehvp-custom-btn ehvp-custom-btn-plain" data-action="clear">${escapeHTML(i18n.eagleImportResultClear.get())}</button>
+          <button type="button" class="ehvp-custom-btn ehvp-custom-btn-plain" data-action="copy">${escapeHTML(i18n.eagleImportResultCopy.get())}</button>
+        </span>
+      </div>
+      <div class="download-eagle-result-body">
+        <ul>${details.map(detail => `<li>${escapeHTML(detail)}</li>`).join("")}</ul>
+        ${links.length ? `<div class="download-eagle-result-links">${links.map(link => `<a href="${escapeAttr(link.url)}" target="_blank" rel="noopener noreferrer">${escapeHTML(link.label)}</a>`).join("")}</div>` : ""}
+      </div>
+    `;
+    this.eagleResultElement.querySelector<HTMLButtonElement>('[data-action="clear"]')?.addEventListener("click", () => this.clearEagleImportResult());
+    this.eagleResultElement.querySelector<HTMLButtonElement>('[data-action="copy"]')?.addEventListener("click", async event => {
+      const button = event.currentTarget as HTMLButtonElement;
+      button.textContent = await copyText(resultText) ? i18n.eagleImportResultCopied.get() : i18n.eagleImportResultCopyFailed.get();
+    });
+  }
+
+  clearEagleImportResult() {
+    this.eagleResultElement.hidden = true;
+    this.eagleResultElement.classList.remove("download-eagle-result-error");
+    this.eagleResultElement.innerHTML = "";
+  }
+
   createChapterSelectList(chapters: Chapter[], selectedChapters: ChapterStat[]) {
     const selectAll = chapters.length === 1;
     this.chaptersElement.innerHTML = `
       <div>
-        <span id="download-chapters-select-all" class="clickable">Select All</span>
-        <span id="download-chapters-unselect-all" class="clickable">Unselect All</span>
-        <span id="download-chapters-add-new" class="clickable">Add New Chapters</span>
+        <span id="download-chapters-select-all" class="clickable">${escapeHTML(i18n.selectAllChapters.get())}</span>
+        <span id="download-chapters-unselect-all" class="clickable">${escapeHTML(i18n.unselectAllChapters.get())}</span>
+        <span id="download-chapters-add-new" class="clickable">${escapeHTML(i18n.addNewChapters.get())}</span>
       </div>
       ${chapters.map((c, i) => `<div><label>
         <input type="checkbox" id="ch-${c.id}" value="${c.id}" ${selectAll || selectedChapters.find(sel => sel.index === i) ? "checked" : ""} />
-        <span>${c.title}</span></label></div>`).join("")}`;
+        <span>${escapeHTML(chapterTitleText(c.title))}</span></label></div>`).join("")}`;
 
     ([["#download-chapters-select-all", true], ["#download-chapters-unselect-all", false]] as [string, boolean][]).forEach(([id, checked]) =>
       this.chaptersElement.querySelector<HTMLElement>(id)?.addEventListener("click", () =>
@@ -155,8 +266,8 @@ export class DownloaderPanel {
         div.innerHTML = `
           <div style="display: flex; justify-content: center; margin: 10px 2px;">${inner}</div>
           <div style="display: flex; justify-content: center;">
-            <button class="ehvp-custom-btn ehvp-modal-btn-cancel" style="background-color: gray;">Cancel</button>
-            <button class="ehvp-custom-btn ehvp-modal-btn-confirm" style="background-color: var(--ehvp-clickable-color-hover);">Confirm</button>
+            <button class="ehvp-custom-btn ehvp-modal-btn-cancel" style="background-color: gray;">${escapeHTML(i18n.modalCancel.get())}</button>
+            <button class="ehvp-custom-btn ehvp-modal-btn-confirm" style="background-color: var(--ehvp-clickable-color-hover);">${escapeHTML(i18n.modalConfirm.get())}</button>
           </div>
         `;
         root.appendChild(div);
@@ -285,6 +396,7 @@ export class DownloaderPanel {
     return `
 <div id="downloader-panel" class="p-panel p-downloader p-collapse">
     <div id="download-notice" class="download-notice" style="font-size: 0.7em;"></div>
+    <div id="download-eagle-result" class="download-eagle-result" role="status" aria-live="polite" hidden></div>
     <div id="download-middle" class="download-middle">
       <div class="ehvp-tabs">
         <a id="download-tab-status" class="clickable ehvp-p-tab">${i18n.status.get()}</a>
@@ -299,20 +411,20 @@ export class DownloaderPanel {
           <div class="ehvp-custom-panel-item-values" style="text-align: start;">
             <div style="margin-bottom: 1rem;display: flex;">
               <input type="text" class="ehvp-custom-panel-item-input" id="download-cherry-pick-input" placeholder="1, 2-3" style="text-align: start; width: 50%; height: 1.3rem; border-radius: 0px;" />
-              <span class="ehvp-custom-btn ehvp-custom-btn-green" id="download-cherry-pick-btn-add">Pick</span>
-              <span class="ehvp-custom-btn ehvp-custom-btn-plain" id="download-cherry-pick-btn-exclude">Exclude</span>
-              <span class="ehvp-custom-btn ehvp-custom-btn-plain" id="download-cherry-pick-btn-clear">Clear</span>
+              <span class="ehvp-custom-btn ehvp-custom-btn-green" id="download-cherry-pick-btn-add">${escapeHTML(i18n.cherryPickPick.get())}</span>
+              <span class="ehvp-custom-btn ehvp-custom-btn-plain" id="download-cherry-pick-btn-exclude">${escapeHTML(i18n.cherryPickExclude.get())}</span>
+              <span class="ehvp-custom-btn ehvp-custom-btn-plain" id="download-cherry-pick-btn-clear">${escapeHTML(i18n.cherryPickClear.get())}</span>
             </div>
             <div style="margin-bottom: 1rem;">
               <div style="margin-bottom: 0.2rem">
                 <span class="ehvp-custom-panel-item-span" id="download-cherry-pick-btn-range-after" data-range="1-1">1-1</span><span
-                 class="ehvp-custom-btn ehvp-custom-btn-green download-cherry-pick-follow-btn" data-sibling-step="1">pick</span><span
-                 class="ehvp-custom-btn ehvp-custom-btn-plain download-cherry-pick-follow-btn" data-sibling-step="2">exclude</span>
+                 class="ehvp-custom-btn ehvp-custom-btn-green download-cherry-pick-follow-btn" data-sibling-step="1">${escapeHTML(i18n.cherryPickPick.get())}</span><span
+                 class="ehvp-custom-btn ehvp-custom-btn-plain download-cherry-pick-follow-btn" data-sibling-step="2">${escapeHTML(i18n.cherryPickExclude.get())}</span>
               </div>
               <div>
                 <span class="ehvp-custom-panel-item-span" id="download-cherry-pick-btn-range-before" data-range="1-1">1-1</span><span
-                class="ehvp-custom-btn ehvp-custom-btn-green download-cherry-pick-follow-btn" data-sibling-step="1">pick</span><span
-                class="ehvp-custom-btn ehvp-custom-btn-plain download-cherry-pick-follow-btn" data-sibling-step="2">exclude</span>
+                class="ehvp-custom-btn ehvp-custom-btn-green download-cherry-pick-follow-btn" data-sibling-step="1">${escapeHTML(i18n.cherryPickPick.get())}</span><span
+                class="ehvp-custom-btn ehvp-custom-btn-plain download-cherry-pick-follow-btn" data-sibling-step="2">${escapeHTML(i18n.cherryPickExclude.get())}</span>
               </div>
             </div>
           </div>
@@ -321,10 +433,76 @@ export class DownloaderPanel {
       </div>
     </div>
     <div class="download-btn-group">
-       <a id="download-force" class="clickable">${i18n.forceDownload.get()}</a>
-       <a id="download-start" style="color: rgb(120, 240, 80)" class="clickable">${i18n.downloadStart.get()}</a>
+       <a id="download-force" class="clickable" title="${escapeAttr(i18n.forceDownloadTooltip.get())}">${i18n.forceDownload.get()}</a>
+       <a id="download-start" style="color: rgb(120, 240, 80)" class="clickable" title="${escapeAttr(i18n.downloadStartTooltip.get())}">${i18n.downloadStart.get()}</a>
     </div>
 </div>`;
   }
+}
+
+function escapeHTML(value: string): string {
+  return value
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll("\"", "&quot;");
+}
+
+function escapeAttr(value: string): string {
+  return escapeHTML(value).replaceAll("'", "&#39;");
+}
+
+function chapterTitleText(title: string | string[]): string {
+  return Array.isArray(title) ? title.join(",") : title;
+}
+
+function eagleImportResultText(details: string[], links: ResultLink[]): string {
+  return [
+    i18n.eagleImportResultTitle.get(),
+    ...details,
+    ...links.map(link => `${link.label}: ${link.url}`),
+  ].join("\n");
+}
+
+function eagleImportPlanText(details: string[], headline?: string): string {
+  return [
+    i18n.eagleImportConfirmTitle.get(),
+    headline || i18n.eagleImportConfirmMessage.get(),
+    ...details,
+  ].join("\n");
+}
+
+async function copyText(value: string): Promise<boolean> {
+  try {
+    if (navigator.clipboard?.writeText) {
+      await navigator.clipboard.writeText(value);
+      return true;
+    }
+    const textArea = document.createElement("textarea");
+    textArea.value = value;
+    textArea.style.position = "fixed";
+    textArea.style.left = "-9999px";
+    document.body.appendChild(textArea);
+    textArea.select();
+    const ok = document.execCommand?.("copy") ?? false;
+    textArea.remove();
+    return ok;
+  } catch {
+    return false;
+  }
+}
+
+function focusNextInDialog(dialog: HTMLElement, reverse: boolean): void {
+  const focusable = Array.from(dialog.querySelectorAll<HTMLElement>("button, a[href], input, select, textarea, [tabindex]"))
+    .filter(element => element.tabIndex >= 0 && !element.hasAttribute("disabled"));
+  if (focusable.length === 0) {
+    dialog.focus();
+    return;
+  }
+  const current = document.activeElement instanceof HTMLElement ? focusable.indexOf(document.activeElement) : -1;
+  const next = reverse
+    ? current <= 0 ? focusable.length - 1 : current - 1
+    : current < 0 || current >= focusable.length - 1 ? 0 : current + 1;
+  focusable[next].focus();
 }
 

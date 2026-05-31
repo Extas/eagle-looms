@@ -67,7 +67,7 @@ async function addSmokeBookmark(folderId, id) {
       bookmarkURL: smokeUrl,
       website: smokeUrl,
       folders: [folderId],
-      tags: ['eagle-looms', smokeTag],
+      tags: [smokeTag],
       annotation: JSON.stringify({
         schema: smokeSchema,
         id,

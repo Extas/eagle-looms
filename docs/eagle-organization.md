@@ -1,172 +1,167 @@
-# Eagle Organization Policy
+# Eagle Organization
 
-Status: active planning target
-Last updated: 2026-05-31
+This document is the source of truth for how Eagle Looms writes Eagle image items.
 
-## Principle
+## Principles
 
-Folders 回答“这批资产来自哪里”。Tags 回答“这个资产是什么、之后怎么找”。Eagle `website`/`url` 保留来源；annotation 只在必要时保留紧凑 duplicate key。
+Folders answer where a batch belongs. Tags answer what an asset is. Eagle fields hold provenance that Eagle already models, such as website and original URL.
 
-不要把每个 source site tag 都编码进 folder path。Folder explosion 会让 Eagle 难以浏览；高基数 metadata 应由 tags 和 annotation 承担。
+Avoid turning infrastructure into visible tags. `site`, `gallery`, `chapter`, file extension, MIME type, and stable keys are already represented by folders, fields, media data, or duplicate logic. Duplicating them in the user-visible tag list makes Eagle harder to browse.
 
-## Recommended Folder Tree
+This follows booru and tag-manager practice: category/namespace tags such as artist, copyright, and character are stable identity signals; general or AI-predicted feature tags are useful for search but too noisy for default folder roots. Keep the visible tag list bounded and keep folder names semantic.
 
-默认 root：
+## Folders
 
-```text
-Eagle Looms/
-```
-
-1.0 默认目录模板：
+Default template:
 
 ```text
-Eagle Looms/{site}/{gallery}
+Eagle Looms/{site}/{copyright}
 ```
 
-支持用户在 Config panel 中改为：
+Supported path tokens:
 
 ```text
-Eagle Looms/
-  {site}/
-    {gallery}/
-      {chapter}/
+{site}
+{gallery}
+{chapter}
+{copyright}
+{character}
+{author}
 ```
 
-示例：
+Built-in presets:
 
 ```text
-Eagle Looms/pixiv.net/{artist-name}/{work-id - title}/
-Eagle Looms/x.com/{handle}/{yyyy-mm-dd - post-id}/
-Eagle Looms/mangacopy.com/{comic-title}/{chapter-title}/
+Site / Copyright       Eagle Looms/{site}/{copyright}
+Site / Gallery         Eagle Looms/{site}/{gallery}
+Site / Gallery / Chapter
+Site / Copyright / Author
+Site / Copyright / Character
+Custom path
 ```
 
-Rules：
+Folder token rules:
 
 ```text
-sanitize folder names for filesystem-like safety
-shrink long names while preserving ID/title signal
-deduplicate sibling folder names
-store exact original URL in Eagle `url` and keep annotation empty unless an item needs a compact duplicate key
+sanitize unsafe folder characters
+omit missing token segments
+resolve folder tokens from uncapped source metadata
+choose the shortest normalized copyright when multiple copyright tags exist
+for the default Site / Copyright preset, fall back to gallery, author, chapter, then Unsorted when copyright is missing
+expand multiple distinct characters into multiple Eagle folders only when the template uses {character}
+fold obvious outfit-style longer character variants into the shorter character name
+do not include parsed item counts, page numbers, retry state, or other run-state values in folder tokens
+feed/home timelines without a stable collection title use semantic name plus local date, such as twitter-home-2026-05-31
+search/list pages use source taxonomy labels, such as danbooru-search-bang_dream, not result counts
 ```
 
-## Tags
+The default stays at copyright level because booru general tags are high-cardinality and character tags often include costume/outfit variants. The fallback keeps non-booru sites such as Pixiv/Twitter from collapsing everything directly under the site root. Users can opt into gallery, author, or character folders when they want that browsing model.
 
-使用紧凑、可预测的 tags。机器来源的 tags 使用 prefix，避免和用户手动 tags 混在一起。
+Import plan messages report this as `folder fallback copyright N` instead of `missing folder metadata`, because the default preset already has a deterministic fallback path. Custom templates still report missing metadata so users can decide whether to change the template.
 
-必备 tags：
+## Visible Tags
+
+Visible image item tags are source semantic tags only. Eagle Looms does not force these infrastructure tags onto normal image items:
 
 ```text
 eagle-looms
-site:{site}
-gallery:{gallery-title}
-chapter:{chapter-title}
-ext:{extension}
-mime:{content-type}
+site:*
+gallery:*
+chapter:*
+ext:*
+mime:*
+post:*
 ```
 
-Source metadata tags：
+Source metadata namespaces are normalized globally:
 
 ```text
-copyright:{work-or-series}
-character:{name}
-author:{creator}
+copyright / game copyright / parody / series  -> copyright:{name}
+character / char                              -> character:{name}
+author / artist / creator / group / circle    -> author:{name}
 ```
 
-这些命名空间全局统一：
+Other reliable source tags are imported as raw tags. The visible tag cap defaults to 20 and is clamped to `0..100`; `0` copies no visible source tags. Within the cap, `copyright:`, `character:`, and `author:` are ordered before general visual tags.
+
+`eagle-looms` and `eagle-looms:raw` are not added to new imports.
+
+## Source Metadata
+
+Current source mapping rules:
 
 ```text
-game copyright / copyright -> copyright:{name}
-character                  -> character:{name}
-author / artist            -> author:{name}
+Danbooru / Gelbooru / e621
+  use data-tag-string attributes, descendant metadata, numeric Danbooru category classes, and detail-page tag lists
+
+yande.re / konachan
+  use Moebooru Post.register / Post.register_tags when present
+
+anime-pictures
+  map game copyright, character, and author blocks; keep other detail tags raw
+
+E-Hentai / ExHentai
+  map gallery namespaces: parody -> copyright, character -> character, artist/group/circle -> author
+
+Pixiv
+  author comes from Pixiv user identity; artwork tags are raw because Pixiv does not classify copyright/character reliably
+
+Twitter / X
+  author comes from screen_name; hashtags stay raw
 ```
-
-其他来源 tags 同样导入，但不强行套命名空间。为了避免高流量站点把 Eagle tag 池打爆，仍受 source tag limit 控制：
-
-```text
-configurable max source tags per item: 20 by default, clamped to 0..100
-0 keeps only required Eagle Looms tags
-namespaced copyright/character/author tags and raw source tags share the same cap
-drop tags beyond the cap instead of forcing them into annotation
-```
-
-## Tag Groups
-
-Managed tag groups 是可选项。启用时只维护宽泛分组：
-
-```text
-Eagle Looms
-  eagle-looms
-
-Source Site
-  site:pixiv.net
-  site:x.com
-  site:artstation.com
-
-Source Metadata
-  copyright:*
-  character:*
-  author:*
-```
-
-不要为每个 gallery 或 creator 创建一个 tag group。
 
 ## Item Names
 
-默认命名：
+Names are display labels, not duplicate identity.
+
+Rules:
 
 ```text
-{source-title-or-original-filename}
+preserve source identity names such as anime-pictures-917184.png
+prefix item names with YYYY-MM-DD when the source publish/upload date is available
+do not add Comic Looms zip order prefixes such as 001_
+decode common URL and HTML noise
+normalize Unicode with NFKC
+replace unsafe separators/reserved characters with spaces
+preserve and lowercase the final extension
+trim trailing spaces/periods and cap long names
+dedupe visible sibling names in the current import batch with suffixes
 ```
 
-Multi-chapter import：
+Duplicate identity remains `sourceUrl`, `originUrl`, `itemKey`, and legacy stable-key annotations for backward compatibility.
+
+## Extra Assets
+
+New imports do not create Eagle Looms bookkeeping assets:
 
 ```text
-{chapter-title} - {source-title-or-original-filename}
+no _eagle-looms/Data folder
+no companion bookmark raw records
+no eagle-looms / eagle-looms:raw tags on normal image items
 ```
 
-名称表示资产身份，不承担 zip 排序职责；不要添加 `001_` 这类 Comic Looms 打包序号。同名冲突时追加 `_1`、`_2`。冗长标题不强制写入 annotation，避免详情面板噪音。
-
-## Annotation
-
-普通 imported item 默认不写长 annotation。需要区分多文件子项或保留多个作者 URL 时，annotation 只保留紧凑 JSON：
-
-````text
-{"schema":"eagle-looms/item/v1","stableKey":"...","sourceUrl":"...","originUrl":"...","itemKey":"...","authorUrls":["..."]}
-````
-
-Eagle 原生字段和 tags 先承担可见信息；annotation 只用于必要的 duplicate checks 和后续 migrations。
-
-## Gallery Bookmark Item
-
-对 gallery import，可选创建一个 `bookmarkURL` item：
+The image item annotation stays clean by default. Source organization is derived before write from the current page metadata and stored in normal Eagle fields where applicable:
 
 ```text
-name: {gallery title}
-bookmarkURL: gallery URL
-tags: looms:gallery, looms:site:{site}
-folders: gallery folder
-annotation: import summary, item count, chapter list
+name
+website
+url
+folders
+tags
 ```
 
-这样即使单张图片 URL 过期，Eagle 中也仍有一个可见 source anchor。
+Legacy `eagle-looms/raw/v1` annotations remain readable for duplicate checks so older imported libraries do not regress. They are not written by the current importer.
 
 ## Duplicate Policy
 
-默认：
+Default duplicate checks are additive and conservative:
 
 ```text
-skip items already imported by stableKey
-skip exact source URL matches when URL is reliable
-warn on hash matches from a different URL
-never merge or update existing items silently
+query exact stableKey, source URL, origin URL, and legacy stableKey
+match legacy raw records only when assetItemId exists and identity matches
+match URL-only duplicates only for single-file items
+skip same-session and same-plan stable keys before creating folders
+do not query by display name or low-signal subitem filename alone
+never merge, delete, retag, or update existing items silently
 ```
 
-显式用户选项：
-
-```text
-Skip duplicates
-Add anyway
-Update tags/annotation only
-```
-
-最后一个选项等 basic additive import path 稳定后再做。
+Multi-file subitems with the same origin URL are not treated as duplicates of each other unless their `itemKey` / stable raw identity also matches.

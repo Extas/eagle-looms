@@ -115,16 +115,16 @@ const i18nData = {
     'Número máximo de imágenes para cargar simultáneamente cuando está inactivo.',
   ],
   downloadThreads: [
-    'Download Threads',
-    '最大同时下载',
-    '최대 동시 다운로드',
-    'Hilos de descarga'
+    'Import loading threads',
+    '导入加载线程',
+    'Import loading threads',
+    'Hilos de carga para importacion'
   ],
   downloadThreadsTooltip: [
-    'Max Download Threads, suggest: <5',
-    '下载模式下，同时加载的图片数量，建议小于等于5',
-    '다운로드 모드에서 동시에 다운로드할 이미지 수입니다. 5 이하로 설정하는 것이 좋습니다.',
-    'Hilos máximos de descarga, sugerido: <5'
+    'Maximum number of images to load simultaneously while Load missing & import is running. Suggested: 5 or less.',
+    '点击“加载缺失并导入”后，同时加载图片的最大数量。建议小于等于 5。',
+    'Maximum number of images to load simultaneously while Load missing & import is running. Suggested: 5 or less.',
+    'Numero maximo de imagenes que se cargan a la vez durante Cargar e importar. Sugerido: 5 o menos.'
   ],
   paginationIMGCount: [
     'Images Per Page',
@@ -404,6 +404,54 @@ pero desactivará la lupa y la capacidad de arrastrar y mover imágenes.`,
     'Local Eagle Web API endpoint. Keep the default unless Eagle uses a custom port.',
     'Endpoint local de Eagle Web API. Mantenga el valor predeterminado salvo que Eagle use un puerto personalizado.',
   ],
+  eagleFolderPreset: [
+    'Eagle Folder Preset',
+    'Eagle 文件夹预设',
+    'Eagle Folder Preset',
+    'Preajuste de carpeta Eagle',
+  ],
+  eagleFolderPresetTooltip: [
+    'Choose a common Eagle organization pattern. Selecting a preset updates the folder path below; editing the path switches back to Custom path.',
+    '选择常用的 Eagle 组织方式。选择预设会自动更新下方文件夹路径；手动编辑路径会切回自定义。',
+    'Choose a common Eagle organization pattern. Selecting a preset updates the folder path below; editing the path switches back to Custom path.',
+    'Elige un patron comun de organizacion. Seleccionar un preajuste actualiza la ruta; editar la ruta vuelve a Personalizado.',
+  ],
+  eagleFolderPresetCustom: [
+    'Custom path',
+    '自定义路径',
+    'Custom path',
+    'Ruta personalizada',
+  ],
+  eagleFolderPresetCopyright: [
+    'Site / Copyright',
+    '站点 / 作品',
+    'Site / Copyright',
+    'Sitio / Copyright',
+  ],
+  eagleFolderPresetGallery: [
+    'Site / Gallery',
+    '站点 / 画廊',
+    'Site / Gallery',
+    'Sitio / Galeria',
+  ],
+  eagleFolderPresetChapter: [
+    'Site / Gallery / Chapter',
+    '站点 / 画廊 / 章节',
+    'Site / Gallery / Chapter',
+    'Sitio / Galeria / Capitulo',
+  ],
+  eagleFolderPresetCopyrightAuthor: [
+    'Site / Copyright / Author',
+    '站点 / 作品 / 作者',
+    'Site / Copyright / Author',
+    'Sitio / Copyright / Autor',
+  ],
+  eagleFolderPresetCopyrightCharacter: [
+    'Site / Copyright / Character',
+    '站点 / 作品 / 角色',
+    'Site / Copyright / Character',
+    'Sitio / Copyright / Personaje',
+  ],
   eagleFolderPath: [
     'Eagle Folder Path',
     'Eagle 文件夹路径',
@@ -411,10 +459,10 @@ pero desactivará la lupa y la capacidad de arrastrar y mover imágenes.`,
     'Ruta de carpeta Eagle',
   ],
   eagleFolderPathTooltip: [
-    'Use / to separate Eagle folders. Tokens: {site}, {gallery}, {chapter}, {copyright}, {character}, {author}. Invalid folder characters are cleaned when saved.',
-    '用 / 分隔 Eagle 文件夹。支持变量：{site}、{gallery}、{chapter}、{copyright}、{character}、{author}。保存时会清理非法文件夹字符。',
-    'Use / to separate Eagle folders. Tokens: {site}, {gallery}, {chapter}, {copyright}, {character}, {author}. Invalid folder characters are cleaned when saved.',
-    'Use / para separar carpetas de Eagle. Variables: {site}, {gallery}, {chapter}, {copyright}, {character}, {author}.',
+    'Use / to separate Eagle folders. Tokens: {site}, {gallery}, {chapter}, {copyright}, {character}, {author}. The default Site / Copyright preset falls back to gallery or Unsorted when copyright is missing.',
+    '用 / 分隔 Eagle 文件夹。支持变量：{site}、{gallery}、{chapter}、{copyright}、{character}、{author}。默认 Site / Copyright 预设在缺少 copyright 时会回退到 gallery 或 Unsorted。',
+    'Use / to separate Eagle folders. Tokens: {site}, {gallery}, {chapter}, {copyright}, {character}, {author}. The default Site / Copyright preset falls back to gallery or Unsorted when copyright is missing.',
+    'Use / para separar carpetas de Eagle. Variables: {site}, {gallery}, {chapter}, {copyright}, {character}, {author}. El preajuste Site / Copyright usa gallery o Unsorted si falta copyright.',
   ],
   eagleImportLimit: [
     'Eagle Import Limit',
@@ -423,22 +471,22 @@ pero desactivará la lupa y la capacidad de arrastrar y mover imágenes.`,
     'Limite de importacion Eagle',
   ],
   eagleImportLimitTooltip: [
-    'Maximum images collected for one import run on paged result sites.',
-    '分页结果站点中一次导入最多采集的图片数量。',
-    'Maximum images collected for one import run on paged result sites.',
-    'Numero maximo de imagenes recogidas en una importacion.',
+    'Maximum ready assets written by one bulk Eagle import. Paged result sites may also stop collection at this limit.',
+    '一次批量 Eagle 导入最多写入的已就绪资产数量。分页结果站点也会按这个上限停止采集。',
+    'Maximum ready assets written by one bulk Eagle import. Paged result sites may also stop collection at this limit.',
+    'Numero maximo de assets listos escritos en una importacion masiva de Eagle.',
   ],
   eagleMaxSourceTags: [
-    'Eagle Source Tag Limit',
-    'Eagle 来源标签上限',
-    'Eagle Source Tag Limit',
-    'Limite de etiquetas de origen Eagle',
+    'Visible source tag limit',
+    '可见来源标签上限',
+    'Visible source tag limit',
+    'Limite de etiquetas visibles',
   ],
   eagleMaxSourceTagsTooltip: [
-    'Maximum source-site tags copied to each Eagle item. Required Eagle Looms tags are always kept. Set to 0 to keep only required tags.',
-    '每个 Eagle 项目最多复制的来源站点标签数量。Eagle Looms 必备标签始终保留；设为 0 时只保留必备标签。',
-    'Maximum source-site tags copied to each Eagle item. Required Eagle Looms tags are always kept. Set to 0 to keep only required tags.',
-    'Numero maximo de etiquetas del sitio de origen copiadas a cada item de Eagle.',
+    'Maximum source-site semantic tags copied to each Eagle item. copyright:, character:, and author: tags are namespaced and prioritized; other reliable source tags follow. Site, gallery, chapter, extension, and MIME stay in folders, Eagle fields, or media data instead of visible tags. Set to 0 to copy no source tags.',
+    '每个 Eagle 项目最多复制的来源站点语义标签数量。copyright:、character:、author: 会使用命名空间并优先导入；其他可靠来源标签随后导入。站点、画廊、章节、扩展名和 MIME 保存在文件夹、Eagle 字段或媒体数据中，不再写成可见标签；设为 0 时不复制来源标签。',
+    'Maximum source-site semantic tags copied to each Eagle item. copyright:, character:, and author: tags are namespaced and prioritized; other reliable source tags follow. Site, gallery, chapter, extension, and MIME stay in folders, Eagle fields, or media data instead of visible tags. Set to 0 to copy no source tags.',
+    'Numero maximo de etiquetas semanticas copiadas a cada item de Eagle. copyright:, character: y author: tienen espacio de nombres y prioridad; otras etiquetas fiables siguen despues.',
   ],
   eagleSkipDuplicates: [
     'Skip Eagle Duplicates',
@@ -447,10 +495,400 @@ pero desactivará la lupa y la capacidad de arrastrar y mover imágenes.`,
     'Omitir duplicados Eagle',
   ],
   eagleSkipDuplicatesTooltip: [
-    'Before writing, query Eagle by source URL, original URL, and stable annotation key, then skip already imported images.',
-    '写入前按来源 URL、原图 URL 和稳定注释 key 查询 Eagle，跳过已导入的图片。',
-    'Before writing, query Eagle by source URL, original URL, and stable annotation key, then skip already imported images.',
+    'Before writing, query Eagle by source URL, original URL, and legacy stable keys, then skip already imported images.',
+    '写入前按来源 URL、原图 URL 和旧版稳定 key 查询 Eagle，跳过已导入的图片。',
+    'Before writing, query Eagle by source URL, original URL, and legacy stable keys, then skip already imported images.',
     'Antes de escribir, consulta Eagle por URL de origen y omite imágenes ya importadas.',
+  ],
+  eagleNameDatePrefix: [
+    'Prefix item name with source date',
+    '文件名前缀使用来源日期',
+    'Prefix item name with source date',
+    'Prefijar nombre con fecha de origen',
+  ],
+  eagleNameDatePrefixTooltip: [
+    'When the source site provides a publish/upload date, imported Eagle item names start with YYYY-MM-DD for easier visual browsing and sorting.',
+    '来源站点提供发布/上传日期时，导入 Eagle 的文件名会以 YYYY-MM-DD 开头，便于人工浏览和排序。',
+    'When the source site provides a publish/upload date, imported Eagle item names start with YYYY-MM-DD for easier visual browsing and sorting.',
+    'Cuando el sitio de origen proporciona fecha, el nombre empieza con YYYY-MM-DD para ordenar y explorar mejor.',
+  ],
+  eagleConfigPreview: [
+    'Eagle import preview',
+    'Eagle 导入预览',
+    'Eagle import preview',
+    'Vista previa de importacion Eagle',
+  ],
+  eagleConfigPreviewScope: [
+    'Scope',
+    '作用域',
+    'Scope',
+    'Alcance',
+  ],
+  eagleConfigPreviewConnection: [
+    'Connection',
+    '连接',
+    'Connection',
+    'Conexion',
+  ],
+  eagleConfigTestConnection: [
+    'Test Eagle',
+    '测试 Eagle',
+    'Test Eagle',
+    'Probar Eagle',
+  ],
+  eagleConfigTestChecking: [
+    'Testing...',
+    '测试中...',
+    'Testing...',
+    'Probando...',
+  ],
+  eagleConfigTestOk: [
+    'Connected to Eagle {version} at {url}',
+    '已连接 Eagle {version}：{url}',
+    'Connected to Eagle {version} at {url}',
+    'Conectado a Eagle {version} en {url}',
+  ],
+  eagleConfigTestFailed: [
+    'Cannot connect to {url}: {message}',
+    '无法连接 {url}：{message}',
+    'Cannot connect to {url}: {message}',
+    'No se puede conectar a {url}: {message}',
+  ],
+  eagleConfigPreviewGlobalScope: [
+    'global settings',
+    '全局设置',
+    'global settings',
+    'ajustes globales',
+  ],
+  eagleConfigPreviewInheritsGlobal: [
+    'inherits global Eagle settings',
+    '继承全局 Eagle 设置',
+    'inherits global Eagle settings',
+    'hereda los ajustes globales de Eagle',
+  ],
+  eagleConfigPreviewOverrides: [
+    'overrides {fields}',
+    '覆盖 {fields}',
+    'overrides {fields}',
+    'sobrescribe {fields}',
+  ],
+  eagleConfigPreviewFolder: [
+    'Example folders',
+    '示例文件夹',
+    'Example folders',
+    'Carpetas de ejemplo',
+  ],
+  eagleConfigPreviewPreset: [
+    'Folder preset',
+    '文件夹预设',
+    'Folder preset',
+    'Preajuste de carpeta',
+  ],
+  eagleConfigPreviewFolderTemplate: [
+    'Folder rule',
+    '文件夹规则',
+    'Folder rule',
+    'Regla de carpeta',
+  ],
+  eagleConfigPreviewNames: [
+    'Item names',
+    '文件名',
+    'Item names',
+    'Nombres',
+  ],
+  eagleConfigPreviewSourceFields: [
+    'Source fields',
+    '来源字段',
+    'Source fields',
+    'Campos de origen',
+  ],
+  eagleConfigPreviewSourceFieldsText: [
+    'website = source page; url = original image; duplicates use source/original URL and legacy keys',
+    'website 写来源页面；url 写原图；重复检测使用来源/原图 URL 和旧版 key',
+    'website = source page; url = original image; duplicates use source/original URL and legacy keys',
+    'website = pagina de origen; url = imagen original; duplicados usan URL de origen/original y claves legacy',
+  ],
+  eagleConfigPreviewDateNames: [
+    'source date prefix when available, then source identity',
+    '有来源日期时加日期前缀，然后保留来源身份',
+    'source date prefix when available, then source identity',
+    'prefijo de fecha si existe, luego identidad de origen',
+  ],
+  eagleConfigPreviewSourceNames: [
+    'source identity only',
+    '仅保留来源身份',
+    'source identity only',
+    'solo identidad de origen',
+  ],
+  eagleConfigPreviewVisibleTags: [
+    'Visible tags',
+    '可见标签',
+    'Visible tags',
+    'Etiquetas visibles',
+  ],
+  eagleConfigPreviewBatch: [
+    'Batch',
+    '批量',
+    'Batch',
+    'Lote',
+  ],
+  eagleConfigPreviewBatchText: [
+    'up to {count}; duplicates: {duplicates}',
+    '最多 {count} 个；重复项：{duplicates}',
+    'up to {count}; duplicates: {duplicates}',
+    'hasta {count}; duplicados: {duplicates}',
+  ],
+  eagleConfigPreviewSkipDuplicates: [
+    'skip',
+    '跳过',
+    'skip',
+    'omitir',
+  ],
+  eagleConfigPreviewAddDuplicates: [
+    'add',
+    '仍然导入',
+    'add',
+    'agregar',
+  ],
+  eagleConfigPreviewExtraAssets: [
+    'Extra assets',
+    '额外资产',
+    'Extra assets',
+    'Recursos extra',
+  ],
+  eagleConfigPreviewNoExtraAssets: [
+    'none; only image items are created',
+    '不创建；只写入图片资产',
+    'none; only image items are created',
+    'ninguno; solo se crean imagenes',
+  ],
+  eagleConfigPreviewTags: [
+    'copyright:/character:/author: first, plus other source tags; max {count}',
+    '优先 copyright:/character:/author:，再导入其他来源标签；最多 {count} 个',
+    'copyright:/character:/author: first, plus other source tags; max {count}',
+    'copyright:/character:/author: primero, mas otras etiquetas; max {count}',
+  ],
+  eagleConfigPreviewNoTags: [
+    'none',
+    '不复制',
+    'none',
+    'ninguna',
+  ],
+  eagleSummaryTitle: [
+    'Eagle import',
+    'Eagle 导入',
+    'Eagle import',
+    'Importacion Eagle',
+  ],
+  eaglePlanTitle: [
+    'Eagle import plan',
+    'Eagle 导入计划',
+    'Eagle import plan',
+    'Plan de importacion Eagle',
+  ],
+  eagleSummaryNoNewItems: [
+    'no new items',
+    '没有新项目',
+    'no new items',
+    'sin elementos nuevos',
+  ],
+  eagleSummaryNoItemsImported: [
+    'no items imported',
+    '没有项目导入',
+    'no items imported',
+    'sin elementos importados',
+  ],
+  eagleSummaryPlanned: [
+    'planned {count}',
+    '计划 {count}',
+    'planned {count}',
+    'planificados {count}',
+  ],
+  eagleSummaryImported: [
+    'imported {count}',
+    '已导入 {count}',
+    'imported {count}',
+    'importados {count}',
+  ],
+  eagleSummarySkipped: [
+    'skipped {count}{reasons}',
+    '已跳过 {count}{reasons}',
+    'skipped {count}{reasons}',
+    'omitidos {count}{reasons}',
+  ],
+  eagleSummaryFailed: [
+    'failed {count}',
+    '失败 {count}',
+    'failed {count}',
+    'fallidos {count}',
+  ],
+  eagleSummaryReasonDuplicates: [
+    'duplicates {count}',
+    '重复 {count}',
+    'duplicates {count}',
+    'duplicados {count}',
+  ],
+  eagleSummaryReasonSession: [
+    'session {count}',
+    '本次会话 {count}',
+    'session {count}',
+    'sesion {count}',
+  ],
+  eagleSummaryFolders: [
+    'folders {value}',
+    '文件夹 {value}',
+    'folders {value}',
+    'carpetas {value}',
+  ],
+  eagleSummaryFirstSkipped: [
+    'first skipped {value}',
+    '首批跳过 {value}',
+    'first skipped {value}',
+    'primeros omitidos {value}',
+  ],
+  eagleSummaryFirstFailures: [
+    'first failures {value}',
+    '首批失败 {value}',
+    'first failures {value}',
+    'primeros fallos {value}',
+  ],
+  eaglePlanHeadline: [
+    'Write {count} new {item} to Eagle{notes}?',
+    '写入 {count} 个新{item}到 Eagle{notes}？',
+    'Write {count} new {item} to Eagle{notes}?',
+    'Escribir {count} {item} nuevo en Eagle{notes}?',
+  ],
+  eaglePlanHeadlineItem: [
+    'item',
+    '项目',
+    'item',
+    'elemento',
+  ],
+  eaglePlanHeadlineItems: [
+    'items',
+    '项目',
+    'items',
+    'elementos',
+  ],
+  eaglePlanNoteSkippedBeforeWriting: [
+    '{count} skipped before writing',
+    '{count} 个写入前跳过',
+    '{count} skipped before writing',
+    '{count} omitidos antes de escribir',
+  ],
+  eaglePlanNoteOverLimit: [
+    '{count} over limit omitted',
+    '{count} 个超过上限未写入',
+    '{count} over limit omitted',
+    '{count} sobre el limite omitidos',
+  ],
+  eaglePlanNotePreflightFailed: [
+    '{count} preflight failed',
+    '{count} 个预检查失败',
+    '{count} preflight failed',
+    '{count} fallidos en preflight',
+  ],
+  eaglePlanSelected: [
+    'selected {count}',
+    '已选择 {count}',
+    'selected {count}',
+    'seleccionados {count}',
+  ],
+  eaglePlanLimitOmitted: [
+    'limit {limit}, omitted {omitted}',
+    '上限 {limit}，未写入 {omitted}',
+    'limit {limit}, omitted {omitted}',
+    'limite {limit}, omitidos {omitted}',
+  ],
+  eaglePlanWillWrite: [
+    'will write {count}',
+    '将写入 {count}',
+    'will write {count}',
+    'escribira {count}',
+  ],
+  eaglePlanWillSkipBeforeWriting: [
+    'will skip before writing {count}{reasons}',
+    '写入前跳过 {count}{reasons}',
+    'will skip before writing {count}{reasons}',
+    'omitira antes de escribir {count}{reasons}',
+  ],
+  eaglePlanPreflightFailed: [
+    'preflight failed {count}',
+    '预检查失败 {count}',
+    'preflight failed {count}',
+    'preflight fallido {count}',
+  ],
+  eaglePlanTarget: [
+    'target {value}',
+    '目标 {value}',
+    'target {value}',
+    'destino {value}',
+  ],
+  eaglePlanWritesImageItemsOnly: [
+    'writes image items only',
+    '只写入图片项目',
+    'writes image items only',
+    'solo escribe imagenes',
+  ],
+  eaglePlanItemNames: [
+    'item names {value}',
+    '项目名 {value}',
+    'item names {value}',
+    'nombres {value}',
+  ],
+  eaglePlanNamePolicy: [
+    'name policy {value}',
+    '命名规则 {value}',
+    'name policy {value}',
+    'regla de nombre {value}',
+  ],
+  eaglePlanMissingFolderMetadata: [
+    'missing folder metadata {value}',
+    '缺少文件夹元数据 {value}',
+    'missing folder metadata {value}',
+    'metadatos de carpeta faltantes {value}',
+  ],
+  eaglePlanFolderFallback: [
+    'folder fallback {value}{fallback}',
+    '文件夹回退 {value}{fallback}',
+    'folder fallback {value}{fallback}',
+    'fallback de carpeta {value}{fallback}',
+  ],
+  eaglePlanCopyrightFallback: [
+    ' (gallery/author/chapter/Unsorted)',
+    '（gallery/author/chapter/Unsorted）',
+    ' (gallery/author/chapter/Unsorted)',
+    ' (gallery/author/chapter/Unsorted)',
+  ],
+  eaglePlanFolderMetadata: [
+    'folder metadata {value}',
+    '文件夹元数据 {value}',
+    'folder metadata {value}',
+    'metadatos de carpeta {value}',
+  ],
+  eaglePlanVisibleTagsMax: [
+    'visible tags max {count}',
+    '可见标签最多 {count}',
+    'visible tags max {count}',
+    'etiquetas visibles max {count}',
+  ],
+  eaglePlanDuplicates: [
+    'duplicates {policy}',
+    '重复项 {policy}',
+    'duplicates {policy}',
+    'duplicados {policy}',
+  ],
+  eaglePlanDuplicatesSkipped: [
+    'skipped',
+    '跳过',
+    'skipped',
+    'omitidos',
+  ],
+  eaglePlanDuplicatesAllowed: [
+    'allowed',
+    '允许',
+    'allowed',
+    'permitidos',
   ],
   pixivUgoiraMode: [
     "Pixiv Ugoira Mode",
@@ -603,22 +1041,28 @@ pero desactivará la lupa y la capacidad de arrastrar y mover imágenes.`,
     'Arrastra para mover la barra de control'
   ],
   resetDownloaded: [
-    'Reset Downloaded Images',
-    '重置已下载的图片',
-    '다운로드한 이미지 초기화',
-    'Restablecer imágenes descargadas'
+    'Mark loaded as missing',
+    '已加载改为未加载',
+    'Mark loaded as missing',
+    'Marcar cargadas como faltantes'
   ],
   resetDownloadedConfirm: [
-    'You will reset Downloaded Images!',
-    '已下载的图片将会被重置为未下载！',
-    '이미지들은 다운로드하지 않은 상태로 초기화됩니다!',
-    '¡Vas a restablecer las imágenes descargadas!'
+    'Green loaded images will return to gray missing state and can be loaded again. Eagle items are not changed.',
+    '绿色已加载图片会改回灰色未加载状态，可重新加载；不会修改 Eagle 里的项目。',
+    'Green loaded images will return to gray missing state and can be loaded again. Eagle items are not changed.',
+    'Las imagenes verdes cargadas volveran al estado gris faltante y podran cargarse de nuevo. No cambia elementos de Eagle.'
   ],
   resetFailed: [
-    'Reset Failed Images',
-    '重置下载错误的图片',
-    '로딩 실패한 이미지 초기화',
-    'Restablecer imágenes fallidas'
+    'Retry failed images',
+    '重试失败图片',
+    'Retry failed images',
+    'Reintentar imagenes fallidas'
+  ],
+  resetFailedTooltip: [
+    'Red failed images will return to gray missing state and loading will restart when idle.',
+    '红色失败图片会改回灰色未加载状态，并在空闲时重新开始加载。',
+    'Red failed images will return to gray missing state and loading will restart when idle.',
+    'Las imagenes rojas fallidas volveran al estado gris faltante y se cargaran cuando este inactivo.'
   ],
   showHelp: [
     'Help',
@@ -729,48 +1173,216 @@ pero desactivará la lupa y la capacidad de arrastrar y mover imágenes.`,
     'Presiona la estrella'
   ],
 
-  // download panel
+  // import panel
+  modalCancel: [
+    'Cancel',
+    '取消',
+    'Cancel',
+    'Cancelar'
+  ],
+  modalConfirm: [
+    'Confirm',
+    '确认',
+    'Confirm',
+    'Confirmar'
+  ],
+  eagleImportConfirmTitle: [
+    'Review Eagle import',
+    '确认 Eagle 导入',
+    'Review Eagle import',
+    'Revisar importación a Eagle'
+  ],
+  eagleImportConfirmMessage: [
+    'Review folders, item names, skips, and tags before writing to the current Eagle library.',
+    '写入当前 Eagle 资料库前，请确认文件夹、文件名、跳过项和标签。',
+    'Review folders, item names, skips, and tags before writing to the current Eagle library.',
+    'Revisa carpetas, nombres, omisiones y etiquetas antes de escribir en la biblioteca actual de Eagle.'
+  ],
+  eagleImportConfirmButton: [
+    'Write to Eagle',
+    '写入 Eagle',
+    'Write to Eagle',
+    'Escribir en Eagle'
+  ],
+  eagleImportConfirmCopy: [
+    'Copy plan',
+    '复制计划',
+    'Copy plan',
+    'Copiar plan'
+  ],
+  eagleImportResultTitle: [
+    'Last Eagle import',
+    '最近一次 Eagle 导入',
+    'Last Eagle import',
+    'Última importación a Eagle'
+  ],
+  eagleImportResultClear: [
+    'Clear',
+    '清除',
+    'Clear',
+    'Limpiar'
+  ],
+  eagleImportResultCopy: [
+    'Copy details',
+    '复制详情',
+    'Copy details',
+    'Copiar detalles'
+  ],
+  eagleImportResultCopied: [
+    'Copied',
+    '已复制',
+    'Copied',
+    'Copiado'
+  ],
+  eagleImportResultCopyFailed: [
+    'Copy failed',
+    '复制失败',
+    'Copy failed',
+    'Error al copiar'
+  ],
+  eagleImportCheckingDuplicates: [
+    'Checking Eagle for existing imports...',
+    '正在检查 Eagle 中已有的导入项目...',
+    'Checking Eagle for existing imports...',
+    'Comprobando importaciones existentes en Eagle...',
+  ],
+  eagleImportCanceledBeforeWriting: [
+    'Eagle import canceled before writing.',
+    '已取消 Eagle 导入，尚未写入。',
+    'Eagle import canceled before writing.',
+    'Importacion a Eagle cancelada antes de escribir.',
+  ],
+  eagleImportFailedToast: [
+    'Eagle import failed, {message}',
+    'Eagle 导入失败，{message}',
+    'Eagle import failed, {message}',
+    'Importacion a Eagle fallida, {message}',
+  ],
+  eagleImportAlreadyRunning: [
+    'Eagle import is already running.',
+    'Eagle 导入正在运行。',
+    'Eagle import is already running.',
+    'La importacion a Eagle ya esta en curso.',
+  ],
+  eagleImportNoFetchedImages: [
+    'No fetched images are selected for Eagle import. Load images first or adjust cherry-pick ranges.',
+    '没有可导入的已加载图片。请先加载图片，或调整 Cherry Pick 范围。',
+    'No fetched images are selected for Eagle import. Load images first or adjust cherry-pick ranges.',
+    'No hay imagenes cargadas seleccionadas para importar a Eagle. Carga imagenes o ajusta Cherry Pick.',
+  ],
+  eagleImportNoImageFound: [
+    'No image found for Eagle import.',
+    '没有找到可导入到 Eagle 的图片。',
+    'No image found for Eagle import.',
+    'No se encontro imagen para importar a Eagle.',
+  ],
+  eagleImportFetchingCurrent: [
+    'Fetching current image before Eagle import...',
+    '正在先加载当前图片，再导入 Eagle...',
+    'Fetching current image before Eagle import...',
+    'Cargando la imagen actual antes de importar a Eagle...',
+  ],
+  eagleImportCurrentNotFetched: [
+    'Current image is not fetched.',
+    '当前图片尚未加载完成。',
+    'Current image is not fetched.',
+    'La imagen actual no esta cargada.',
+  ],
+  eagleImportCurrentNotReady: [
+    'Current image is not ready for Eagle import.',
+    '当前图片还不能导入 Eagle。',
+    'Current image is not ready for Eagle import.',
+    'La imagen actual no esta lista para importar a Eagle.',
+  ],
+  eagleImportCannotReachApi: [
+    'Cannot reach Eagle Web API. Start Eagle, check the Eagle API URL, then use Config > Test Eagle. ({message})',
+    '无法连接 Eagle Web API。请启动 Eagle，检查 Eagle API URL，然后使用 配置 > 测试 Eagle。({message})',
+    'Cannot reach Eagle Web API. Start Eagle, check the Eagle API URL, then use Config > Test Eagle. ({message})',
+    'No se puede conectar con Eagle Web API. Inicia Eagle, revisa la URL y usa Config > Test Eagle. ({message})',
+  ],
+  eagleImportApiTimedOut: [
+    'Eagle Web API timed out. Check Eagle is responsive, then retry or use Config > Test Eagle. ({message})',
+    'Eagle Web API 超时。请确认 Eagle 有响应，然后重试或使用 配置 > 测试 Eagle。({message})',
+    'Eagle Web API timed out. Check Eagle is responsive, then retry or use Config > Test Eagle. ({message})',
+    'Eagle Web API agoto el tiempo. Revisa que Eagle responda y reintenta o usa Config > Test Eagle. ({message})',
+  ],
+  eagleImportSkipReasonDuplicate: [
+    'duplicate',
+    '重复',
+    'duplicate',
+    'duplicado',
+  ],
+  eagleImportSkipReasonSession: [
+    'session',
+    '本次会话',
+    'session',
+    'sesion',
+  ],
   download: [
     'EAGLE',
     '导入',
-    '다운로드',
-    'Descargar'
+    'EAGLE',
+    'EAGLE'
   ],
   forceDownload: [
-    'Import Loaded',
-    '导入已加载',
-    '다운로드된 이미지 가져오기',
-    'Tomar cargado'
+    'Import loaded only',
+    '只导入已加载',
+    'Import loaded only',
+    'Importar solo cargadas'
+  ],
+  forceDownloadTooltip: [
+    'Write only green loaded images to Eagle. It does not fetch gray missing images.',
+    '只把绿色已加载的图片写入 Eagle，不继续加载灰色缺失图片。',
+    'Write only green loaded images to Eagle. It does not fetch gray missing images.',
+    'Escribe solo imágenes verdes ya cargadas en Eagle. No carga imágenes grises faltantes.'
   ],
   downloadStart: [
-    'Import to Eagle',
-    '导入 Eagle',
-    '다운로드 시작',
-    'Comenzar descarga'
+    'Load missing & import',
+    '加载缺失并导入',
+    'Load missing & import',
+    'Cargar e importar'
+  ],
+  downloadStartTooltip: [
+    'Load selected gray missing images first, then import loaded images to Eagle. Already loaded images are reused.',
+    '先加载选中范围内灰色缺失的图片，再把已加载图片导入 Eagle；已加载图片会直接复用。',
+    'Load selected gray missing images first, then import loaded images to Eagle. Already loaded images are reused.',
+    'Carga primero las imagenes grises faltantes y luego importa las imagenes cargadas a Eagle.'
+  ],
+  downloadStopTooltip: [
+    'Stop after the current load or Eagle write step finishes.',
+    '当前加载或 Eagle 写入步骤结束后停止。',
+    'Stop after the current load or Eagle write step finishes.',
+    'Detener después de que termine la carga o escritura actual en Eagle.'
   ],
   downloading: [
-    'Importing...',
-    '导入中...',
-    '다운로드 중...',
-    'Descargando...'
+    'Stop loading/import',
+    '停止加载/导入',
+    'Stop loading/import',
+    'Cargando y luego importando...'
   ],
   downloadFailed: [
-    'Failed(Retry)',
-    '导入失败(重试)',
-    '실패(재시도)',
-    'Fallido(Reintentar)'
+    'Import Failed (Retry)',
+    '导入失败（重试）',
+    'Import Failed (Retry)',
+    'Importación fallida (reintentar)'
   ],
   downloaded: [
     'Imported',
     '导入完成',
-    '다운로드 완료',
-    'Descargado'
+    'Imported',
+    'Importado'
+  ],
+  importNoNewItems: [
+    'No new items',
+    '没有新项目',
+    'No new items',
+    'Sin elementos nuevos'
   ],
   packaging: [
-    'Writing Eagle...',
-    '写入 Eagle...',
-    '압축 중...',
-    'Empaquetando...'
+    'Stop Eagle import',
+    '停止 Eagle 导入',
+    'Stop Eagle import',
+    'Escribiendo en Eagle...'
   ],
   status: [
     'Status',
@@ -784,11 +1396,47 @@ pero desactivará la lupa y la capacidad de arrastrar y mover imágenes.`,
     '챕터',
     'capítulos'
   ],
+  selectAllChapters: [
+    'Select All',
+    '全选',
+    '전체 선택',
+    'Seleccionar todo',
+  ],
+  unselectAllChapters: [
+    'Unselect All',
+    '取消全选',
+    '전체 해제',
+    'Deseleccionar todo',
+  ],
+  addNewChapters: [
+    'Add New Chapters',
+    '添加新章节',
+    '새 챕터 추가',
+    'Agregar capítulos',
+  ],
   cherryPick: [
     'Cherry Pick',
     '范围选择',
     '범위 선택',
     'Seleccionar individualmente'
+  ],
+  cherryPickPick: [
+    'Pick',
+    '选择',
+    '선택',
+    'Seleccionar',
+  ],
+  cherryPickExclude: [
+    'Exclude',
+    '排除',
+    '제외',
+    'Excluir',
+  ],
+  cherryPickClear: [
+    'Clear',
+    '清空',
+    '지우기',
+    'Limpiar',
   ],
 
   enable: [
@@ -932,15 +1580,14 @@ pero desactivará la lupa y la capacidad de arrastrar y mover imágenes.`,
 <p>By default, the script automatically and slowly loads large images one by one.</p>
 <p>You can still click any thumbnail to start loading and reading from that point, at which time auto-loading will stop and pre-load 3 images from the reading position.</p>
 <p>Just like the thumbnail list, you don&#39;t need to worry about generating a lot of loading requests by fast scrolling.</p>
-<h2>[About Downloading]</h2>
-<p>Downloading is integrated with large image loading. When you finish browsing a gallery and want to save and download the images, you can click <strong>Start Download</strong> in the download panel. don&#39;t worry about re-downloading already loaded images.</p>
-<p>You can also directly click <strong>Start Download</strong> in the download panel without reading.</p>
-<p>Alternatively, click the <strong>Take Loaded</strong> button in the download panel if some images consistently fail to load. This will save the images that have already been loaded.</p>
-<p>The download panel&#39;s status indicators provide a clear view of image loading progress.</p>
-<p><strong>Note:</strong> When the download file size exceeds 1.2GB, split compression will be automatically enabled. If you encounter errors while extracting the files, please update your extraction software or use 7-Zip.</p>
-<h2>[Can I Select the Download Range?]</h2>
-<p>Yes, the download panel has an option to select the download range(Cherry Pick), which applies to downloading, auto-loading, and pre-loading.</p>
-<p>Even if an image is excluded from the download range, you can still click its thumbnail to view it, which will load the corresponding large image.</p>
+<h2>[About Eagle Import]</h2>
+<p>Eagle import is integrated with large image loading. When you finish browsing a gallery and want to save the images to Eagle, click <strong>Load missing &amp; import</strong> in the import panel. Already loaded images will not be fetched again.</p>
+<p>You can also directly click <strong>Load missing &amp; import</strong> in the import panel without reading first.</p>
+<p>Alternatively, click <strong>Import loaded only</strong> if some images consistently fail to load. This writes only green loaded images.</p>
+<p>The import panel&#39;s status indicators provide a clear view of image loading progress.</p>
+<h2>[Can I Select the Import Range?]</h2>
+<p>Yes, the import panel has an option to select the import range(Cherry Pick), which applies to import, auto-loading, and pre-loading.</p>
+<p>Even if an image is excluded from the import range, you can still click its thumbnail to view it, which will load the corresponding large image.</p>
 <h2>[How to Select Images on Some Illustration Sites?]</h2>
 <p>In the thumbnail list, you can use some hotkeys to select images:</p>
 <ul>
@@ -952,7 +1599,7 @@ pero desactivará la lupa y la capacidad de arrastrar y mover imágenes.`,
 <p>In addition, there are several other methods:</p>
 <ul>
 <li>Middle-click on a thumbnail to open the original image url, then right-click to save the image.</li>
-<li>Set the download range to 1 in the download panel. This excludes all images except the first one. Then, click on thumbnails of interest in the list, which will load the corresponding large images. After selecting, clear the download range and click <strong>Take Loaded</strong> to package and download your selected images.</li>
+<li>Set the import range to 1 in the import panel. This excludes all images except the first one. Then, click on thumbnails of interest in the list, which will load the corresponding large images. After selecting, clear the import range and click <strong>Import loaded only</strong> to write your selected images to Eagle.</li>
 <li>Turn off auto-loading and set pre-loading to 1 in the configuration panel, then proceed as described above.</li>
 </ul>
 <h2>[Can I Operate the Script via Keyboard?]</h2>
@@ -1011,15 +1658,14 @@ Report issues here: <a target="_blank" href="https://github.com/Extas/eagle-loom
 <p>默认配置下，脚本会自动且缓慢地一张接一张地加载大图。</p>
 <p>你仍然可以点击任意位置的缩略图，并从该处开始加载并阅读，此时会自动加载会停止并从阅读的位置预加载3张图片。</p>
 <p>同缩略图列表一样，无需担心因为快速滚动而导致发出大量的加载请求。</p>
-<h2>[关于下载。]</h2>
-<p>下载与大图加载是一体的，当你浏览完画廊时，突然想起来要保存下载，此时你可以在下载面板中点击<strong>开始下载</strong>，不必担心会重复下载已经加载过的图片。</p>
-<p>当然你也可以不浏览，直接在下载面板中点击<strong>开始下载</strong>。</p>
-<p>或者点击下载面板中的<strong>获取已下载的</strong>按钮，当一些图片总是加载失败的时候，你可以使用此功能来保存已经加载过的图片。</p>
-<p>通过下载面板中的状态可以直观地看到图片加载的情况。</p>
-<p><strong>注意：</strong>当下载文件大小超过1.2G后，会自动启用分卷压缩。当使用解压软件解压出错时，请更新解压软件或使用7-Zip。</p>
-<h2>[可以选择下载范围吗？]</h2>
-<p>可以，在下载面板中有选择下载范围的功能，该功能对下载、自动加载、预加载都生效。</p>
-<p>另外，如果一张图片被排除在下载范围之外，你仍然可以点击该图片的缩略图进行浏览，这会加载对应的大图。</p>
+<h2>[关于 Eagle 导入。]</h2>
+<p>Eagle 导入与大图加载是一体的，当你浏览完画廊并想保存到 Eagle 时，可以在导入面板中点击<strong>加载缺失并导入</strong>，不必担心会重复加载已经就绪的图片。</p>
+<p>当然你也可以不浏览，直接在导入面板中点击<strong>加载缺失并导入</strong>。</p>
+<p>或者点击导入面板中的<strong>只导入已加载</strong>按钮，当一些图片总是加载失败的时候，你可以使用此功能只写入绿色已加载的图片。</p>
+<p>通过导入面板中的状态可以直观地看到图片加载的情况。</p>
+<h2>[可以选择导入范围吗？]</h2>
+<p>可以，在导入面板中有选择导入范围的功能，该功能对导入、自动加载、预加载都生效。</p>
+<p>另外，如果一张图片被排除在导入范围之外，你仍然可以点击该图片的缩略图进行浏览，这会加载对应的大图。</p>
 <h2>[如何在一些插画网站上挑选图片？]</h2>
 <p>在缩略图列表中使用一些快捷键可以进行图片的挑选。</p>
 <ul>
@@ -1031,7 +1677,7 @@ Report issues here: <a target="_blank" href="https://github.com/Extas/eagle-loom
 <p>除此之外还有几种方式：</p>
 <ul>
 <li>在缩略图上按下鼠标中键，即可打开图片的原始地址，之后你可以右键保存图片。</li>
-<li>在下载面板中设置下载范围为1，这样会排除第一张图片以外的所有图片，之后在缩略图列表上点击你感兴趣的图片，对应的大图会被加载，最终挑选完毕后，删除掉下载范围并点击<strong>获取已下载的</strong>，这样你挑选的图片会被打包下载。</li>
+<li>在导入面板中设置导入范围为1，这样会排除第一张图片以外的所有图片，之后在缩略图列表上点击你感兴趣的图片，对应的大图会被加载，最终挑选完毕后，删除掉导入范围并点击<strong>只导入已加载</strong>，这样你挑选的图片会被写入 Eagle。</li>
 <li>在配置面板中关闭自动加载，并设置预加载数量为1，之后与上面的方法类似。</li>
 </ul>
 <h2>[可以通过键盘来操作吗？]</h2>
@@ -1080,16 +1726,15 @@ Report issues here: <a target="_blank" href="https://github.com/Extas/eagle-loom
 <p>원하는 썸네일을 클릭하여 그 지점에서 로딩 및 읽기를 시작할 수 있으며, 이때 자동 로딩이 중지되고 읽기 위치에서 3개의 이미지를 사전 로딩합니다.</p>
 <p>썸네일 리스트와 마찬가지로 빠르게 스크롤해도 많은 로딩 요청이 발생하지 않도록 설계되어 있으니 걱정하지 않으셔도 됩니다.</p>
 
-<h2>[다운로드에 대하여]</h2>
-<p>다운로드는 큰 이미지 로딩과 통합되어 있습니다. 갤러리를 모두 본 후 이미지를 저장하고 다운로드하려면 다운로드 패널에서 <strong>다운로드 시작</strong>을 클릭하세요. 이미 로드된 이미지를 다시 다운로드하는 것에 대해서는 걱정 안 하셔도 됩니다.</p>
-<p>이미지를 보지 않고 바로 다운로드 패널에서 <strong>다운로드 시작</strong>을 클릭할 수도 있습니다.</p>
-<p>또한 일부 이미지가 로드되지 않을 때는 다운로드 패널에서 <strong>이미 다운로드한 이미지 가져오기</strong> 버튼을 클릭하여 이미 로드된 이미지를 저장할 수 있습니다.</p>
-<p>다운로드 패널의 상태 표시기를 통해 이미지 로딩 진행 상황을 명확히 볼 수 있습니다.</p>
-<p><strong>참고:</strong> 다운로드 파일 크기가 1.2GB를 초과할 경우, 분할 압축이 자동으로 활성화됩니다. 파일을 추출하는 동안 오류가 발생하면 추출 소프트웨어를 업데이트하거나 7-Zip을 사용하세요.</p>
+<h2>[Eagle 가져오기에 대하여]</h2>
+<p>Eagle 가져오기는 큰 이미지 로딩과 통합되어 있습니다. 갤러리를 본 뒤 Eagle에 저장하려면 가져오기 패널에서 <strong>Load &amp; import</strong>를 클릭하세요. 이미 로드된 이미지는 다시 가져오지 않습니다.</p>
+<p>이미지를 보지 않고 바로 가져오기 패널에서 <strong>Load &amp; import</strong>를 클릭할 수도 있습니다.</p>
+<p>일부 이미지가 계속 로드되지 않을 때는 <strong>Import loaded only</strong>를 클릭하여 이미 로드된 이미지만 Eagle에 씁니다.</p>
+<p>가져오기 패널의 상태 표시기를 통해 이미지 로딩 진행 상황을 명확히 볼 수 있습니다.</p>
 
-<h2>[다운로드 범위를 선택할 수 있나요?]</h2>
-<p>네, 다운로드 패널에는 다운로드 범위를 선택할 수 있는 옵션(Cherry Pick)이 있으며, 이는 다운로드, 자동 로딩 및 사전 로딩에 적용됩니다.</p>
-<p>다운로드 범위에서 제외된 이미지라도 썸네일을 클릭하여 해당 큰 이미지를 로드할 수 있습니다.</p>
+<h2>[가져오기 범위를 선택할 수 있나요?]</h2>
+<p>네, 가져오기 패널에는 가져오기 범위를 선택할 수 있는 옵션(Cherry Pick)이 있으며, 이는 가져오기, 자동 로딩 및 사전 로딩에 적용됩니다.</p>
+<p>가져오기 범위에서 제외된 이미지라도 썸네일을 클릭하여 해당 큰 이미지를 로드할 수 있습니다.</p>
 
 <h2>[일러스트 사이트에서 이미지를 선택하려면 어떻게 해야 하나요?]</h2>
 <p>썸네일 리스트에서 다음 핫키를 사용하여 이미지를 선택할 수 있습니다:</p>
@@ -1102,7 +1747,7 @@ Report issues here: <a target="_blank" href="https://github.com/Extas/eagle-loom
 <p>추가적으로 몇 가지 방법이 더 있습니다:</p>
 <ul>
 <li>썸네일에서 중간 클릭으로 원본 이미지 URL을 열고, 그 후 오른쪽 클릭하여 이미지를 저장합니다.</li>
-<li>다운로드 패널에서 다운로드 범위를 1로 설정하세요. 이는 첫 번째 이미지 이외의 모든 이미지를 제외합니다. 그런 다음 목록에서 관심 있는 썸네일을 클릭하여 해당 큰 이미지를 로드합니다. 선택한 후, 다운로드 범위를 해제하고 <strong>이미 다운로드한 이미지 가져오기</strong>를 클릭하여 선택한 이미지를 패키징하고 다운로드합니다.</li>
+<li>가져오기 패널에서 가져오기 범위를 1로 설정하세요. 이는 첫 번째 이미지 이외의 모든 이미지를 제외합니다. 그런 다음 목록에서 관심 있는 썸네일을 클릭하여 해당 큰 이미지를 로드합니다. 선택한 후, 가져오기 범위를 해제하고 <strong>Import loaded only</strong>를 클릭하여 선택한 이미지를 Eagle에 씁니다.</li>
 <li>자동 로딩을 끄고 설정 패널에서 사전 로딩을 1로 설정한 다음, 위의 방법대로 진행합니다.</li>
 </ul>
 
@@ -1174,15 +1819,14 @@ Report issues here: <a target="_blank" href="https://github.com/Extas/eagle-loom
 <p>Por defecto, el script carga automáticamente y de manera gradual las imágenes grandes una por una.</p>
 <p>Aún puedes hacer clic en cualquier miniatura para comenzar a cargar y leer desde ese punto, momento en el cual la carga automática se detendrá y se pre-cargarán 3 imágenes desde la posición de lectura.</p>
 <p>Al igual que con la lista de miniaturas, no necesitas preocuparte por generar muchas solicitudes de carga al desplazarte rápidamente.</p>
-<h2>[Acerca de la Descarga]</h2>
-<p>La descarga está integrada con la carga de imágenes grandes. Cuando termines de navegar por una galería y quieras guardar y descargar las imágenes, puedes hacer clic en <strong>Iniciar Descarga</strong> en el panel de descargas. No te preocupes por volver a descargar las imágenes ya cargadas.</p>
-<p>También puedes hacer clic directamente en <strong>Iniciar Descarga</strong> en el panel de descargas sin necesidad de leer.</p>
-<p>Alternativamente, haz clic en el botón <strong>Tomar Cargadas</strong> en el panel de descargas si algunas imágenes no se cargan consistentemente. Esto guardará las imágenes que ya se han cargado.</p>
-<p>Los indicadores de estado del panel de descargas proporcionan una visión clara del progreso de la carga de imágenes.</p>
-<p><strong>Nota:</strong> Cuando el tamaño del archivo de descarga supere los 1.2 GB, se habilitará automáticamente la compresión dividida. Si encuentras errores al extraer los archivos, por favor actualiza tu software de extracción o usa 7-Zip.</p>
-<h2>[¿Puedo seleccionar el rango de descarga?]</h2>
-<p>Sí, el panel de descargas tiene una opción para seleccionar el rango de descarga (Cherry Pick), que se aplica a la descarga, carga automática y carga anticipada.</p>
-<p>Incluso si una imagen está excluida del rango de descarga, aún puedes hacer clic en su miniatura para verla, lo que cargará la imagen grande correspondiente.</p>
+<h2>[Acerca de la importacion a Eagle]</h2>
+<p>La importacion a Eagle esta integrada con la carga de imagenes grandes. Cuando termines de navegar por una galeria y quieras guardar las imagenes en Eagle, haz clic en <strong>Cargar e importar</strong> en el panel de importacion. Las imagenes ya cargadas no se volveran a cargar.</p>
+<p>Tambien puedes hacer clic directamente en <strong>Cargar e importar</strong> en el panel de importacion sin leer primero.</p>
+<p>Alternativamente, haz clic en <strong>Importar solo cargadas</strong> si algunas imagenes no se cargan consistentemente. Esto escribe solo imagenes verdes ya cargadas.</p>
+<p>Los indicadores de estado del panel de importacion proporcionan una vision clara del progreso de la carga de imagenes.</p>
+<h2>[¿Puedo seleccionar el rango de importacion?]</h2>
+<p>Si, el panel de importacion tiene una opcion para seleccionar el rango de importacion (Cherry Pick), que se aplica a la importacion, carga automatica y carga anticipada.</p>
+<p>Incluso si una imagen esta excluida del rango de importacion, aun puedes hacer clic en su miniatura para verla, lo que cargara la imagen grande correspondiente.</p>
 <h2>[¿Cómo seleccionar imágenes en algunos sitios de ilustración?]</h2>
 <p>En la lista de miniaturas, puedes usar algunas teclas de acceso rápido para seleccionar imágenes:</p>
 <ul>
@@ -1194,7 +1838,7 @@ Report issues here: <a target="_blank" href="https://github.com/Extas/eagle-loom
 <p>Además, hay otros métodos:</p>
 <ul>
 <li>Haz clic en el botón del medio en una miniatura para abrir la URL de la imagen original, luego haz clic derecho para guardar la imagen.</li>
-<li>Establece el rango de descarga en 1 en el panel de descargas. Esto excluirá todas las imágenes excepto la primera. Luego, haz clic en las miniaturas de interés en la lista, lo que cargará las imágenes grandes correspondientes. Después de seleccionar, borra el rango de descarga y haz clic en <strong>Tomar Cargadas</strong> para empaquetar y descargar tus imágenes seleccionadas.</li>
+<li>Establece el rango de importacion en 1 en el panel de importacion. Esto excluira todas las imagenes excepto la primera. Luego, haz clic en las miniaturas de interes en la lista, lo que cargara las imagenes grandes correspondientes. Despues de seleccionar, borra el rango de importacion y haz clic en <strong>Importar solo cargadas</strong> para escribir tus imagenes seleccionadas en Eagle.</li>
 <li>Desactiva la carga automática y establece la carga anticipada en 1 en el panel de configuración, luego procede como se describe anteriormente.</li>
 </ul>
 <h2>[¿Puedo operar el script mediante el teclado?]</h2>
@@ -1225,10 +1869,10 @@ const kbInFullViewGridData: Record<AppEventIDInFullViewGrid | AppEventIDInBigImg
     'Abrir en nueva pestaña'
   ],
   'start-download': [
-    'Start Download',
-    '开始下载',
-    '다운로드 시작',
-    'Iniciar Descarga'
+    'Load missing & import to Eagle',
+    '加载缺失并导入 Eagle',
+    'Load missing & import to Eagle',
+    'Cargar e importar a Eagle'
   ],
   'import-current-to-eagle': [
     'Import Current To Eagle',

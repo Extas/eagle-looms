@@ -11,6 +11,8 @@ import { ADAPTER } from "../adapt";
 import { i18n } from "../../utils/i18n";
 import { HTMLUgoiraElement } from "../../utils/ugoira";
 import { replaceHost } from "../../utils/url";
+import { datedGalleryTitle, galleryTitle } from "../gallery-title";
+import { normalizePixivWorkTags } from "../pixiv-tags";
 
 type ArtistPIDs = {
   id?: string,
@@ -37,6 +39,8 @@ type Work = {
   description: "",
   tags: string[],
   pageCount: number,
+  createDate?: string,
+  uploadDate?: string,
 }
 
 type UgoiraMeta = {
@@ -273,7 +277,10 @@ class PixivMatcher extends BaseMatcher<ArtistPIDs[]> {
   }
 
   galleryMeta(): GalleryMeta {
-    this.meta.title = `pixiv_${this.api.title()}_w${Object.keys(this.works).length}_p${this.pageCount}` || "UNTITLE";
+    const sourceTitle = this.api.title();
+    this.meta.title = sourceTitle === "home"
+      ? datedGalleryTitle(["pixiv", "home"])
+      : galleryTitle(["pixiv", "user", sourceTitle]);
     this.meta.tags = Object.entries(this.works).reduce<Record<string, string[]>>((tags, work) => {
       tags[work[0]] = work[1].tags;
       return tags;
@@ -296,8 +303,10 @@ class PixivMatcher extends BaseMatcher<ArtistPIDs[]> {
             alt: w.alt,
             illustType: w.illustType,
             description: w.description,
-            tags: w.tags,
-            pageCount: w.pageCount
+            tags: normalizePixivWorkTags(w.tags),
+            pageCount: w.pageCount,
+            createDate: w.createDate,
+            uploadDate: w.uploadDate,
           };
         })
         this.works = { ...this.works, ...works };
@@ -332,15 +341,18 @@ class PixivMatcher extends BaseMatcher<ArtistPIDs[]> {
   async parseImgNodes(aps: ArtistPIDs[]): Promise<ImageNode[]> {
     const list: ImageNode[] = [];
     if (aps.length === 0) return list;
-    // async function but no await, it will fetch tags in background
     const pids = [];
+    const tagFetches: Promise<void>[] = [];
+    const artistByPid: Record<string, string> = {};
     for (const ap of aps) {
       if (ap.id) {
-        this.fetchTagsByPids(ap.id, ap.pids);
+        tagFetches.push(this.fetchTagsByPids(ap.id, ap.pids));
+        ap.pids.forEach(pid => artistByPid[pid] = ap.id!);
       }
       pids.push(...ap.pids);
     }
     if (pids.length === 0) return list;
+    await Promise.all(tagFetches);
     if (ADAPTER.conf.pixivAscendWorks) {
       pids.sort((a, b) => parseInt(a) - parseInt(b));
     } else {
@@ -404,6 +416,13 @@ class PixivMatcher extends BaseMatcher<ArtistPIDs[]> {
           replaceHost(p.urls.original, ADAPTER.conf.pixivMirrorHost),
           { w: p.width, h: p.height }
         );
+        const artistId = artistByPid[pid];
+        if (artistId) {
+          node.setTags(`author:${artistId}`);
+          node.setAuthorUrls(`https://www.pixiv.net/users/${artistId}`);
+        }
+        node.setTags(...(this.works[pid]?.tags || []));
+        node.setPublishedAt(this.works[pid]?.createDate || this.works[pid]?.uploadDate);
         node.actions.push(actionLike);
         node.actions.push(actionBookmark);
         list.push(node);
