@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { defaultConf } from '../config';
 import { ADAPTER } from '../platform/adapt';
+import { i18n } from '../utils/i18n';
 import { clearSessionImportedAssets, duplicateQueries, hasPlannedAssetKey, isDuplicateItem, isSessionImported, markPlannedAssetKey, markSessionImported, stableKeyForAsset } from './duplicates';
 import { EagleDownloader, eagleImportEndStage, eagleImportErrorMessage } from './eagle-downloader';
 import { EAGLE_IMPORT_DONE_STAGE, isReadyForEagleImport } from './import-readiness';
@@ -191,11 +192,12 @@ describe('Eagle downloader duplicate checks', () => {
     );
   });
 
-  it('asks for confirmation before writing a current-image import', async () => {
+  it('writes a small current-image import without confirmation', async () => {
     const imf = { stage: EAGLE_IMPORT_DONE_STAGE, data: new Uint8Array([1]) };
     const chapter = { title: 'Chapter 1', filteredQueue: [imf] };
     const panel = {
       flushUI: vi.fn(),
+      setImportProgress: vi.fn(),
       confirmEagleImportPlan: vi.fn().mockResolvedValue(false),
       showEagleImportResult: vi.fn(),
     };
@@ -223,12 +225,16 @@ describe('Eagle downloader duplicate checks', () => {
 
     await downloader.importOne(0, 0);
 
-    expect(panel.confirmEagleImportPlan).toHaveBeenCalledWith(
-      expect.arrayContaining(['planned 1', 'will write 1']),
-      'Write 1 new item to Eagle?'
+    expect(panel.confirmEagleImportPlan).not.toHaveBeenCalled();
+    expect(panel.setImportProgress).toHaveBeenCalledWith(i18n.eagleImportCheckingEagle.get());
+    expect(panel.setImportProgress).toHaveBeenCalledWith(i18n.eagleImportWritingToEagle.get(), 1, 1);
+    expect((downloader as any).writeJob).toHaveBeenCalledWith(
+      expect.anything(),
+      expect.any(Map),
+      job,
+      expect.objectContaining({ planned: 1 }),
+      expect.any(Set)
     );
-    expect((downloader as any).writeJob).not.toHaveBeenCalled();
-    expect((downloader as any).abort).toHaveBeenCalledWith('downloadStart');
   });
 
   it('shows a result-panel error when current-image import has no image target', async () => {

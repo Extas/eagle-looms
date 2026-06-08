@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { eaglePlanHeadline, eaglePlanSummary, eaglePlanSummaryParts, eagleSummary, eagleSummaryParts } from './import-summary';
+import { eaglePlanCompactParts, eaglePlanCompactSummary, eaglePlanHeadline, eaglePlanSummary, eaglePlanSummaryParts, eagleSummary, eagleSummaryParts, eagleToastSummary, shouldConfirmImportPlan } from './import-summary';
 
 describe('Eagle import summary', () => {
   it('includes counts, destination folders, and bounded failure details', () => {
@@ -61,6 +61,36 @@ describe('Eagle import summary', () => {
     ]);
   });
 
+  it('keeps toast summaries short and leaves details for the result panel', () => {
+    expect(eagleToastSummary({
+      planned: 2,
+      imported: 2,
+      skipped: 0,
+      failed: 0,
+      folders: ['Eagle Looms/site/a'],
+      skippedItems: ['duplicate: a.png'],
+    })).toBe('Imported 2 images to Eagle.');
+    expect(eagleToastSummary({
+      planned: 3,
+      imported: 2,
+      skipped: 1,
+      failed: 0,
+    })).toBe('Imported 2 images to Eagle, skipped 1.');
+    expect(eagleToastSummary({
+      planned: 3,
+      imported: 2,
+      skipped: 0,
+      failed: 1,
+      failures: ['a.png: timeout'],
+    })).toBe('Imported 2 images to Eagle, failed 1. See import result.');
+    expect(eagleToastSummary({
+      planned: 1,
+      imported: 0,
+      skipped: 0,
+      failed: 1,
+    })).toBe('Failed 1. See import result.');
+  });
+
   it('summarizes visible import settings before writing', () => {
     const plan = {
       folderTemplate: 'Eagle Looms/{site}/{copyright}/{author}',
@@ -95,6 +125,50 @@ describe('Eagle import summary', () => {
       'duplicates skipped',
     ]);
     expect(eaglePlanHeadline(plan)).toBe('Write 1 new item to Eagle (1 skipped before writing, 1 over limit omitted)?');
+    expect(eaglePlanCompactSummary(plan)).toBe('Eagle import plan: will write 1, destination Eagle Looms/site/a, skipped before writing 1 (duplicates 1).');
+    expect(eaglePlanCompactParts(plan)).toEqual([
+      'will write 1',
+      'destination Eagle Looms/site/a',
+      'skipped before writing 1 (duplicates 1)',
+    ]);
+  });
+
+  it('keeps the confirmation summary compact with at most two destination folders', () => {
+    expect(eaglePlanCompactParts({
+      folderTemplate: 'Eagle Looms/{site}/{copyright}',
+      sourceTagLimit: 20,
+      skipDuplicates: true,
+      planned: 6,
+      writable: 6,
+      duplicateSkipped: 1,
+      folders: ['Eagle Looms/site/a', 'Eagle Looms/site/b', 'Eagle Looms/site/c'],
+    })).toEqual([
+      'will write 6',
+      'destination Eagle Looms/site/a | Eagle Looms/site/b (+1)',
+      'skipped before writing 1 (duplicates 1)',
+    ]);
+  });
+
+  it('confirms only risky or larger import plans by default', () => {
+    const basePlan = {
+      folderTemplate: 'Eagle Looms/{site}/{copyright}',
+      sourceTagLimit: 20,
+      skipDuplicates: true,
+      planned: 1,
+      writable: 1,
+    };
+
+    expect(shouldConfirmImportPlan({ ...basePlan, writable: 1 })).toBe(false);
+    expect(shouldConfirmImportPlan({ ...basePlan, writable: 3 })).toBe(false);
+    expect(shouldConfirmImportPlan({ ...basePlan, writable: 4 })).toBe(true);
+    expect(shouldConfirmImportPlan({ ...basePlan, writable: 4, confirmThreshold: 5 })).toBe(false);
+    expect(shouldConfirmImportPlan({ ...basePlan, writable: 1, confirmMode: 'always' })).toBe(true);
+    expect(shouldConfirmImportPlan({ ...basePlan, writable: 4, confirmMode: 'never' })).toBe(false);
+    expect(shouldConfirmImportPlan({ ...basePlan, writable: 3, omittedByLimit: 1 })).toBe(true);
+    expect(shouldConfirmImportPlan({ ...basePlan, writable: 3, preflightFailed: 1 })).toBe(true);
+    expect(shouldConfirmImportPlan({ ...basePlan, writable: 1, confirmMode: 'never', preflightFailed: 1 })).toBe(true);
+    expect(shouldConfirmImportPlan({ ...basePlan, planned: 3, writable: 0, duplicateSkipped: 3 })).toBe(false);
+    expect(shouldConfirmImportPlan({ ...basePlan, writable: 1, explicitConfirm: true })).toBe(true);
   });
 
   it('distinguishes default folder fallback from missing custom folder metadata', () => {

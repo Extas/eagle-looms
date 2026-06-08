@@ -103,6 +103,16 @@ describe("ConfigPanel Eagle preview", () => {
     expect(preview.textContent).toContain(String(ADAPTER.globalConf.eagleMaxSourceTags));
   });
 
+  it("shows the Eagle confirmation policy in the preview", () => {
+    ADAPTER.globalConf.eagleConfirmMode = "auto";
+    ADAPTER.globalConf.eagleConfirmThreshold = 3;
+    const panel = createPanel();
+    const preview = panel.panel.querySelector<HTMLElement>("#eagle-config-preview")!;
+
+    expect(preview.textContent).toContain(i18n.eagleConfigPreviewConfirm.get());
+    expect(preview.textContent).toContain("will-write > 3");
+  });
+
   it("explains where source URLs are stored before import", () => {
     const panel = createPanel();
     const preview = panel.panel.querySelector<HTMLElement>("#eagle-config-preview")!;
@@ -191,6 +201,17 @@ describe("ConfigPanel Eagle preview", () => {
     expect(previewAfter.textContent).toContain(String(ADAPTER.globalConf.eagleMaxSourceTags));
   });
 
+  it("uses localized labels for confirmation mode options", () => {
+    const panel = createPanel();
+    const options = [...panel.panel.querySelectorAll<HTMLOptionElement>("#eagleConfirmModeSelect option")];
+
+    expect(options.map(option => option.textContent)).toEqual([
+      i18n.eagleConfirmModeAuto.get(),
+      i18n.eagleConfirmModeAlways.get(),
+      i18n.eagleConfirmModeNever.get(),
+    ]);
+  });
+
   it("shows when the selected site inherits global Eagle settings", () => {
     ADAPTER.conf.selectedSiteNameConfig = "test-site";
     ADAPTER.siteConf = {};
@@ -207,6 +228,7 @@ describe("ConfigPanel Eagle preview", () => {
     ADAPTER.siteConf = {
       eagleFolderPath: "Eagle Looms/{site}/{author}",
       eagleMaxSourceTags: 7,
+      eagleConfirmMode: "always",
       colCount: 9,
     };
     ADAPTER.conf = { ...ADAPTER.globalConf, ...ADAPTER.siteConf, selectedSiteNameConfig: "test-site" } as typeof ADAPTER.conf;
@@ -217,8 +239,10 @@ describe("ConfigPanel Eagle preview", () => {
 
     expect(scope).toContain(i18n.eagleFolderPath.get());
     expect(scope).toContain(i18n.eagleMaxSourceTags.get());
+    expect(scope).toContain(i18n.eagleConfirmMode.get());
     expect(scope).not.toContain(i18n.colCount.get());
     expect(scope).toContain("Eagle Looms/{site}/{author}");
     expect(scope).toContain("7");
+    expect(scope).toContain(i18n.eagleConfigPreviewConfirmAlways.get());
   });
 });

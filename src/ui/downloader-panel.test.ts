@@ -72,6 +72,20 @@ describe("DownloaderPanel Eagle import confirmation", () => {
     expect(panel.forceBTN.hidden).toBe(false);
   });
 
+  it("shows Eagle import preflight and writing progress on the primary action", () => {
+    const panel = createPanel();
+
+    panel.setImportProgress(i18n.eagleImportCheckingEagle.get());
+
+    expect(panel.forceBTN.hidden).toBe(true);
+    expect(panel.startBTN.textContent).toBe(i18n.eagleImportCheckingEagle.get());
+    expect(panel.startBTN.title).toBe(i18n.downloadStopTooltip.get());
+
+    panel.setImportProgress(i18n.eagleImportWritingToEagle.get(), 2, 6);
+
+    expect(panel.startBTN.textContent).toBe(`${i18n.eagleImportWritingToEagle.get()} 2/6`);
+  });
+
   it("uses localized labels for import range actions", () => {
     const panel = createPanel();
 
@@ -201,7 +215,7 @@ describe("DownloaderPanel Eagle import confirmation", () => {
     expect(document.activeElement).toBe(panel.startBTN);
   });
 
-  it("copies the import plan without confirming the import", async () => {
+  it("shows compact confirmation details and copies the complete import plan", async () => {
     const panel = createPanel();
     const writeText = vi.fn().mockResolvedValue(undefined);
     Object.defineProperty(navigator, "clipboard", {
@@ -210,12 +224,22 @@ describe("DownloaderPanel Eagle import confirmation", () => {
     });
     let settled = false;
 
-    const confirm = panel.confirmEagleImportPlan(["planned 2", "will write 1"], "Write 1 new item to Eagle?");
+    const confirm = panel.confirmEagleImportPlan(
+      ["will write 6", "destination Eagle Looms/site/a", "skipped before writing 1 (duplicates 1)"],
+      "Write 6 new items to Eagle?",
+      ["selected 12", "planned 10", "limit 10, omitted 2", "will write 6", "visible tags max 20"]
+    );
     confirm.then(() => {
       settled = true;
     });
     const dialog = document.querySelector<HTMLElement>(".ehvp-eagle-import-confirm")!;
     const copyButton = dialog.querySelector<HTMLButtonElement>(".ehvp-modal-btn-copy")!;
+    const details = dialog.querySelector<HTMLDetailsElement>(".ehvp-modal-details")!;
+
+    expect(dialog.querySelector(".ehvp-modal-body")?.textContent).toContain("will write 6");
+    expect(dialog.querySelector(".ehvp-modal-body")?.textContent).toContain("destination Eagle Looms/site/a");
+    expect(details).not.toBeNull();
+    expect(details.open).toBe(false);
 
     copyButton.click();
     await Promise.resolve();
@@ -223,9 +247,12 @@ describe("DownloaderPanel Eagle import confirmation", () => {
 
     expect(writeText).toHaveBeenCalledWith([
       i18n.eagleImportConfirmTitle.get(),
-      "Write 1 new item to Eagle?",
-      "planned 2",
-      "will write 1",
+      "Write 6 new items to Eagle?",
+      "selected 12",
+      "planned 10",
+      "limit 10, omitted 2",
+      "will write 6",
+      "visible tags max 20",
     ].join("\n"));
     expect(copyButton.textContent).toBe(i18n.eagleImportResultCopied.get());
     expect(document.querySelector(".ehvp-eagle-import-confirm")).not.toBeNull();

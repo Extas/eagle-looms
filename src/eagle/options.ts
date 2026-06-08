@@ -4,8 +4,11 @@ export const DEFAULT_EAGLE_FOLDER_PRESET = "copyright";
 export const DEFAULT_EAGLE_IMPORT_LIMIT = 100;
 export const DEFAULT_EAGLE_MAX_SOURCE_TAGS = 20;
 export const DEFAULT_EAGLE_NAME_DATE_PREFIX = true;
+export const DEFAULT_EAGLE_CONFIRM_MODE = "auto";
+export const DEFAULT_EAGLE_CONFIRM_THRESHOLD = 3;
 export const EAGLE_IMPORT_LIMIT_RANGE = [1, 1000] as const;
 export const EAGLE_MAX_SOURCE_TAGS_RANGE = [0, 100] as const;
+export const EAGLE_CONFIRM_THRESHOLD_RANGE = [0, 1000] as const;
 
 const FOLDER_INVALID_CHARS = /[\\/:*?"<>|\n\r\t]+/g;
 
@@ -29,10 +32,14 @@ export type EagleConfigPatch = {
   eagleMaxSourceTags?: unknown;
   eagleNameDatePrefix?: unknown;
   eagleSkipDuplicates?: unknown;
+  eagleConfirmMode?: unknown;
+  eagleConfirmThreshold?: unknown;
 };
 
 export const EAGLE_FOLDER_PRESETS = ["custom", "copyright", "gallery", "chapter", "copyrightAuthor", "copyrightCharacter"] as const;
 export type EagleFolderPreset = typeof EAGLE_FOLDER_PRESETS[number];
+export const EAGLE_CONFIRM_MODES = ["auto", "always", "never"] as const;
+export type EagleConfirmMode = typeof EAGLE_CONFIRM_MODES[number];
 
 export const EAGLE_FOLDER_PRESET_TEMPLATES: Record<Exclude<EagleFolderPreset, "custom">, string> = {
   copyright: DEFAULT_EAGLE_FOLDER_TEMPLATE,
@@ -104,6 +111,19 @@ export function normalizeEagleMaxSourceTags(value: unknown): number {
   return Math.min(EAGLE_MAX_SOURCE_TAGS_RANGE[1], Math.max(EAGLE_MAX_SOURCE_TAGS_RANGE[0], parsed));
 }
 
+export function normalizeEagleConfirmMode(value: unknown): EagleConfirmMode {
+  if (typeof value === "string" && (EAGLE_CONFIRM_MODES as readonly string[]).includes(value)) {
+    return value as EagleConfirmMode;
+  }
+  return DEFAULT_EAGLE_CONFIRM_MODE;
+}
+
+export function normalizeEagleConfirmThreshold(value: unknown): number {
+  const parsed = Math.trunc(Number(value));
+  if (!Number.isFinite(parsed)) return DEFAULT_EAGLE_CONFIRM_THRESHOLD;
+  return Math.min(EAGLE_CONFIRM_THRESHOLD_RANGE[1], Math.max(EAGLE_CONFIRM_THRESHOLD_RANGE[0], parsed));
+}
+
 export function normalizeEagleBoolean(value: unknown, fallback = true): boolean {
   if (typeof value === "boolean") return value;
   if (typeof value === "string") {
@@ -125,6 +145,8 @@ export function normalizeEagleConfigPatch<T extends object>(patch: T): T {
   if ("eagleMaxSourceTags" in next) next.eagleMaxSourceTags = normalizeEagleMaxSourceTags(next.eagleMaxSourceTags);
   if ("eagleNameDatePrefix" in next) next.eagleNameDatePrefix = normalizeEagleBoolean(next.eagleNameDatePrefix, DEFAULT_EAGLE_NAME_DATE_PREFIX);
   if ("eagleSkipDuplicates" in next) next.eagleSkipDuplicates = normalizeEagleBoolean(next.eagleSkipDuplicates, true);
+  if ("eagleConfirmMode" in next) next.eagleConfirmMode = normalizeEagleConfirmMode(next.eagleConfirmMode);
+  if ("eagleConfirmThreshold" in next) next.eagleConfirmThreshold = normalizeEagleConfirmThreshold(next.eagleConfirmThreshold);
   return next as T;
 }
 

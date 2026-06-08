@@ -255,6 +255,7 @@ function escapeAttr(value: string): string {
 
 function configOptionDisplay(key: ConfigItem["key"], value: string, fallback: string): string {
   if (key === "eagleFolderPreset") return eagleFolderPresetLabel(value);
+  if (key === "eagleConfirmMode") return eagleConfirmModeLabel(value);
   return fallback;
 }
 
@@ -279,6 +280,7 @@ function eagleConfigPreviewHTML(): string {
   const batchPolicy = i18n.eagleConfigPreviewBatchText.get()
     .replace("{count}", String(conf.eagleImportLimit))
     .replace("{duplicates}", conf.eagleSkipDuplicates ? i18n.eagleConfigPreviewSkipDuplicates.get() : i18n.eagleConfigPreviewAddDuplicates.get());
+  const confirmPolicy = eagleConfirmPolicyText(conf.eagleConfirmMode, conf.eagleConfirmThreshold);
   return `
 <div id="eagle-config-preview" class="eagle-config-preview">
   <div class="eagle-config-preview-title"><span>${escapeHTML(i18n.eagleConfigPreview.get())}</span><button type="button" id="eagle-config-test-connection" class="ehvp-custom-btn ehvp-custom-btn-plain">${escapeHTML(i18n.eagleConfigTestConnection.get())}</button></div>
@@ -290,6 +292,7 @@ function eagleConfigPreviewHTML(): string {
   <div><b>${escapeHTML(i18n.eagleConfigPreviewNames.get())}</b><span>${escapeHTML(itemNames)}</span></div>
   <div><b>${escapeHTML(i18n.eagleConfigPreviewSourceFields.get())}</b><span>${escapeHTML(i18n.eagleConfigPreviewSourceFieldsText.get())}</span></div>
   <div><b>${escapeHTML(i18n.eagleConfigPreviewBatch.get())}</b><span>${escapeHTML(batchPolicy)}</span></div>
+  <div><b>${escapeHTML(i18n.eagleConfigPreviewConfirm.get())}</b><span>${escapeHTML(confirmPolicy)}</span></div>
   <div><b>${escapeHTML(i18n.eagleConfigPreviewVisibleTags.get())}</b><span>${escapeHTML(visibleTags)}</span></div>
   <div><b>${escapeHTML(i18n.eagleConfigPreviewExtraAssets.get())}</b><span>${escapeHTML(i18n.eagleConfigPreviewNoExtraAssets.get())}</span></div>
 </div>`;
@@ -314,11 +317,38 @@ function eagleFolderPresetLabel(value: string): string {
   }
 }
 
+function eagleConfirmPolicyText(mode: string, threshold: number): string {
+  switch (mode) {
+    case "always":
+      return i18n.eagleConfigPreviewConfirmAlways.get();
+    case "never":
+      return i18n.eagleConfigPreviewConfirmNever.get();
+    case "auto":
+    default:
+      return i18n.eagleConfigPreviewConfirmAuto.get().replace("{count}", String(threshold));
+  }
+}
+
+function eagleConfirmModeLabel(value: string): string {
+  switch (value) {
+    case "auto":
+      return i18n.eagleConfirmModeAuto.get();
+    case "always":
+      return i18n.eagleConfirmModeAlways.get();
+    case "never":
+      return i18n.eagleConfirmModeNever.get();
+    default:
+      return value;
+  }
+}
+
 const EAGLE_PREVIEW_CONFIG_KEYS = [
   "eagleBaseUrl",
   "eagleFolderPreset",
   "eagleFolderPath",
   "eagleImportLimit",
+  "eagleConfirmMode",
+  "eagleConfirmThreshold",
   "eagleMaxSourceTags",
   "eagleNameDatePrefix",
   "eagleSkipDuplicates",
@@ -349,6 +379,10 @@ function eagleConfigFieldLabel(key: typeof EAGLE_PREVIEW_CONFIG_KEYS[number]): s
       return i18n.eagleFolderPath.get();
     case "eagleImportLimit":
       return i18n.eagleImportLimit.get();
+    case "eagleConfirmMode":
+      return i18n.eagleConfirmMode.get();
+    case "eagleConfirmThreshold":
+      return i18n.eagleConfirmThreshold.get();
     case "eagleMaxSourceTags":
       return i18n.eagleMaxSourceTags.get();
     case "eagleNameDatePrefix":

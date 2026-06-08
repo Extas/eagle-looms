@@ -1,4 +1,5 @@
 import { i18n } from "../utils/i18n";
+import { DEFAULT_EAGLE_CONFIRM_THRESHOLD, normalizeEagleConfirmMode, normalizeEagleConfirmThreshold, type EagleConfirmMode } from "./options";
 
 export type EagleImportSummaryStats = {
   planned: number;
@@ -14,6 +15,9 @@ export type EagleImportSummaryStats = {
 
 export type EagleImportPlan = {
   folderTemplate: string;
+  explicitConfirm?: boolean;
+  confirmMode?: EagleConfirmMode;
+  confirmThreshold?: number;
   importLimit?: number;
   sourceTagLimit: number;
   skipDuplicates: boolean;
@@ -37,9 +41,25 @@ const MAX_SUMMARY_FAILURES = 3;
 const MAX_SUMMARY_SKIPPED_ITEMS = 3;
 const MAX_SUMMARY_TOKEN_VALUES = 2;
 const MAX_SUMMARY_ITEM_NAMES = 3;
+const MAX_COMPACT_FOLDERS = 2;
 
 export function eagleSummary(stats: EagleImportSummaryStats): string {
   return `${i18n.eagleSummaryTitle.get()}: ${eagleSummaryParts(stats).join(", ")}.`;
+}
+
+export function eagleToastSummary(stats: EagleImportSummaryStats): string {
+  if (stats.failed > 0 && stats.imported === 0 && stats.skipped === 0) {
+    return format(i18n.eagleToastFailedOnly.get(), { count: stats.failed });
+  }
+  const base = stats.imported > 0
+    ? format(i18n.eagleToastImported.get(), {
+      count: stats.imported,
+      item: stats.imported === 1 ? i18n.eagleToastImage.get() : i18n.eagleToastImages.get(),
+    })
+    : i18n.eagleToastNoNewItems.get();
+  const skipped = stats.skipped > 0 ? format(i18n.eagleToastSkippedSuffix.get(), { count: stats.skipped }) : "";
+  const failed = stats.failed > 0 ? format(i18n.eagleToastFailedSuffix.get(), { count: stats.failed }) : "";
+  return `${base}${skipped}${failed}.`;
 }
 
 export function eagleSummaryParts(stats: EagleImportSummaryStats): string[] {
@@ -81,6 +101,10 @@ function importOutcome(stats: EagleImportSummaryStats): string {
 
 export function eaglePlanSummary(plan: EagleImportPlan): string {
   return `${i18n.eaglePlanTitle.get()}: ${eaglePlanSummaryParts(plan).join(", ")}.`;
+}
+
+export function eaglePlanCompactSummary(plan: EagleImportPlan): string {
+  return `${i18n.eaglePlanTitle.get()}: ${eaglePlanCompactParts(plan).join(", ")}.`;
 }
 
 export function eaglePlanHeadline(plan: EagleImportPlan): string {
@@ -155,6 +179,43 @@ export function eaglePlanSummaryParts(plan: EagleImportPlan): string[] {
   parts.push(format(i18n.eaglePlanVisibleTagsMax.get(), { count: plan.sourceTagLimit }));
   parts.push(format(i18n.eaglePlanDuplicates.get(), { policy: plan.skipDuplicates ? i18n.eaglePlanDuplicatesSkipped.get() : i18n.eaglePlanDuplicatesAllowed.get() }));
   return parts;
+}
+
+export function eaglePlanCompactParts(plan: EagleImportPlan): string[] {
+  const parts = [];
+  const writable = plan.writable ?? plan.planned ?? 0;
+  parts.push(format(i18n.eaglePlanWillWrite.get(), { count: writable }));
+  const folders = unique(plan.folders || []).slice(0, MAX_COMPACT_FOLDERS);
+  if (folders.length) {
+    const more = unique(plan.folders || []).length - folders.length;
+    parts.push(format(i18n.eaglePlanDestination.get(), { value: `${folders.join(" | ")}${more > 0 ? ` (+${more})` : ""}` }));
+  } else {
+    parts.push(format(i18n.eaglePlanDestination.get(), { value: plan.folderTemplate }));
+  }
+  const preflightSkipped = skippedCount(plan);
+  if (preflightSkipped > 0) {
+    const skippedReasons = [
+      plan.duplicateSkipped ? format(i18n.eagleSummaryReasonDuplicates.get(), { count: plan.duplicateSkipped }) : "",
+      plan.sessionSkipped ? format(i18n.eagleSummaryReasonSession.get(), { count: plan.sessionSkipped }) : "",
+    ].filter(Boolean);
+    parts.push(format(i18n.eaglePlanSkippedBeforeWriting.get(), {
+      count: preflightSkipped,
+      reasons: skippedReasons.length ? ` (${skippedReasons.join(", ")})` : "",
+    }));
+  }
+  return parts;
+}
+
+export function shouldConfirmImportPlan(plan: EagleImportPlan): boolean {
+  const writable = plan.writable ?? plan.planned ?? 0;
+  if (writable <= 0) return false;
+  if ((plan.preflightFailed || 0) > 0) return true;
+  if ((plan.omittedByLimit || 0) > 0) return true;
+  const mode = normalizeEagleConfirmMode(plan.confirmMode);
+  if (plan.explicitConfirm) return true;
+  if (mode === "always") return true;
+  if (mode === "never") return false;
+  return writable > normalizeEagleConfirmThreshold(plan.confirmThreshold ?? DEFAULT_EAGLE_CONFIRM_THRESHOLD);
 }
 
 function skippedCount(plan: Pick<EagleImportPlan, "sessionSkipped" | "duplicateSkipped">): number {

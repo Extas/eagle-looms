@@ -1037,6 +1037,16 @@ export function styleCSS() {
   margin: 0;
   padding-left: 1.2em;
 }
+.ehvp-modal-details {
+  margin-top: 0.6em;
+}
+.ehvp-modal-details summary {
+  cursor: pointer;
+  color: var(--ehvp-clickable-color);
+}
+.ehvp-modal-details ul {
+  margin-top: 0.4em;
+}
 .ehvp-modal-actions {
   display: flex;
   justify-content: flex-end;

@@ -1,6 +1,6 @@
 import { saveConf } from "../config";
 import type { Config, ConfigBooleanType, ConfigTextType, ConfigNumberType, ConfigSelectType, ReadMode } from "../config";
-import { EAGLE_IMPORT_LIMIT_RANGE, EAGLE_MAX_SOURCE_TAGS_RANGE, eagleFolderPresetForTemplate, eagleFolderTemplateForPreset, normalizeEagleBaseUrl, normalizeEagleFolderPreset, normalizeEagleFolderTemplate, normalizeEagleImportLimit, normalizeEagleMaxSourceTags } from "../eagle/options";
+import { EAGLE_CONFIRM_THRESHOLD_RANGE, EAGLE_IMPORT_LIMIT_RANGE, EAGLE_MAX_SOURCE_TAGS_RANGE, eagleFolderPresetForTemplate, eagleFolderTemplateForPreset, normalizeEagleBaseUrl, normalizeEagleConfirmMode, normalizeEagleConfirmThreshold, normalizeEagleFolderPreset, normalizeEagleFolderTemplate, normalizeEagleImportLimit, normalizeEagleMaxSourceTags } from "../eagle/options";
 import EBUS from "../event-bus";
 import { IMGFetcherQueue } from "../fetcher-queue";
 import { IdleLoader } from "../idle-loader";
@@ -110,6 +110,7 @@ export function initEvents(HTML: Elements, BIFM: BigImageFrameManager, FVGM: Ful
         colCount: [1, 12],
         eagleImportLimit: EAGLE_IMPORT_LIMIT_RANGE,
         eagleMaxSourceTags: EAGLE_MAX_SOURCE_TAGS_RANGE,
+        eagleConfirmThreshold: EAGLE_CONFIRM_THRESHOLD_RANGE,
         rowHeight: [50, 4096],
         threads: [0, 10],
         maxIdleThreads: [0, 10],
@@ -135,6 +136,7 @@ export function initEvents(HTML: Elements, BIFM: BigImageFrameManager, FVGM: Ful
     if (value === undefined) return;
     if (key === "eagleImportLimit") value = normalizeEagleImportLimit(value);
     if (key === "eagleMaxSourceTags") value = normalizeEagleMaxSourceTags(value);
+    if (key === "eagleConfirmThreshold") value = normalizeEagleConfirmThreshold(value);
     setConfigValue(key, value as Config[ConfigNumberType], siteName);
     const inputElement = q<HTMLInputElement>(`#${key}Input`, HTML.config.panel);
     inputElement.value = value.toString();
@@ -220,6 +222,10 @@ export function initEvents(HTML: Elements, BIFM: BigImageFrameManager, FVGM: Ful
         if (folderInput) folderInput.value = template;
       }
       return;
+    }
+    if (key === "eagleConfirmMode") {
+      value = normalizeEagleConfirmMode(value);
+      inputElement.value = value;
     }
     setConfigValue(key, value as any);
     if (key === "minifyPageHelper") {

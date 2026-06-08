@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { eagleFolderPresetForTemplate, eagleFolderTemplateForPreset, normalizeEagleBaseUrl, normalizeEagleBoolean, normalizeEagleConfigPatch, normalizeEagleFolderPreset, normalizeEagleFolderTemplate, normalizeEagleImportLimit, normalizeEagleMaxSourceTags, resolveEagleFolderPath, resolveEagleFolderPaths } from './options';
+import { eagleFolderPresetForTemplate, eagleFolderTemplateForPreset, normalizeEagleBaseUrl, normalizeEagleBoolean, normalizeEagleConfigPatch, normalizeEagleConfirmMode, normalizeEagleConfirmThreshold, normalizeEagleFolderPreset, normalizeEagleFolderTemplate, normalizeEagleImportLimit, normalizeEagleMaxSourceTags, resolveEagleFolderPath, resolveEagleFolderPaths } from './options';
 
 describe('Eagle options', () => {
   it('normalizes Eagle API URL input to an origin', () => {
@@ -87,6 +87,15 @@ describe('Eagle options', () => {
     expect(normalizeEagleBoolean(undefined, false)).toBe(false);
   });
 
+  it('normalizes Eagle confirmation policy options', () => {
+    expect(normalizeEagleConfirmMode('always')).toBe('always');
+    expect(normalizeEagleConfirmMode('never')).toBe('never');
+    expect(normalizeEagleConfirmMode('unknown')).toBe('auto');
+    expect(normalizeEagleConfirmThreshold(-1)).toBe(0);
+    expect(normalizeEagleConfirmThreshold(1001)).toBe(1000);
+    expect(normalizeEagleConfirmThreshold('3.8')).toBe(3);
+  });
+
   it('normalizes Eagle fields in site-level config patches without adding missing overrides', () => {
     const sitePatch = {
       eagleBaseUrl: 'http://localhost:41595/api/v2',
@@ -96,6 +105,8 @@ describe('Eagle options', () => {
       eagleMaxSourceTags: '-1',
       eagleNameDatePrefix: 'false',
       eagleSkipDuplicates: '0',
+      eagleConfirmMode: 'always',
+      eagleConfirmThreshold: '1001',
       workURLs: ['example'],
     };
 
@@ -107,6 +118,8 @@ describe('Eagle options', () => {
       eagleMaxSourceTags: 0,
       eagleNameDatePrefix: false,
       eagleSkipDuplicates: false,
+      eagleConfirmMode: 'always',
+      eagleConfirmThreshold: 1000,
       workURLs: ['example'],
     });
 

@@ -68,6 +68,7 @@ while import is running, the loaded-only action is hidden and the primary action
 import panel status text uses load/import/write wording, not zip/download wording
 status reset actions say Mark loaded as missing / 已加载改为未加载 and Retry failed images / 重试失败图片, with tooltips explaining they only reset local load state
 Config panel contains Eagle API URL, folder preset, folder path, import limit, source tag limit, skip duplicates
+Config panel contains Eagle confirmation mode and auto confirmation threshold
 Folder preset dropdown uses the current UI language instead of raw internal preset names
 Config panel labels the former download concurrency setting as import loading threads
 Eagle import preview appears under the Eagle settings
@@ -76,6 +77,7 @@ Eagle connection test result stays visible when unrelated non-Eagle settings cha
 Eagle import preview updates after changing folder preset/path or source tag limit
 Eagle import preview shows folder preset, saved folder rule, and example resolved folders as separate rows
 Eagle import preview shows batch limit and duplicate policy
+Eagle import preview shows confirmation policy, including auto threshold, always, or never
 Eagle import preview explains source fields: website stores the source page, url stores the original image, duplicate checks use source/original URL and legacy keys
 Eagle import preview explains visible tag priority: copyright:/character:/author: first, then other source tags within the cap
 Eagle import preview shows whether the current tab uses global settings, inherits global Eagle settings, or overrides specific Eagle fields
@@ -100,9 +102,19 @@ Config preview makes Eagle API URL, folder template, duplicate policy, source ta
 Load missing & import loads selected gray missing images first, then writes loaded images to Eagle
 Import loaded only uses the same Eagle preflight, confirmation, duplicate handling, and stop behavior as Load missing & import, but only writes green loaded images and does not fetch additional images
 Eagle preflight checks duplicates and resolves destination folders before writing
-confirmation panel appears before writing to Eagle when at least one item will be written
-confirmation panel lists the same plan details as the toast summary
-confirmation panel and toast put decision counts first: selected, planned, limit omissions, will-write, skips/failures
+preflight stage shows Checking Eagle... on the primary import action
+writing stage shows current progress, such as Writing to Eagle 2/6, on the primary import action
+auto confirmation mode skips the confirmation when will-write is less than or equal to the configured threshold and there are no preflight failures or import-limit omissions
+with the default auto threshold, 1-image and 3-image imports write directly after preflight
+with the default auto threshold, 4-image imports show confirmation
+always confirmation mode shows confirmation whenever will-write is greater than 0
+never confirmation mode skips confirmation unless preflight failures or import-limit omissions need review
+preflight failures and over-limit omissions force confirmation even for small batches
+confirmation panel defaults to a compact summary: will-write, first destination folders, and skipped-before-writing when present
+confirmation panel keeps full selected, planned, limit omissions, item names, folder metadata, tag cap, and duplicate-policy details collapsed by default
+Copy plan copies the full collapsed details, not only the compact summary
+confirmation toast uses the compact summary instead of the full plan
+result toast stays short after writing, such as Imported 2 images to Eagle, and points to the result panel when failures occur
 confirmation panel, toast, and final result summary use the current UI language for fixed import-summary labels
 confirmation panel uses user-facing wording such as visible tags max, duplicates skipped, and will skip before writing
 confirmation panel says writes image items only when new items will be written, and does not show that line for all-skipped duplicate imports
@@ -132,6 +144,8 @@ Eagle API URL: http://localhost:41595
 Folder template: Eagle Looms/{site}/{copyright}
 Import limit: 100
 Source tag limit: 20
+Confirmation mode: auto
+Auto confirmation threshold: 3
 Skip duplicates: enabled
 ```
 

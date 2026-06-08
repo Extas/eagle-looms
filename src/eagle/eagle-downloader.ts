@@ -14,7 +14,7 @@ import { DEFAULT_EAGLE_FOLDER_TEMPLATE, EagleFolderTokens, normalizeEagleBaseUrl
 import { duplicateQueries, hasPlannedAssetKey, isDuplicateItem, isSessionImported, markPlannedAssetKey, markSessionImported } from "./duplicates";
 import { normalizeEagleItemTags, normalizeEagleTags, semanticSourceTags, sourceTagsFromGalleryMeta } from "./tags";
 import { isReadyForEagleImport } from "./import-readiness";
-import { eaglePlanHeadline, eaglePlanSummary, eaglePlanSummaryParts, eagleSummary, eagleSummaryParts, EagleImportSummaryStats } from "./import-summary";
+import { eaglePlanCompactParts, eaglePlanCompactSummary, eaglePlanHeadline, eaglePlanSummaryParts, eagleSummaryParts, eagleToastSummary, EagleImportSummaryStats, shouldConfirmImportPlan } from "./import-summary";
 import { createEagleItemName, normalizeEagleItemNameWithDatePrefix } from "./naming";
 import { i18n } from "../utils/i18n";
 
@@ -139,6 +139,7 @@ export class EagleDownloader extends Downloader {
         throw new Error(i18n.eagleImportNoFetchedImages.get());
       }
       const api = new EagleWebApi(normalizeEagleBaseUrl(ADAPTER.conf.eagleBaseUrl));
+      this.panel.setImportProgress(i18n.eagleImportCheckingEagle.get());
       await api.probe();
       if (ADAPTER.conf.eagleSkipDuplicates && jobs.length > 1) {
         EBUS.emit("notify-message", "info", i18n.eagleImportCheckingDuplicates.get(), 4000);
@@ -150,6 +151,8 @@ export class EagleDownloader extends Downloader {
         importLimit: importPlan.limit,
         sourceTagLimit: ADAPTER.conf.eagleMaxSourceTags,
         skipDuplicates: ADAPTER.conf.eagleSkipDuplicates,
+        confirmMode: ADAPTER.conf.eagleConfirmMode,
+        confirmThreshold: ADAPTER.conf.eagleConfirmThreshold,
         selected: importPlan.selected,
         planned: jobs.length,
         omittedByLimit: importPlan.omittedByLimit,
@@ -164,9 +167,9 @@ export class EagleDownloader extends Downloader {
         fallbackFolderTokens: fallbackFolderTokenCounts(folderTemplate, jobs),
         folderTokenSamples: folderTokenSamples(folderTemplate, jobs),
       };
-      EBUS.emit("notify-message", "info", eaglePlanSummary(plan), 8000);
-      if (preflight.writable > 0) {
-        const confirmed = await this.panel.confirmEagleImportPlan(eaglePlanSummaryParts(plan), eaglePlanHeadline(plan));
+      EBUS.emit("notify-message", "info", eaglePlanCompactSummary(plan), 8000);
+      if (shouldConfirmImportPlan(plan)) {
+        const confirmed = await this.panel.confirmEagleImportPlan(eaglePlanCompactParts(plan), eaglePlanHeadline(plan), eaglePlanSummaryParts(plan));
         if (!confirmed) {
           cancelled = true;
           EBUS.emit("notify-message", "info", i18n.eagleImportCanceledBeforeWriting.get(), 4000);
@@ -174,15 +177,20 @@ export class EagleDownloader extends Downloader {
         }
       }
 
+      let writeIndex = 0;
       for (const job of jobs) {
         if (abortable && !this.downloading) throw new Error("abort");
+        if (!job.skipReason && !job.preflightError && preflight.writable > 0) {
+          writeIndex += 1;
+          this.panel.setImportProgress(i18n.eagleImportWritingToEagle.get(), writeIndex, preflight.writable);
+        }
         await this.writeJob(api, folderIds, job, stats, usedNamesForFolder(folderNames, job.folderKey));
       }
 
       this.done = stats.failed === 0;
       endStage = eagleImportEndStage(stats);
       this.panel.showEagleImportResult(eagleSummaryParts(stats), stats.failed > 0, stats.folderLinks);
-      EBUS.emit("notify-message", this.done ? "info" : "error", eagleSummary(stats), 10000);
+      EBUS.emit("notify-message", this.done ? "info" : "error", eagleToastSummary(stats), 10000);
     } catch (error: any) {
       if (error === "abort" || error?.message === "abort") {
         cancelled = true;
@@ -235,6 +243,7 @@ export class EagleDownloader extends Downloader {
 
       this.panel.flushUI("packaging");
       const api = new EagleWebApi(normalizeEagleBaseUrl(ADAPTER.conf.eagleBaseUrl));
+      this.panel.setImportProgress(i18n.eagleImportCheckingEagle.get());
       await api.probe();
       const chapterTitle = safeTitle(titleToString(chapter.title));
       const singleChapter = this.pageFetcher.chapters.length === 1;
@@ -251,6 +260,8 @@ export class EagleDownloader extends Downloader {
         folderTemplate,
         sourceTagLimit: ADAPTER.conf.eagleMaxSourceTags,
         skipDuplicates: ADAPTER.conf.eagleSkipDuplicates,
+        confirmMode: ADAPTER.conf.eagleConfirmMode,
+        confirmThreshold: ADAPTER.conf.eagleConfirmThreshold,
         planned: jobs.length,
         writable: preflight.writable,
         sessionSkipped: preflight.sessionSkipped,
@@ -263,26 +274,31 @@ export class EagleDownloader extends Downloader {
         fallbackFolderTokens: fallbackFolderTokenCounts(folderTemplate, jobs),
         folderTokenSamples: folderTokenSamples(folderTemplate, jobs),
       };
-      EBUS.emit("notify-message", "info", eaglePlanSummary(plan), 5000);
-      if (preflight.writable > 0) {
-        const confirmed = await this.panel.confirmEagleImportPlan(eaglePlanSummaryParts(plan), eaglePlanHeadline(plan));
+      EBUS.emit("notify-message", "info", eaglePlanCompactSummary(plan), 5000);
+      if (shouldConfirmImportPlan(plan)) {
+        const confirmed = await this.panel.confirmEagleImportPlan(eaglePlanCompactParts(plan), eaglePlanHeadline(plan), eaglePlanSummaryParts(plan));
         if (!confirmed) {
           cancelled = true;
           EBUS.emit("notify-message", "info", i18n.eagleImportCanceledBeforeWriting.get(), 4000);
           return;
         }
       }
+      let writeIndex = 0;
       for (const job of jobs) {
         if (!this.downloading || this.importStopRequested) {
           cancelled = true;
           return;
+        }
+        if (!job.skipReason && !job.preflightError && preflight.writable > 0) {
+          writeIndex += 1;
+          this.panel.setImportProgress(i18n.eagleImportWritingToEagle.get(), writeIndex, preflight.writable);
         }
         await this.writeJob(api, folderIds, job, stats, usedNamesForFolder(folderNames, job.folderKey));
       }
       this.done = stats.failed === 0;
       endStage = eagleImportEndStage(stats);
       this.panel.showEagleImportResult(eagleSummaryParts(stats), stats.failed > 0, stats.folderLinks);
-      EBUS.emit("notify-message", stats.failed === 0 ? "info" : "error", eagleSummary(stats), 10000);
+      EBUS.emit("notify-message", stats.failed === 0 ? "info" : "error", eagleToastSummary(stats), 10000);
     } catch (error) {
       recordImportFailure(stats, i18n.eagleSummaryTitle.get(), error);
       this.panel.showEagleImportResult(eagleSummaryParts(stats), true, stats.folderLinks);

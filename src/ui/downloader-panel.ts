@@ -122,6 +122,15 @@ export class DownloaderPanel {
     this.btn.style.color = stage === "downloadFailed" ? "red" : "";
   }
 
+  setImportProgress(label: string, current?: number, total?: number) {
+    this.forceBTN.hidden = true;
+    this.startBTN.style.color = "";
+    this.startBTN.textContent = current !== undefined && total !== undefined
+      ? `${label} ${current}/${total}`
+      : label;
+    this.startBTN.title = i18n.downloadStopTooltip.get();
+  }
+
   noticeableBTN() {
     if (!this.btn.classList.contains("lightgreen")) {
       this.btn.classList.add("lightgreen");
@@ -136,11 +145,17 @@ export class DownloaderPanel {
     this.btn.classList.remove("lightgreen");
   }
 
-  confirmEagleImportPlan(details: string[], headline?: string): Promise<boolean> {
+  confirmEagleImportPlan(compactDetails: string[], headline?: string, details?: string[]): Promise<boolean> {
     return new Promise(resolve => {
       this.closeEagleImportConfirm(false);
       const previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : undefined;
-      const planText = eagleImportPlanText(details, headline);
+      const planText = eagleImportPlanText(details || compactDetails, headline);
+      const detailsMarkup = details?.length
+        ? `<details class="ehvp-modal-details">
+            <summary>${escapeHTML(i18n.eagleImportConfirmDetails.get())}</summary>
+            <ul>${details.map(detail => `<li>${escapeHTML(detail)}</li>`).join("")}</ul>
+          </details>`
+        : "";
       const div = document.createElement("div");
       div.className = "ehvp-modal ehvp-eagle-import-confirm";
       div.tabIndex = -1;
@@ -151,7 +166,8 @@ export class DownloaderPanel {
         <div class="ehvp-modal-body">
           <p class="ehvp-modal-lede">${escapeHTML(headline || i18n.eagleImportConfirmMessage.get())}</p>
           ${headline ? `<p class="ehvp-modal-help">${escapeHTML(i18n.eagleImportConfirmMessage.get())}</p>` : ""}
-          <ul>${details.map(detail => `<li>${escapeHTML(detail)}</li>`).join("")}</ul>
+          <ul>${compactDetails.map(detail => `<li>${escapeHTML(detail)}</li>`).join("")}</ul>
+          ${detailsMarkup}
         </div>
         <div class="ehvp-modal-actions">
           <button class="ehvp-custom-btn ehvp-custom-btn-plain ehvp-modal-btn-copy" type="button">${escapeHTML(i18n.eagleImportConfirmCopy.get())}</button>
@@ -505,4 +521,3 @@ function focusNextInDialog(dialog: HTMLElement, reverse: boolean): void {
     : current < 0 || current >= focusable.length - 1 ? 0 : current + 1;
   focusable[next].focus();
 }
-

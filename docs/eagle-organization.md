@@ -151,6 +151,12 @@ tags
 
 Legacy `eagle-looms/raw/v1` annotations remain readable for duplicate checks so older imported libraries do not regress. They are not written by the current importer.
 
+## Confirmation Policy
+
+Confirmation only controls whether the user reviews the import plan before writing. It does not change the additive write policy, duplicate policy, folder creation, or item fields.
+
+Default mode is `auto` with threshold `3`: imports with `will-write <= 3` write directly after a clean preflight, while larger plans ask for confirmation. `always` confirms any plan with new items to write. `never` skips confirmation unless preflight failures or import-limit omissions need review.
+
 ## Duplicate Policy
 
 Default duplicate checks are additive and conservative:

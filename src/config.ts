@@ -2,8 +2,8 @@ import { GM_getValue, GM_setValue } from "$";
 import type { AppEventIDInBigImgFrame, AppEventIDInFullViewGrid, AppEventIDInMain } from "./ui/event";
 import { i18n } from "./utils/i18n";
 import { b64EncodeUnicode, uuid } from "./utils/random";
-import { DEFAULT_EAGLE_BASE_URL, DEFAULT_EAGLE_FOLDER_PRESET, DEFAULT_EAGLE_FOLDER_TEMPLATE, DEFAULT_EAGLE_IMPORT_LIMIT, DEFAULT_EAGLE_MAX_SOURCE_TAGS, DEFAULT_EAGLE_NAME_DATE_PREFIX, EAGLE_FOLDER_PRESET_OPTIONS, eagleFolderPresetForTemplate, normalizeEagleBaseUrl, normalizeEagleBoolean, normalizeEagleFolderPreset, normalizeEagleFolderTemplate, normalizeEagleImportLimit, normalizeEagleMaxSourceTags } from "./eagle/options";
-import type { EagleFolderPreset } from "./eagle/options";
+import { DEFAULT_EAGLE_BASE_URL, DEFAULT_EAGLE_CONFIRM_MODE, DEFAULT_EAGLE_CONFIRM_THRESHOLD, DEFAULT_EAGLE_FOLDER_PRESET, DEFAULT_EAGLE_FOLDER_TEMPLATE, DEFAULT_EAGLE_IMPORT_LIMIT, DEFAULT_EAGLE_MAX_SOURCE_TAGS, DEFAULT_EAGLE_NAME_DATE_PREFIX, EAGLE_CONFIRM_MODES, EAGLE_FOLDER_PRESET_OPTIONS, eagleFolderPresetForTemplate, normalizeEagleBaseUrl, normalizeEagleBoolean, normalizeEagleConfirmMode, normalizeEagleConfirmThreshold, normalizeEagleFolderPreset, normalizeEagleFolderTemplate, normalizeEagleImportLimit, normalizeEagleMaxSourceTags } from "./eagle/options";
+import type { EagleConfirmMode, EagleFolderPreset } from "./eagle/options";
 
 export const IS_MOBILE = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|Mobile/i.test(navigator.userAgent);
 
@@ -138,6 +138,8 @@ export type Config = {
   eagleMaxSourceTags: number,
   eagleNameDatePrefix: boolean,
   eagleSkipDuplicates: boolean,
+  eagleConfirmMode: EagleConfirmMode,
+  eagleConfirmThreshold: number,
 };
 
 function defaultColumns() {
@@ -218,6 +220,8 @@ export function defaultConf(): Config {
     eagleMaxSourceTags: DEFAULT_EAGLE_MAX_SOURCE_TAGS,
     eagleNameDatePrefix: DEFAULT_EAGLE_NAME_DATE_PREFIX,
     eagleSkipDuplicates: true,
+    eagleConfirmMode: DEFAULT_EAGLE_CONFIRM_MODE,
+    eagleConfirmThreshold: DEFAULT_EAGLE_CONFIRM_THRESHOLD,
   };
 }
 
@@ -354,6 +358,16 @@ function confHealthCheck(cf: Config): Config {
     cf.eagleSkipDuplicates = normalizedEagleSkipDuplicates;
     changed = true;
   }
+  const normalizedEagleConfirmMode = normalizeEagleConfirmMode(cf.eagleConfirmMode);
+  if (cf.eagleConfirmMode !== normalizedEagleConfirmMode) {
+    cf.eagleConfirmMode = normalizedEagleConfirmMode;
+    changed = true;
+  }
+  const normalizedEagleConfirmThreshold = normalizeEagleConfirmThreshold(cf.eagleConfirmThreshold);
+  if (cf.eagleConfirmThreshold !== normalizedEagleConfirmThreshold) {
+    cf.eagleConfirmThreshold = normalizedEagleConfirmThreshold;
+    changed = true;
+  }
 
   const newCf = patchConfig(cf);
   if (newCf) {
@@ -419,6 +433,7 @@ export const transient = { imgSrcCSP: false, originalPolicy: "" };
 export type ConfigNumberType = "colCount"
   | "eagleImportLimit"
   | "eagleMaxSourceTags"
+  | "eagleConfirmThreshold"
   | "rowHeight"
   | "threads"
   | "maxIdleThreads"
@@ -451,6 +466,7 @@ export type ConfigBooleanType = "fetchOriginal"
   ;
 export type ConfigSelectType = "readMode"
   | "eagleFolderPreset"
+  | "eagleConfirmMode"
   | "gridMode"
   | "minifyPageHelper"
   | "hitomiFormat"
@@ -485,6 +501,13 @@ export const ConfigItems: ConfigItem[] = [
   { key: "eagleFolderPreset", typ: "select", gridColumnRange: [1, 11], options: EAGLE_FOLDER_PRESET_OPTIONS },
   { key: "eagleFolderPath", typ: "input", gridColumnRange: [1, 11], placeholder: DEFAULT_EAGLE_FOLDER_TEMPLATE },
   { key: "eagleImportLimit", typ: "number", gridColumnRange: [1, 11] },
+  {
+    key: "eagleConfirmMode", typ: "select", gridColumnRange: [1, 11], options: EAGLE_CONFIRM_MODES.map(value => ({
+      value,
+      display: value[0].toUpperCase() + value.slice(1),
+    }))
+  },
+  { key: "eagleConfirmThreshold", typ: "number", gridColumnRange: [1, 11] },
   { key: "eagleMaxSourceTags", typ: "number", gridColumnRange: [1, 11] },
   { key: "eagleNameDatePrefix", typ: "boolean", gridColumnRange: [1, 11] },
   { key: "eagleSkipDuplicates", typ: "boolean", gridColumnRange: [1, 11] },
