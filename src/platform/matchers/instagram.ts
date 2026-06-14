@@ -23,6 +23,9 @@ class InstagramMatcher extends BaseMatcher<EdgeNode[]> {
     const ret: ImageNode[] = [];
     for (let i = 0; i < nodes.length; i++) {
       const node = nodes[i];
+      const sourceTags = instagramSourceTags(this.config?.username, node.caption?.text);
+      const authorUrls = instagramAuthorUrls(this.config?.username);
+      const publishedAt = instagramPublishedAt(node.caption?.created_at);
       const videos = node.video_versions;
       const images = !videos && node.carousel_media && node.carousel_media.length > 0 ? node.carousel_media.map(n => n.image_versions2) : [node.image_versions2];
       const digits = images.length.toString().length;
@@ -31,7 +34,11 @@ class InstagramMatcher extends BaseMatcher<EdgeNode[]> {
         const title = images.length > 1 ? `${node.pk}-${(j + 1).toString().padStart(digits, "0")}` : node.pk;
         const ext = videos ? "mp4" : "jpeg";
         const [thumb, origin] = this.getThumbAndOrigin(img.candidates, videos);
-        ret.push(new ImageNode(thumb?.url ?? "", `${window.location.origin}/p/${node.code}`, `${title}.${ext}`, undefined, origin.url, { w: thumb.width, h: thumb.height }));
+        const imageNode = new ImageNode(thumb?.url ?? "", `${window.location.origin}/p/${node.code}`, `${title}.${ext}`, undefined, origin.url, { w: thumb.width, h: thumb.height });
+        imageNode.setTags(...sourceTags);
+        imageNode.setAuthorUrls(...authorUrls);
+        imageNode.setPublishedAt(publishedAt);
+        ret.push(imageNode);
       }
     }
     return ret;
@@ -107,6 +114,46 @@ class InstagramMatcher extends BaseMatcher<EdgeNode[]> {
     }
     return [lastThumb!, origin];
   }
+}
+
+export function instagramSourceTags(username: unknown, captionText: unknown): string[] {
+  const tags = new Set<string>();
+  const author = cleanInstagramValue(username);
+  if (author) tags.add(`author:${author}`);
+  for (const hashtag of instagramCaptionHashtags(captionText)) {
+    tags.add(hashtag);
+  }
+  return [...tags];
+}
+
+export function instagramAuthorUrls(username: unknown): string[] {
+  const author = cleanInstagramValue(username);
+  return author ? [`https://www.instagram.com/${encodeURIComponent(author)}/`] : [];
+}
+
+export function instagramPublishedAt(value: unknown): string {
+  const seconds = Number(value);
+  if (!Number.isFinite(seconds) || seconds <= 0) return "";
+  return String(seconds);
+}
+
+function instagramCaptionHashtags(value: unknown): string[] {
+  if (typeof value !== "string") return [];
+  const tags: string[] = [];
+  for (const match of value.matchAll(/(^|[^\p{L}\p{N}_])#([\p{L}\p{N}_]+)/gu)) {
+    const tag = cleanInstagramValue(match[2]);
+    if (tag) tags.push(tag);
+  }
+  return tags;
+}
+
+function cleanInstagramValue(value: unknown): string {
+  return String(value ?? "")
+    .replace(/^[#@]+/, "")
+    .replace(/[\n\r\t]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 120);
 }
 
 // body.append("__s", "g3804m%3Asucc9e%3Art7ums");

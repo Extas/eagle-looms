@@ -131,6 +131,9 @@ ArtStation
 
 Twitter / X
   author comes from screen_name; hashtags stay raw
+
+Instagram
+  author comes from username; caption hashtags stay raw
 ```
 
 ## Item Names
