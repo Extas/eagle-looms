@@ -69,6 +69,7 @@ describe('Eagle tags', () => {
     expect(sourceMetadataTag('game_copyright', 'project sekai 403')).toBe('copyright:project sekai');
     expect(sourceMetadataTag('other-copyright', 'project sekai +403')).toBe('copyright:project sekai');
     expect(normalizeSourceMetadataTag('artist:soha blan')).toBe('author:soha blan');
+    expect(normalizeSourceMetadataTag('artist：soha blan')).toBe('author:soha blan');
     expect(normalizeSourceMetadataTag('parody:bang dream')).toBe('copyright:bang dream');
     expect(normalizeSourceMetadataTag('group:circle name')).toBe('author:circle name');
     expect(sourceMetadataTag('circles', 'circle name')).toBe('author:circle name');
@@ -198,8 +199,10 @@ describe('Eagle tags', () => {
       game_copyright: ['project sekai 403'],
       'other-copyright': ['bang dream +20'],
       'Character:': ['kusanagi nene'],
+      'Artist：': ['soha blan'],
       Artist: ['soha blan'],
-      femaleTags: ['school uniform'],
+      'female：': ['school uniform'],
+      femaleTags: ['casual outfit'],
     };
 
     expect(sourceTagsFromGalleryMeta(meta, 'https://example.test/gallery/1')).toEqual([
@@ -208,6 +211,7 @@ describe('Eagle tags', () => {
       'character:kusanagi nene',
       'author:soha blan',
       'school uniform',
+      'casual outfit',
     ]);
   });
 
@@ -228,6 +232,7 @@ describe('Eagle tags', () => {
     const meta = new GalleryMeta('https://example.test/posts', 'posts');
     meta.tags = {
       'post:100': ['copyright:project sekai'],
+      'id：100': ['character:kusanagi nene'],
       id_100: [{ name: 'character:kusanagi nene' }],
       'artwork-100': ['author:soha blan'],
       'post:101': ['wrong post'],

@@ -57,7 +57,7 @@ export function sourceTagsFromGalleryMeta(meta: GalleryMeta, sourceUrl: string):
 }
 
 export function normalizeSourceMetadataTag(value: string): string {
-  const index = value.indexOf(":");
+  const index = value.search(/[:：]/);
   if (index < 0) return "";
   return sourceMetadataTag(value.slice(0, index), value.slice(index + 1));
 }
@@ -213,7 +213,7 @@ function normalizeSourceCategoryKey(category: string): string {
   return cleanTag(category)
     .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
     .replace(/[_-]+/g, " ")
-    .replace(/:+$/g, "")
+    .replace(/[:：]+$/g, "")
     .replace(/\s+/g, " ")
     .trim()
     .toLowerCase();
@@ -227,7 +227,7 @@ function postIdFromSourceUrl(sourceUrl: string): string {
 
 function metadataBucketMatchesPostId(category: string, postId: string): boolean {
   if (!postId) return false;
-  const normalized = normalizeSourceCategoryKey(category).replace(/[:#]+/g, " ");
+  const normalized = normalizeSourceCategoryKey(category).replace(/[:：#]+/g, " ");
   if (normalized === postId) return true;
   const match = normalized.match(/^(?:post|id|pid|artwork|artworks|illust|illust id)\s*(\d+)$/);
   return match?.[1] === postId;
