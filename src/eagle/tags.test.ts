@@ -56,6 +56,22 @@ describe('Eagle tags', () => {
     )).toEqual(['eagle-looms', 'site:test', 'author:soha blan', 'multi line tag']);
   });
 
+  it('removes source-site count suffixes from visible source tags', () => {
+    expect(normalizeEagleItemTags([
+      'blue eyes (120K)',
+      'long hair [1,234]',
+      'artist:soha blan (11)',
+      'school uniform +403',
+      'miku (vocaloid)',
+    ], 10)).toEqual([
+      'author:soha blan',
+      'blue eyes',
+      'long hair',
+      'school uniform',
+      'miku (vocaloid)',
+    ]);
+  });
+
   it('treats invalid source tag limits as required tags only', () => {
     expect(normalizeEagleTags(
       ['eagle-looms'],
@@ -160,7 +176,7 @@ describe('Eagle tags', () => {
       '4': ['kusanagi_nene 26'],
       '1': ['soha_blan 11'],
       '0': ['blue_eyes 120K'],
-      '5': ['highres 80K'],
+      '5': ['highres [80K]'],
     };
 
     const sourceTags = sourceTagsFromGalleryMeta(meta, 'https://danbooru.donmai.us/posts/100');

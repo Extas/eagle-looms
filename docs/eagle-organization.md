@@ -90,6 +90,8 @@ Object-shaped source tags extract common display fields such as `name`, `tag`, `
 
 Category labels normalize common page decorations before mapping, including case, underscores, hyphens, trailing `:` / `：`, and optional plural markers such as `Artist(s)` or `Tag(s)`.
 
+Source-site display counts are removed from tag values, including suffixes like `120K`, `+403`, `(11)`, and `[1,234]`; non-count qualifiers such as `miku (vocaloid)` are preserved.
+
 Per-post metadata buckets such as `post:123`, `id_123`, and Pixiv-style artwork IDs use the matching bucket only. If bucket values are structured objects, their own `type`, `category`, `tag_type`, `namespace`, or nested `tag` category is normalized before import.
 
 `eagle-looms` and `eagle-looms:raw` are not added to new imports.

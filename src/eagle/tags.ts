@@ -73,7 +73,7 @@ export function eagleExtensionTag(...sources: Array<string | undefined>): string
 function prioritizedSourceTags(source: string[]): string[] {
   return source
     .map((rawTag, index) => ({
-      tag: normalizeSourceMetadataTag(rawTag) || cleanTag(rawTag),
+      tag: normalizeSourceMetadataTag(rawTag) || cleanSourceTagValue(rawTag),
       index,
     }))
     .filter(({ tag }) => Boolean(tag))
@@ -104,7 +104,8 @@ function cleanTag(value: string): string {
 
 function cleanSourceTagValue(value: string): string {
   return cleanTag(value)
-    .replace(/\s+(?:[+-]?\d+(?:\.\d+)?[kKmM]?|[+-]\d+)$/, "")
+    .replace(/\s*[\[(]\s*[+-]?\d[\d,]*(?:\.\d+)?[kKmM]?\s*[\])]$/, "")
+    .replace(/\s+(?:[+-]?\d[\d,]*(?:\.\d+)?[kKmM]?|[+-]\d+)$/, "")
     .trim();
 }
 
