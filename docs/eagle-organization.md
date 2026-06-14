@@ -60,6 +60,8 @@ search/list pages use source taxonomy labels, such as danbooru-search-bang_dream
 
 The default stays at site/date level to avoid creating too many taxonomy-derived subfolders. Tags carry copyright, character, author, and other source semantics for search. Users can opt into copyright, gallery, author, or character folders when they want that browsing model.
 
+Older saved built-in folder presets from before the site/date default are migrated to `Site / Date`. New explicit preset choices are kept after that migration.
+
 Import plan messages report copyright fallback only when the optional Site / Copyright preset is selected. Custom templates still report missing metadata so users can decide whether to change the template.
 
 ## Visible Tags
