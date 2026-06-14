@@ -21,6 +21,14 @@ describe("E-Hentai source metadata", () => {
           <td><a href="/tag/circles:studio_name">studio name</a></td>
         </tr>
         <tr>
+          <td>translator:</td>
+          <td><a href="/tag/translator:translation_circle">translation circle</a></td>
+        </tr>
+        <tr>
+          <td>mangaka:</td>
+          <td><a href="/tag/mangaka:comic_author">comic author</a></td>
+        </tr>
+        <tr>
           <td>character:</td>
           <td><a href="/tag/character:kusanagi_nene">kusanagi nene</a></td>
         </tr>
@@ -31,6 +39,8 @@ describe("E-Hentai source metadata", () => {
       "https://exhentai.org/tag/artist:soha_blan",
       "https://exhentai.org/tag/group:circle_name",
       "https://exhentai.org/tag/circles:studio_name",
+      "https://exhentai.org/tag/translator:translation_circle",
+      "https://exhentai.org/tag/mangaka:comic_author",
     ]);
   });
 });

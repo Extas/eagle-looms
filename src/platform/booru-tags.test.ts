@@ -77,10 +77,14 @@ describe("booru source tags", () => {
     const element = document.createElement("article");
     element.setAttribute("data-tag-string-author", "author_name");
     element.setAttribute("data-tag-string-creator", "creator_name");
+    element.setAttribute("data-tag-string-translator", "translator_name");
+    element.setAttribute("data-tag-string-letterer", "letterer_name");
 
     expect(normalizeBooruSourceTags(element, [])).toEqual([
       "author:author_name",
       "author:creator_name",
+      "author:translator_name",
+      "author:letterer_name",
     ]);
   });
 
@@ -109,13 +113,17 @@ describe("booru source tags", () => {
       <ul>
         <li class="tag-type-artist"><a href="/artists?search[name]=soha_blan">soha_blan 11</a></li>
         <li class="category-1"><a href="https://gelbooru.com/index.php?page=post&s=list&tags=artist_name">artist_name 4</a></li>
+        <li class="tag-type-translator"><a href="/artists?search[name]=translation_circle">translation_circle</a></li>
+        <li data-category="editor"><a href="/index.php?page=post&s=list&tags=source_editor">source_editor</a></li>
         <li class="tag-type-artist"><a href="#">ignored_anchor</a></li>
       </ul>
     `;
 
     expect(extractBooruAuthorUrls(document, "https://danbooru.donmai.us/posts/1")).toEqual([
       "https://danbooru.donmai.us/artists?search[name]=soha_blan",
+      "https://danbooru.donmai.us/artists?search[name]=translation_circle",
       "https://gelbooru.com/index.php?page=post&s=list&tags=artist_name",
+      "https://danbooru.donmai.us/index.php?page=post&s=list&tags=source_editor",
     ]);
   });
 });

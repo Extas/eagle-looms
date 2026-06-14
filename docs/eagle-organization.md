@@ -96,6 +96,8 @@ Source-site display counts are removed from tag values, including suffixes like 
 
 Per-post metadata buckets such as `post:123`, `id_123`, and Pixiv-style artwork IDs use the matching bucket only. If bucket values are structured objects, their own `type`, `category`, `tag_type`, `namespace`, or nested `tag` category is normalized before import.
 
+Author URL extraction follows the same author-like categories where source pages expose tag links, including artist, author, creator, illustrator, writer, translator, editor, colorist, letterer, mangaka, group, and circle.
+
 `eagle-looms` and `eagle-looms:raw` are not added to new imports.
 
 ## Source Metadata

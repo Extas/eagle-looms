@@ -15,6 +15,10 @@ describe("gallery author URL extraction", () => {
           <a class="tag" href="https://imhentai.xxx/group/circle-name/">circle name</a>
         </li>
         <li>
+          <span class="tags_text">Translator:</span>
+          <a class="tag" href="/translator/translation-circle/">translation circle</a>
+        </li>
+        <li>
           <span class="tags_text">Tags:</span>
           <a class="tag" href="/tag/school-uniform/">school uniform</a>
         </li>
@@ -24,6 +28,7 @@ describe("gallery author URL extraction", () => {
     expect(extractGalleryAuthorUrls(document, ".galleries_info > li", ".tags_text", "a.tag[href]", "https://imhentai.xxx/gallery/1/")).toEqual([
       "https://imhentai.xxx/artist/soha-blan/",
       "https://imhentai.xxx/group/circle-name/",
+      "https://imhentai.xxx/translator/translation-circle/",
     ]);
   });
 
@@ -35,6 +40,10 @@ describe("gallery author URL extraction", () => {
           <td><a href="/author/a/">Author A</a></td>
         </tr>
         <tr>
+          <td class="viewcolumn">Editors</td>
+          <td><a href="/editor/e/">Editor E</a></td>
+        </tr>
+        <tr>
           <td class="viewcolumn">Characters</td>
           <td><a href="/character/c/">Character C</a></td>
         </tr>
@@ -43,6 +52,7 @@ describe("gallery author URL extraction", () => {
 
     expect(extractGalleryAuthorUrls(document, ".view-page-details tr", ".viewcolumn", ".viewcolumn + td a[href]", "https://hentainexus.com/view/1")).toEqual([
       "https://hentainexus.com/author/a/",
+      "https://hentainexus.com/editor/e/",
     ]);
   });
 });
