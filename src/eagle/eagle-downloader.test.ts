@@ -149,6 +149,7 @@ describe('Eagle downloader duplicate checks', () => {
   it('writes collected author URLs into Eagle item annotations', () => {
     const input = toAddItemInput({
       ...eagleAsset('artist.jpg'),
+      meta: { authorUrls: ['https://exhentai.org/tag/artist:soha_blan'] },
       node: { authorUrls: [' https://www.pixiv.net/users/42 ', 'https://www.pixiv.net/users/42'] },
     } as any, ['folder-id']);
 
@@ -158,7 +159,7 @@ describe('Eagle downloader duplicate checks', () => {
       sourceUrl: asset.sourceUrl,
       originUrl: asset.originUrl,
       stableKey: stableKeyForAsset(asset),
-      authorUrls: ['https://www.pixiv.net/users/42'],
+      authorUrls: ['https://www.pixiv.net/users/42', 'https://exhentai.org/tag/artist:soha_blan'],
     });
     expect(input.folders).toEqual(['folder-id']);
   });
@@ -166,6 +167,7 @@ describe('Eagle downloader duplicate checks', () => {
   it('keeps normal Eagle item payloads annotation-free when no extra identity is needed', () => {
     const input = toAddItemInput({
       ...eagleAsset('plain.jpg'),
+      meta: { authorUrls: [] },
       node: { authorUrls: [] },
     } as any, ['folder-id']);
 

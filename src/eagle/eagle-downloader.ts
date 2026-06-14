@@ -500,7 +500,7 @@ export function toAddItemInput(asset: EagleImportAsset, folderIds: string[]): Ad
     sourceUrl: asset.sourceUrl,
     originUrl: asset.originUrl,
     itemKey: asset.itemKey,
-    authorUrls: asset.node.authorUrls,
+    authorUrls: [...(asset.node.authorUrls || []), ...(asset.meta.authorUrls || [])],
   });
   return {
     name: asset.name,
