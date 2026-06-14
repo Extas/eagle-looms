@@ -86,6 +86,8 @@ author / artist / creator / group / circle / 作者 / 藝術家 / 社團        
 
 Other reliable source tags are imported as raw tags. The visible tag cap defaults to 20 and is clamped to `0..100`; `0` copies no visible source tags. Within the cap, `copyright:`, `character:`, and `author:` are ordered before general visual tags.
 
+Object-shaped source tags extract common display fields such as `name`, `tag`, `tag_en`, `tag_name`, `display_name`, `name_en`, and `translated_name`; nested `tag`, `tags`, `values`, and `items` containers are flattened.
+
 `eagle-looms` and `eagle-looms:raw` are not added to new imports.
 
 ## Source Metadata

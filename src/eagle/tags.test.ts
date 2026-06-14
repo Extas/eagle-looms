@@ -244,6 +244,29 @@ describe('Eagle tags', () => {
     ]);
   });
 
+  it('extracts common API tag object field variants', () => {
+    const meta = new GalleryMeta('https://anime-pictures.net/posts/100', 'gallery');
+    meta.tags = {
+      copyright: [{ tag_en: 'project sekai' }],
+      character: [{ tag_name: 'kusanagi nene' }],
+      artist: [{ display_name: 'soha blan' }],
+      tags: [
+        { name_en: 'blue eyes' },
+        { translated_name: 'school uniform' },
+        { tag: { tag_en: 'smile' } },
+      ],
+    };
+
+    expect(sourceTagsFromGalleryMeta(meta, 'https://anime-pictures.net/posts/100')).toEqual([
+      'copyright:project sekai',
+      'character:kusanagi nene',
+      'author:soha blan',
+      'blue eyes',
+      'school uniform',
+      'smile',
+    ]);
+  });
+
   it('extracts nested metadata tag arrays from common API container fields', () => {
     const meta = new GalleryMeta('https://example.test/gallery/1', 'gallery');
     meta.tags = {

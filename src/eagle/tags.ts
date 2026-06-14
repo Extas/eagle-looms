@@ -172,13 +172,16 @@ function metaValueTexts(value: unknown): string[] {
   if (Array.isArray(value)) return value.flatMap(metaValueTexts);
   if (!value || typeof value !== "object") return [];
   const object = value as Record<string, unknown>;
-  for (const key of ["name", "tag", "value", "label", "title"]) {
+  for (const key of ["name", "tag", "tag_en", "tagName", "tag_name", "value", "label", "title", "displayName", "display_name", "nameEn", "name_en", "translatedName", "translated_name"]) {
     const candidate = object[key];
     if (typeof candidate === "string" && candidate.trim()) return [candidate];
   }
-  for (const key of ["tags", "values", "items"]) {
+  for (const key of ["tag", "tags", "values", "items"]) {
     const candidate = object[key];
-    if (Array.isArray(candidate)) return candidate.flatMap(metaValueTexts);
+    if (candidate && typeof candidate === "object") {
+      const values = metaValueTexts(candidate);
+      if (values.length) return values;
+    }
   }
   return [];
 }
