@@ -144,6 +144,7 @@ describe('Eagle tags', () => {
       character: [{ tag: 'kusanagi nene' }],
       tags: [{ value: 'blue eyes' }, { title: 'school uniform' }, { count: 42 }],
     };
+    (meta.tags as Record<string, unknown>).category = { name: 'doujinshi' };
 
     expect(sourceTagsFromGalleryMeta(meta, 'https://example.test/gallery/1')).toEqual([
       'author:soha blan',
@@ -151,6 +152,28 @@ describe('Eagle tags', () => {
       'character:kusanagi nene',
       'blue eyes',
       'school uniform',
+      'doujinshi',
+    ]);
+  });
+
+  it('extracts nested metadata tag arrays from common API container fields', () => {
+    const meta = new GalleryMeta('https://example.test/gallery/1', 'gallery');
+    meta.tags = {
+      tags: [
+        ['blue eyes', { name: 'school uniform' }],
+        { tags: ['long hair', { value: 'smile' }] },
+        { values: ['indoors'] },
+        { items: [{ label: 'highres' }] },
+      ],
+    };
+
+    expect(sourceTagsFromGalleryMeta(meta, 'https://example.test/gallery/1')).toEqual([
+      'blue eyes',
+      'school uniform',
+      'long hair',
+      'smile',
+      'indoors',
+      'highres',
     ]);
   });
 

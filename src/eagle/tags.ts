@@ -142,20 +142,26 @@ function normalizeSourceNamespace(category: string): "copyright" | "character" |
 function normalizeMetaValues(value: unknown): string[] {
   const rawValues = Array.isArray(value) ? value : [value];
   return rawValues
-    .flatMap(value => splitMaybeDelimitedTags(metaValueText(value)))
+    .flatMap(value => metaValueTexts(value))
+    .flatMap(splitMaybeDelimitedTags)
     .map(cleanSourceTagValue)
     .filter(Boolean);
 }
 
-function metaValueText(value: unknown): string {
-  if (typeof value === "string") return value;
-  if (!value || typeof value !== "object") return "";
+function metaValueTexts(value: unknown): string[] {
+  if (typeof value === "string") return [value];
+  if (Array.isArray(value)) return value.flatMap(metaValueTexts);
+  if (!value || typeof value !== "object") return [];
   const object = value as Record<string, unknown>;
   for (const key of ["name", "tag", "value", "label", "title"]) {
     const candidate = object[key];
-    if (typeof candidate === "string" && candidate.trim()) return candidate;
+    if (typeof candidate === "string" && candidate.trim()) return [candidate];
   }
-  return "";
+  for (const key of ["tags", "values", "items"]) {
+    const candidate = object[key];
+    if (Array.isArray(candidate)) return candidate.flatMap(metaValueTexts);
+  }
+  return [];
 }
 
 function splitMaybeDelimitedTags(value: string): string[] {
