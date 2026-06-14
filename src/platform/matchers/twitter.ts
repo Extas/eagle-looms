@@ -482,11 +482,15 @@ function getUserID(): string | undefined {
   return theBTN.getAttribute("data-testid")!.match(/(\d+)/)?.[1];
 }
 
-function twitterSourceTags(item: Item): string[] {
+export function twitterSourceTags(item: Item): string[] {
   const tags = new Set<string>();
-  const user = twitterScreenName(item);
+  const sourceCandidates = twitterMediaSourceCandidates(item);
+  const user = twitterScreenNameFromCandidates(sourceCandidates) || twitterScreenName(item);
   if (user) tags.add(`author:${user}`);
-  for (const legacy of twitterLegacyCandidates(item)) {
+  const legacyCandidates = sourceCandidates.length
+    ? sourceCandidates.map(candidate => candidate.legacy)
+    : twitterLegacyCandidates(item);
+  for (const legacy of legacyCandidates) {
     legacy?.entities?.hashtags?.forEach(hashtag => {
       const tag = hashtag.text?.trim();
       if (tag) tags.add(tag);
@@ -495,13 +499,17 @@ function twitterSourceTags(item: Item): string[] {
   return [...tags];
 }
 
-function twitterAuthorUrls(item: Item): string[] {
-  const user = twitterScreenName(item);
+export function twitterAuthorUrls(item: Item): string[] {
+  const user = twitterScreenNameFromCandidates(twitterMediaSourceCandidates(item)) || twitterScreenName(item);
   return user ? [`https://x.com/${user}`] : [];
 }
 
-function twitterPublishedAt(item: Item): string {
-  return twitterLegacyCandidates(item)
+export function twitterPublishedAt(item: Item): string {
+  const sourceCandidates = twitterMediaSourceCandidates(item);
+  const legacyCandidates = sourceCandidates.length
+    ? sourceCandidates.map(candidate => candidate.legacy)
+    : twitterLegacyCandidates(item);
+  return legacyCandidates
     .map(legacy => legacy?.created_at || "")
     .find(Boolean) || "";
 }
@@ -509,6 +517,34 @@ function twitterPublishedAt(item: Item): string {
 function twitterScreenName(item: Item): string {
   const user = item.itemContent?.tweet_results?.result?.core?.user_results?.result;
   return user?.legacy?.screen_name || user?.core?.screen_name || "";
+}
+
+type TwitterSourceCandidate = {
+  result?: ItemResult,
+  legacy?: Legacy,
+}
+
+function twitterMediaSourceCandidates(item: Item): TwitterSourceCandidate[] {
+  const result = item.itemContent?.tweet_results?.result;
+  const retweeted1 = result?.legacy?.retweeted_status_result?.result;
+  const retweeted2 = result?.tweet?.legacy?.retweeted_status_result?.result;
+  return [
+    { result, legacy: result?.legacy },
+    { result: retweeted1, legacy: retweeted1?.tweet?.legacy },
+    { result: retweeted1, legacy: retweeted1?.legacy },
+    { result, legacy: result?.tweet?.legacy },
+    { result: retweeted2, legacy: retweeted2?.tweet?.legacy },
+    { result: retweeted2, legacy: retweeted2?.legacy },
+  ].filter(candidate => Boolean(candidate.legacy?.entities?.media?.length));
+}
+
+function twitterScreenNameFromCandidates(candidates: TwitterSourceCandidate[]): string {
+  return candidates
+    .map(candidate => {
+      const user = candidate.result?.core?.user_results?.result;
+      return user?.legacy?.screen_name || user?.core?.screen_name || "";
+    })
+    .find(Boolean) || "";
 }
 
 function twitterLegacyCandidates(item: Item): Array<Legacy | undefined> {

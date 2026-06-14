@@ -130,7 +130,7 @@ ArtStation
   author comes from user identity; project tags stay raw and support string or common object-shaped tag values
 
 Twitter / X
-  author comes from screen_name; hashtags stay raw
+  author comes from the media-bearing tweet screen_name; hashtags stay raw
 
 Instagram
   author comes from username; caption hashtags stay raw
