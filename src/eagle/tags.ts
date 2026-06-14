@@ -251,6 +251,7 @@ function normalizeSourceCategoryKey(category: string): string {
   return cleanTag(category)
     .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
     .replace(/[_-]+/g, " ")
+    .replace(/\(\s*s\s*\)/gi, "")
     .replace(/[:：]+$/g, "")
     .replace(/\s+/g, " ")
     .trim()

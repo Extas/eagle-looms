@@ -79,6 +79,8 @@ describe('Eagle tags', () => {
     expect(sourceMetadataTag('藝術家', 'soha blan')).toBe('author:soha blan');
     expect(sourceMetadataTag('社团', 'circle name')).toBe('author:circle name');
     expect(sourceMetadataTag('Artist:', 'soha blan')).toBe('author:soha blan');
+    expect(sourceMetadataTag('Artist(s):', 'soha blan')).toBe('author:soha blan');
+    expect(sourceMetadataTag('Character(s):', 'kusanagi nene')).toBe('character:kusanagi nene');
     expect(normalizeSourceMetadataTag('general:blue eyes')).toBe('');
   });
 
@@ -297,6 +299,8 @@ describe('Eagle tags', () => {
       'Artist：': ['soha blan'],
       Artist: ['soha blan'],
       'female：': ['school uniform'],
+      'Female Tag(s)': ['casual outfit'],
+      'Tag(s):': ['blue eyes'],
       femaleTags: ['casual outfit'],
     };
 
@@ -307,6 +311,7 @@ describe('Eagle tags', () => {
       'author:soha blan',
       'school uniform',
       'casual outfit',
+      'blue eyes',
     ]);
   });
 

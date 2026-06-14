@@ -88,6 +88,8 @@ Other reliable source tags are imported as raw tags. The visible tag cap default
 
 Object-shaped source tags extract common display fields such as `name`, `tag`, `tag_en`, `tag_name`, `display_name`, `name_en`, and `translated_name`; nested `tag`, `tags`, `values`, and `items` containers are flattened.
 
+Category labels normalize common page decorations before mapping, including case, underscores, hyphens, trailing `:` / `：`, and optional plural markers such as `Artist(s)` or `Tag(s)`.
+
 `eagle-looms` and `eagle-looms:raw` are not added to new imports.
 
 ## Source Metadata
