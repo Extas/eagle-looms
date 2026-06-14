@@ -108,6 +108,26 @@ describe("booru source tags", () => {
     ]);
   });
 
+  it("supports numeric tag-type classes from booru tag lists", () => {
+    document.body.innerHTML = `
+      <ul>
+        <li class="tag-type-3"><a>project_sekai</a></li>
+        <li class="tag-type-4"><a>kusanagi_nene</a></li>
+        <li class="tag-type-1"><a>soha_blan</a></li>
+        <li class="tag-type-0"><a>blue_eyes</a></li>
+        <li class="tag-type-5"><a>highres</a></li>
+      </ul>
+    `;
+
+    expect(extractBooruSourceTags(document, [])).toEqual([
+      "copyright:project_sekai",
+      "character:kusanagi_nene",
+      "author:soha_blan",
+      "blue_eyes",
+      "highres",
+    ]);
+  });
+
   it("extracts author tag links as traceable author URLs", () => {
     document.body.innerHTML = `
       <ul>

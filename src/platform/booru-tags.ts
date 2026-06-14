@@ -53,6 +53,7 @@ const RAW_TAG_ATTRS = [
 const CATEGORY_SELECTORS = {
   copyright: [
     ".tag-type-copyright a",
+    ".tag-type-3 a",
     ".copyright-tag-list a",
     ".tag-list-copyright a",
     ".category-copyright a",
@@ -62,6 +63,7 @@ const CATEGORY_SELECTORS = {
   ],
   character: [
     ".tag-type-character a",
+    ".tag-type-4 a",
     ".character-tag-list a",
     ".tag-list-character a",
     ".category-character a",
@@ -72,6 +74,7 @@ const CATEGORY_SELECTORS = {
   author: [
     ".tag-type-artist a",
     ".tag-type-author a",
+    ".tag-type-1 a",
     ".tag-type-creator a",
     ".tag-type-group a",
     ".tag-type-circle a",
@@ -124,6 +127,8 @@ const CATEGORY_SELECTORS = {
 const RAW_TAG_SELECTORS = [
   ".tag-type-general a",
   ".tag-type-meta a",
+  ".tag-type-0 a",
+  ".tag-type-5 a",
   ".tag-list-general a",
   ".tag-list-meta a",
   ".category-general a",
