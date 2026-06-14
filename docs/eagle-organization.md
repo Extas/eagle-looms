@@ -88,7 +88,7 @@ author / artist / creator / illustrator / writer / mangaka / group / circle / �
 
 Other reliable source tags are imported as raw tags. The visible tag cap defaults to 20 and is clamped to `0..100`; `0` copies no visible source tags. Within the cap, `copyright:`, `character:`, and `author:` are ordered before general visual tags.
 
-Object-shaped source tags extract common display fields such as `name`, `tag`, `tag_en`, `tag_name`, `display_name`, `name_en`, and `translated_name`; nested `tag`, `tags`, `values`, and `items` containers are flattened.
+Object-shaped source tags extract common display fields such as `name`, `tag`, `tag_en`, `tag_name`, `display_name`, `name_en`, and `translated_name`; source-provided `translation.en` / `localized.english` style fields are accepted when no direct display field exists; nested `tag`, `tags`, `values`, and `items` containers are flattened.
 
 Category labels normalize common page decorations before mapping, including case, underscores, hyphens, trailing `:` / `：`, and optional plural markers such as `Artist(s)` or `Tag(s)`.
 
@@ -122,7 +122,7 @@ Chinese gallery pages
   map common labels such as 作品/角色/作者/藝術家/社團 into global namespaces; keep 標籤/分類/語言 as raw tags
 
 Pixiv
-  author comes from Pixiv user identity; artwork tags are raw because Pixiv does not classify copyright/character reliably
+  author comes from Pixiv user identity; artwork tags stay raw because Pixiv does not classify copyright/character reliably; source-provided tag translations are kept as additional raw tags
 
 Twitter / X
   author comes from screen_name; hashtags stay raw

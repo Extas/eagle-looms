@@ -1,5 +1,11 @@
 type PixivTagObject = {
   tag?: unknown;
+  tag_en?: unknown;
+  tagEn?: unknown;
+  translation?: unknown;
+  translations?: unknown;
+  tagTranslation?: unknown;
+  tag_translation?: unknown;
 };
 
 type PixivAuthorObject = {
@@ -11,7 +17,7 @@ type PixivAuthorObject = {
 export function normalizePixivWorkTags(value: unknown): string[] {
   const rawTags = Array.isArray(value) ? value : tagsArrayFromObject(value);
   return [...new Set(rawTags
-    .map(tagValue)
+    .flatMap(tagValues)
     .map(cleanPixivTag)
     .filter(Boolean))];
 }
@@ -45,11 +51,32 @@ function tagsArrayFromObject(value: unknown): unknown[] {
   return Array.isArray(tags) ? tags : [];
 }
 
-function tagValue(value: unknown): string {
-  if (typeof value === "string") return value;
-  if (!value || typeof value !== "object") return "";
-  const tag = (value as PixivTagObject).tag;
-  return typeof tag === "string" ? tag : "";
+function tagValues(value: unknown): string[] {
+  if (typeof value === "string") return [value];
+  if (!value || typeof value !== "object") return [];
+  const tag = value as PixivTagObject;
+  return [
+    stringValue(tag.tag),
+    stringValue(tag.tag_en),
+    stringValue(tag.tagEn),
+    ...translationValues(tag.translation),
+    ...translationValues(tag.translations),
+    ...translationValues(tag.tagTranslation),
+    ...translationValues(tag.tag_translation),
+  ].filter(Boolean);
+}
+
+function translationValues(value: unknown): string[] {
+  if (typeof value === "string") return [value];
+  if (!value || typeof value !== "object") return [];
+  const object = value as Record<string, unknown>;
+  return ["en", "english", "name", "text", "value", "label"]
+    .map(key => stringValue(object[key]))
+    .filter(Boolean);
+}
+
+function stringValue(value: unknown): string {
+  return typeof value === "string" || typeof value === "number" ? String(value) : "";
 }
 
 function cleanPixivTag(value: string): string {

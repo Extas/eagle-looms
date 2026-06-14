@@ -20,6 +20,23 @@ describe("Pixiv source tags", () => {
     })).toEqual(["project sekai", "kusanagi nene"]);
   });
 
+  it("keeps Pixiv source tags and source-provided translated tags", () => {
+    expect(normalizePixivWorkTags({
+      tags: [
+        { tag: "hatsune_miku", translation: { en: "Hatsune Miku" } },
+        { tag: "school uniform", translations: { english: "school uniform" } },
+        { tag_en: "blue archive" },
+        { tagTranslation: { en: "long hair" } },
+      ],
+    })).toEqual([
+      "hatsune_miku",
+      "Hatsune Miku",
+      "school uniform",
+      "blue archive",
+      "long hair",
+    ]);
+  });
+
   it("prefers readable Pixiv author names while keeping user id author URLs", () => {
     const work = {
       userId: "81925632",

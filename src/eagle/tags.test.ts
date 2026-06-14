@@ -275,6 +275,8 @@ describe('Eagle tags', () => {
       tags: [
         { name_en: 'blue eyes' },
         { translated_name: 'school uniform' },
+        { translation: { en: 'long hair' } },
+        { localized: { english: 'smile' } },
         { tag: { tag_en: 'smile' } },
       ],
     };
@@ -285,6 +287,7 @@ describe('Eagle tags', () => {
       'author:soha blan',
       'blue eyes',
       'school uniform',
+      'long hair',
       'smile',
     ]);
   });

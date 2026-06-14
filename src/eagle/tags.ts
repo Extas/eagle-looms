@@ -211,6 +211,10 @@ function metaValueTexts(value: unknown): string[] {
     const candidate = object[key];
     if (typeof candidate === "string" && candidate.trim()) return [candidate];
   }
+  for (const key of ["translation", "translations", "translated", "localized", "localization", "i18n"]) {
+    const values = localizedMetaValueTexts(object[key]);
+    if (values.length) return values;
+  }
   for (const key of ["tag", "tags", "values", "items"]) {
     const candidate = object[key];
     if (candidate && typeof candidate === "object") {
@@ -219,6 +223,15 @@ function metaValueTexts(value: unknown): string[] {
     }
   }
   return [];
+}
+
+function localizedMetaValueTexts(value: unknown): string[] {
+  if (typeof value === "string") return [value];
+  if (!value || typeof value !== "object") return [];
+  const object = value as Record<string, unknown>;
+  return ["en", "english", "name", "text", "value", "label", "title"]
+    .map(key => object[key])
+    .filter((value): value is string => typeof value === "string" && value.trim().length > 0);
 }
 
 function metaValueCategory(object: Record<string, unknown>): string {
