@@ -109,7 +109,7 @@ Danbooru / Gelbooru / e621
   use data-tag-string attributes, descendant metadata, numeric Danbooru category classes, detail-page tag lists, and general/meta raw tag attributes
 
 yande.re / konachan
-  use Moebooru Post.register / Post.register_tags when present, including common creator/group and source-work category aliases
+  use Moebooru Post.register / Post.register_tags when present, including multiline/repeated tag maps and common creator/group/source-work aliases
 
 anime-pictures
   map game copyright, character, and author blocks; keep other detail tags raw

@@ -1,4 +1,4 @@
-const POST_REGISTER_TAGS_RE = /Post\.register_tags\((\{[^\n;]*\})\)/g;
+const POST_REGISTER_TAGS_RE = /Post\.register_tags\(\s*(\{[\s\S]*?\})\s*\)/g;
 
 export type MoebooruTagTypes = Record<string, unknown>;
 
@@ -42,7 +42,11 @@ function splitTags(value: string | undefined): string[] {
 }
 
 function normalizeMoebooruTagType(value: unknown): "copyright" | "character" | "author" | "" {
-  const raw = typeof value === "number" ? String(value) : typeof value === "string" ? value.toLowerCase() : "";
+  const raw = typeof value === "number"
+    ? String(value)
+    : typeof value === "string"
+      ? value.replace(/[_-]+/g, " ").replace(/\s+/g, " ").trim().toLowerCase()
+      : "";
   switch (raw) {
     case "1":
     case "artist":

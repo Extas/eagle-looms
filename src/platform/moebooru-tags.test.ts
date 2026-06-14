@@ -18,6 +18,27 @@ describe("moebooru source tags", () => {
     ]);
   });
 
+  it("parses multiline and repeated Post.register_tags maps", () => {
+    document.body.innerHTML = `
+      <script>
+        Post.register_tags({
+          "soha_blan": "Artist",
+          "project_sekai": "source_work"
+        });
+        Post.register_tags({
+          "kusanagi_nene": " character "
+        });
+      </script>
+    `;
+    const tagTypes = parseMoebooruTagTypes(document);
+
+    expect(normalizeMoebooruSourceTags("soha_blan project_sekai kusanagi_nene", tagTypes)).toEqual([
+      "author:soha_blan",
+      "copyright:project_sekai",
+      "character:kusanagi_nene",
+    ]);
+  });
+
   it("supports numeric tag category values from API-style payloads", () => {
     expect(normalizeMoebooruSourceTags("artist_name source_work character_name", {
       artist_name: 1,
