@@ -226,6 +226,7 @@ export function defaultConf(): Config {
 }
 
 const CONF_VERSION = "4.4.0";
+const CURRENT_CONFIG_PATCH_VERSION = 12;
 const LEGACY_BUILT_IN_EAGLE_FOLDER_TEMPLATES = [
   "Eagle Looms/{site}/{copyright}",
   EAGLE_FOLDER_PRESET_TEMPLATES.gallery,
@@ -276,7 +277,9 @@ export function getConf(): Config {
 export function getSiteConfig(name: string): SiteConfig {
   const cfgStr = storage.getItem(getConfigKey(name));
   if (!cfgStr) return {}
-  return JSON.parse(cfgStr);
+  const cfg = JSON.parse(cfgStr) as SiteConfig;
+  if (patchSiteConfig(cfg)) saveConf(cfg, name);
+  return cfg;
 }
 
 function confHealthCheck(cf: Config): Config {
@@ -420,6 +423,23 @@ function patchConfig(cf: Config): Config | null {
   return changed ? cf : null;
 }
 
+function patchSiteConfig(cf: SiteConfig): boolean {
+  let changed = false;
+  const version = Number(cf.configPatchVersion || 0);
+  if (version < CURRENT_CONFIG_PATCH_VERSION) {
+    if (cf.eagleFolderPath !== undefined && LEGACY_BUILT_IN_EAGLE_FOLDER_TEMPLATES.includes(normalizeEagleFolderTemplate(cf.eagleFolderPath))) {
+      cf.eagleFolderPath = DEFAULT_EAGLE_FOLDER_TEMPLATE;
+      cf.eagleFolderPreset = DEFAULT_EAGLE_FOLDER_PRESET;
+      changed = true;
+    }
+    if (cf.configPatchVersion !== undefined || changed) {
+      cf.configPatchVersion = CURRENT_CONFIG_PATCH_VERSION;
+      changed = true;
+    }
+  }
+  return changed;
+}
+
 export function resetConf(name?: string) {
   const ok = confirm(`${i18n.resetConfig.get()}${name ? (" On " + name) : " On " + i18n.global.get()} ?`);
   if (ok) {
@@ -440,7 +460,9 @@ export function saveConf(c: SiteConfig, name?: string) {
   if (name) {
     ["keyboards", "siteProfiles"].forEach(key => delete config[key]);
   }
-  storage.setItem(configKey, JSON.stringify({ ...config, ...c }));
+  const next = { ...config, ...c };
+  if (name) next.configPatchVersion = CURRENT_CONFIG_PATCH_VERSION;
+  storage.setItem(configKey, JSON.stringify(next));
 }
 
 function getConfigKey(name?: string) {
