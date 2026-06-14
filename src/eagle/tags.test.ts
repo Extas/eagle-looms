@@ -126,6 +126,8 @@ describe('Eagle tags', () => {
       albumType: ['Image Set'],
       type: ['Doujinshi'],
       maleTags: ['glasses'],
+      femaleTag: ['school uniform'],
+      'male-tag': ['solo male'],
       misc: ['uncategorized tag'],
     };
 
@@ -133,7 +135,20 @@ describe('Eagle tags', () => {
       'Image Set',
       'Doujinshi',
       'glasses',
+      'school uniform',
+      'solo male',
       'uncategorized tag',
+    ]);
+  });
+
+  it('keeps language-like flag metadata from API galleries', () => {
+    const meta = new GalleryMeta('https://yabai.si/g/test', 'gallery');
+    meta.tags = {
+      flag: [{ name: 'English', code: 'en' }],
+    };
+
+    expect(sourceTagsFromGalleryMeta(meta, 'https://yabai.si/g/test')).toEqual([
+      'English',
     ]);
   });
 

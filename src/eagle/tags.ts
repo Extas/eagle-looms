@@ -178,8 +178,10 @@ function isRawSourceTagCategory(category: string): boolean {
     case "tags":
     case "general":
     case "female":
+    case "female tag":
     case "female tags":
     case "female_tags":
+    case "flag":
     case "genre":
     case "genres":
     case "category":
@@ -191,6 +193,7 @@ function isRawSourceTagCategory(category: string): boolean {
     case "language":
     case "languages":
     case "male":
+    case "male tag":
     case "male tags":
     case "male_tags":
     case "mixed":
