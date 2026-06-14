@@ -46,10 +46,17 @@ function normalizeMoebooruTagType(value: unknown): "copyright" | "character" | "
   switch (raw) {
     case "1":
     case "artist":
+    case "author":
     case "circle":
+    case "creator":
+    case "group":
       return "author";
     case "3":
     case "copyright":
+    case "series":
+    case "work":
+    case "source work":
+    case "original work":
       return "copyright";
     case "4":
     case "character":

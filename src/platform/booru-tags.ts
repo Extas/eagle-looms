@@ -1,8 +1,27 @@
 const CATEGORY_ATTRS = {
   copyright: ["data-tag-string-copyright", "data-tags-copyright", "data-copyright-tags"],
   character: ["data-tag-string-character", "data-tags-character", "data-character-tags"],
-  author: ["data-tag-string-artist", "data-tags-artist", "data-artist-tags"],
+  author: [
+    "data-tag-string-artist",
+    "data-tags-artist",
+    "data-artist-tags",
+    "data-tag-string-author",
+    "data-tags-author",
+    "data-author-tags",
+    "data-tag-string-creator",
+    "data-tags-creator",
+    "data-creator-tags",
+  ],
 } as const;
+
+const RAW_TAG_ATTRS = [
+  "data-tag-string-general",
+  "data-tags-general",
+  "data-general-tags",
+  "data-tag-string-meta",
+  "data-tags-meta",
+  "data-meta-tags",
+] as const;
 
 const CATEGORY_SELECTORS = {
   copyright: [
@@ -80,6 +99,12 @@ export function extractBooruSourceTags(root: ParentNode, fallbackTags: string[])
     }
   }
 
+  for (const element of elementsWithAnyAttribute(root, RAW_TAG_ATTRS)) {
+    for (const value of RAW_TAG_ATTRS.flatMap(attr => splitSourceTags(element.getAttribute(attr)))) {
+      if (!categorized.has(value)) tags.push(value);
+    }
+  }
+
   for (const selector of RAW_TAG_SELECTORS) {
     root.querySelectorAll?.(selector).forEach((anchor) => {
       const value = cleanSourceTag(anchor.textContent || "");
@@ -128,7 +153,8 @@ function cleanSourceTag(value: string): string {
   return value
     .replace(/[\n\r\t]+/g, " ")
     .replace(/\s+/g, " ")
-    .replace(/\s+(?:[+-]?\d+(?:\.\d+)?[kKmM]?|[+-]\d+)$/, "")
+    .replace(/\s*[\[(]\s*[+-]?\d[\d,]*(?:\.\d+)?[kKmM]?\s*[\])]$/, "")
+    .replace(/\s+(?:[+-]?\d[\d,]*(?:\.\d+)?[kKmM]?|[+-]\d+)$/, "")
     .trim()
     .slice(0, 120);
 }

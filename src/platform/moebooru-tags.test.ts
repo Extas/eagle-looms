@@ -30,6 +30,20 @@ describe("moebooru source tags", () => {
     ]);
   });
 
+  it("supports common named tag category aliases", () => {
+    expect(normalizeMoebooruSourceTags("creator_name group_name original_work character_name", {
+      creator_name: "creator",
+      group_name: "group",
+      original_work: "original work",
+      character_name: "character",
+    })).toEqual([
+      "author:creator_name",
+      "author:group_name",
+      "copyright:original_work",
+      "character:character_name",
+    ]);
+  });
+
   it("derives traceable author tag URLs from categorized artist tags", () => {
     expect(moebooruAuthorUrlsFromTags(
       "artist_name source_work circle_name artist_name character_name",

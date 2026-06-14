@@ -104,10 +104,10 @@ Current source mapping rules:
 
 ```text
 Danbooru / Gelbooru / e621
-  use data-tag-string attributes, descendant metadata, numeric Danbooru category classes, and detail-page tag lists
+  use data-tag-string attributes, descendant metadata, numeric Danbooru category classes, detail-page tag lists, and general/meta raw tag attributes
 
 yande.re / konachan
-  use Moebooru Post.register / Post.register_tags when present
+  use Moebooru Post.register / Post.register_tags when present, including common creator/group and source-work category aliases
 
 anime-pictures
   map game copyright, character, and author blocks; keep other detail tags raw

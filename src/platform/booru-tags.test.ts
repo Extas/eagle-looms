@@ -58,6 +58,8 @@ describe("booru source tags", () => {
         data-tag-string-copyright="bang_dream"
         data-tag-string-character="takamatzu_tomori"
         data-tag-string-artist="artist_name"
+        data-tag-string-general="blue_eyes long_hair"
+        data-tag-string-meta="highres"
       ></article>
     `;
 
@@ -66,17 +68,30 @@ describe("booru source tags", () => {
       "character:takamatzu_tomori",
       "author:artist_name",
       "blue_eyes",
+      "long_hair",
+      "highres",
+    ]);
+  });
+
+  it("supports author-like booru data attributes", () => {
+    const element = document.createElement("article");
+    element.setAttribute("data-tag-string-author", "author_name");
+    element.setAttribute("data-tag-string-creator", "creator_name");
+
+    expect(normalizeBooruSourceTags(element, [])).toEqual([
+      "author:author_name",
+      "author:creator_name",
     ]);
   });
 
   it("supports Danbooru numeric tag category classes and keeps general/meta tags raw", () => {
     document.body.innerHTML = `
       <ul>
-        <li class="category-3"><a>project_sekai 403</a></li>
+        <li class="category-3"><a>project_sekai (403)</a></li>
         <li class="category-4"><a>kusanagi_nene 26</a></li>
         <li class="category-1"><a>soha_blan 11</a></li>
-        <li class="category-0"><a>blue_eyes 120K</a></li>
-        <li class="category-5"><a>highres 80K</a></li>
+        <li class="category-0"><a>blue_eyes [120K]</a></li>
+        <li class="category-5"><a>highres [80K]</a></li>
       </ul>
     `;
 
