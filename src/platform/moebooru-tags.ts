@@ -26,6 +26,14 @@ export function normalizeMoebooruSourceTags(rawTags: string | undefined, tagType
   return [...new Set(tags)];
 }
 
+export function moebooruAuthorUrlsFromTags(rawTags: string | undefined, tagTypes: MoebooruTagTypes, baseUrl = window.location.href): string[] {
+  const urls = splitTags(rawTags)
+    .filter(rawTag => normalizeMoebooruTagType(tagTypes[rawTag]) === "author")
+    .map(rawTag => moebooruTagSearchUrl(rawTag, baseUrl))
+    .filter(Boolean);
+  return [...new Set(urls)];
+}
+
 function splitTags(value: string | undefined): string[] {
   return (value || "")
     .split(/\s+/)
@@ -48,5 +56,15 @@ function normalizeMoebooruTagType(value: unknown): "copyright" | "character" | "
       return "character";
     default:
       return "";
+  }
+}
+
+function moebooruTagSearchUrl(tag: string, baseUrl: string): string {
+  try {
+    const url = new URL("/post", baseUrl);
+    url.searchParams.set("tags", tag);
+    return url.href;
+  } catch {
+    return "";
   }
 }

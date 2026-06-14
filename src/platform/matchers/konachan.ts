@@ -3,7 +3,7 @@ import ImageNode from "../../img-node";
 import { evLog } from "../../utils/ev-log";
 import { ADAPTER } from "../adapt";
 import { searchGalleryTitle } from "../gallery-title";
-import { MoebooruTagTypes, normalizeMoebooruSourceTags, parseMoebooruTagTypes } from "../moebooru-tags";
+import { MoebooruTagTypes, moebooruAuthorUrlsFromTags, normalizeMoebooruSourceTags, parseMoebooruTagTypes } from "../moebooru-tags";
 import { BaseMatcher, OriginMeta, Result } from "../platform";
 
 const POST_INFO_REGEX = /Post\.register\((.*)\)/g;
@@ -61,6 +61,7 @@ export class KonachanMatcher extends BaseMatcher<Document> {
         const ext = info.file_ext || info.file_url.split(".").pop();
         const node = new ImageNode(info.preview_url, `${window.location.origin}/post/show/${info.id}`, `${info.id}.${ext}`);
         node.setTags(...normalizeMoebooruSourceTags(info.tags, this.tagTypes));
+        node.setAuthorUrls(...moebooruAuthorUrlsFromTags(info.tags, this.tagTypes, window.location.href));
         node.setPublishedAt(info.created_at);
         ret.push(node);
       } catch (error) {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { normalizeMoebooruSourceTags, parseMoebooruTagTypes } from "./moebooru-tags";
+import { moebooruAuthorUrlsFromTags, normalizeMoebooruSourceTags, parseMoebooruTagTypes } from "./moebooru-tags";
 
 describe("moebooru source tags", () => {
   it("normalizes Post.register_tags categories and keeps unknown tags raw", () => {
@@ -27,6 +27,22 @@ describe("moebooru source tags", () => {
       "author:artist_name",
       "copyright:source_work",
       "character:character_name",
+    ]);
+  });
+
+  it("derives traceable author tag URLs from categorized artist tags", () => {
+    expect(moebooruAuthorUrlsFromTags(
+      "artist_name source_work circle_name artist_name character_name",
+      {
+        artist_name: "artist",
+        source_work: "copyright",
+        circle_name: "circle",
+        character_name: "character",
+      },
+      "https://yande.re/post?page=2&tags=project_sekai",
+    )).toEqual([
+      "https://yande.re/post?tags=artist_name",
+      "https://yande.re/post?tags=circle_name",
     ]);
   });
 });
