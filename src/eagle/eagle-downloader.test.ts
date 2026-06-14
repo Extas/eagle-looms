@@ -3,7 +3,7 @@ import { defaultConf } from '../config';
 import { ADAPTER } from '../platform/adapt';
 import { i18n } from '../utils/i18n';
 import { clearSessionImportedAssets, duplicateQueries, hasPlannedAssetKey, isDuplicateItem, isSessionImported, markPlannedAssetKey, markSessionImported, stableKeyForAsset } from './duplicates';
-import { EagleDownloader, eagleImportEndStage, eagleImportErrorMessage } from './eagle-downloader';
+import { EagleDownloader, eagleImportEndStage, eagleImportErrorMessage, toAddItemInput } from './eagle-downloader';
 import { EAGLE_IMPORT_DONE_STAGE, isReadyForEagleImport } from './import-readiness';
 import { EAGLE_RAW_RECORD_SCHEMA, type EagleRawRecord } from './raw-record';
 
@@ -144,6 +144,32 @@ describe('Eagle downloader duplicate checks', () => {
     expect(eagleImportErrorMessage(new Error('0 network error'))).toContain('Cannot reach Eagle Web API');
     expect(eagleImportErrorMessage(new Error('request timed out'))).toContain('Eagle Web API timed out');
     expect(eagleImportErrorMessage(new Error('403 Forbidden'))).toBe('403 Forbidden');
+  });
+
+  it('writes collected author URLs into Eagle item annotations', () => {
+    const input = toAddItemInput({
+      ...eagleAsset('artist.jpg'),
+      node: { authorUrls: [' https://www.pixiv.net/users/42 ', 'https://www.pixiv.net/users/42'] },
+    } as any, ['folder-id']);
+
+    expect(input.annotation).toBeTruthy();
+    expect(JSON.parse(input.annotation!)).toEqual({
+      schema: 'eagle-looms/item/v1',
+      sourceUrl: asset.sourceUrl,
+      originUrl: asset.originUrl,
+      stableKey: stableKeyForAsset(asset),
+      authorUrls: ['https://www.pixiv.net/users/42'],
+    });
+    expect(input.folders).toEqual(['folder-id']);
+  });
+
+  it('keeps normal Eagle item payloads annotation-free when no extra identity is needed', () => {
+    const input = toAddItemInput({
+      ...eagleAsset('plain.jpg'),
+      node: { authorUrls: [] },
+    } as any, ['folder-id']);
+
+    expect(input.annotation).toBeUndefined();
   });
 
   it('localizes actionable Eagle Web API transport failures', async () => {

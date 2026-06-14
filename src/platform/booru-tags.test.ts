@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { extractBooruSourceTags, normalizeBooruSourceTags } from "./booru-tags";
+import { extractBooruAuthorUrls, extractBooruSourceTags, normalizeBooruSourceTags } from "./booru-tags";
 
 describe("booru source tags", () => {
   it("normalizes known booru categories and keeps other tags raw", () => {
@@ -86,6 +86,21 @@ describe("booru source tags", () => {
       "author:soha_blan",
       "blue_eyes",
       "highres",
+    ]);
+  });
+
+  it("extracts author tag links as traceable author URLs", () => {
+    document.body.innerHTML = `
+      <ul>
+        <li class="tag-type-artist"><a href="/artists?search[name]=soha_blan">soha_blan 11</a></li>
+        <li class="category-1"><a href="https://gelbooru.com/index.php?page=post&s=list&tags=artist_name">artist_name 4</a></li>
+        <li class="tag-type-artist"><a href="#">ignored_anchor</a></li>
+      </ul>
+    `;
+
+    expect(extractBooruAuthorUrls(document, "https://danbooru.donmai.us/posts/1")).toEqual([
+      "https://danbooru.donmai.us/artists?search[name]=soha_blan",
+      "https://gelbooru.com/index.php?page=post&s=list&tags=artist_name",
     ]);
   });
 });

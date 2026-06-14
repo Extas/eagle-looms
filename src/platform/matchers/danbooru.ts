@@ -4,7 +4,7 @@ import EBUS from "../../event-bus";
 import ImageNode, { NodeAction } from "../../img-node";
 import { evLog } from "../../utils/ev-log";
 import { ADAPTER } from "../adapt";
-import { extractBooruSourceTags, normalizeBooruSourceTags } from "../booru-tags";
+import { extractBooruAuthorUrls, extractBooruSourceTags, normalizeBooruSourceTags } from "../booru-tags";
 import { searchGalleryTitle } from "../gallery-title";
 import { BaseMatcher, OriginMeta, Result } from "../platform";
 
@@ -47,6 +47,7 @@ abstract class DanbooruMatcher extends BaseMatcher<Document> {
     let url: string | null = null;
     const doc = await window.fetch(node.href).then((res) => res.text()).then((text) => new DOMParser().parseFromString(text, "text/html"));
     node.setTags(...extractBooruSourceTags(doc, [...node.tags]));
+    node.setAuthorUrls(...extractBooruAuthorUrls(doc, node.href));
     if (ADAPTER.conf.fetchOriginal) {
       url = this.getOriginalURL(doc);
     }
@@ -111,6 +112,7 @@ abstract class DanbooruMatcher extends BaseMatcher<Document> {
     const node = new ImageNode(url, window.location.href, `${id}.${extensionFromUrl(url) || "jpg"}`, undefined, undefined, imageSizeFromDocument(doc));
     const sourceTags = extractBooruSourceTags(doc, []);
     node.setTags(...sourceTags);
+    node.setAuthorUrls(...extractBooruAuthorUrls(doc, window.location.href));
     node.setPublishedAt(sourcePublishedAtFromBooruDocument(doc));
     this.tags[id] = sourceTags;
     return node;

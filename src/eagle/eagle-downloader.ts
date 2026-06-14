@@ -17,6 +17,7 @@ import { isReadyForEagleImport } from "./import-readiness";
 import { eaglePlanCompactParts, eaglePlanCompactSummary, eaglePlanHeadline, eaglePlanSummaryParts, eagleSummaryParts, eagleToastSummary, EagleImportSummaryStats, shouldConfirmImportPlan } from "./import-summary";
 import { createEagleItemName, normalizeEagleItemNameWithDatePrefix, sourceDatePrefix } from "./naming";
 import { i18n } from "../utils/i18n";
+import { eagleAnnotationForAsset } from "./annotation";
 
 const FILENAME_INVALIDCHAR = /[\\/:*?"<>|\n\t]/g;
 const METADATA_FOLDER_TOKENS = ["copyright", "character", "author"] as const;
@@ -494,7 +495,13 @@ function eagleFolderUrl(api: EagleWebApi, folderId: string): string {
   return url.toString();
 }
 
-function toAddItemInput(asset: EagleImportAsset, folderIds: string[]): AddItemInput {
+export function toAddItemInput(asset: EagleImportAsset, folderIds: string[]): AddItemInput {
+  const annotation = eagleAnnotationForAsset({
+    sourceUrl: asset.sourceUrl,
+    originUrl: asset.originUrl,
+    itemKey: asset.itemKey,
+    authorUrls: asset.node.authorUrls,
+  });
   return {
     name: asset.name,
     base64: dataUrl(asset.data, asset.contentType),
@@ -502,6 +509,7 @@ function toAddItemInput(asset: EagleImportAsset, folderIds: string[]): AddItemIn
     website: asset.website,
     folders: folderIds,
     tags: asset.tags,
+    ...(annotation ? { annotation } : {}),
   };
 }
 

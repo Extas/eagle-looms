@@ -95,6 +95,17 @@ export function extractBooruSourceTags(root: ParentNode, fallbackTags: string[])
   return [...new Set(tags)];
 }
 
+export function extractBooruAuthorUrls(root: ParentNode, baseUrl = window.location.href): string[] {
+  const urls: string[] = [];
+  for (const selector of CATEGORY_SELECTORS.author) {
+    root.querySelectorAll?.(selector).forEach((anchor) => {
+      const url = absoluteHttpUrl(anchor.getAttribute("href"), baseUrl);
+      if (url) urls.push(url);
+    });
+  }
+  return [...new Set(urls)];
+}
+
 function elementsWithAnyAttribute(root: ParentNode, attrs: readonly string[]): Element[] {
   const selectors = attrs.map(attr => `[${attr}]`);
   const elements: Element[] = [];
@@ -120,4 +131,15 @@ function cleanSourceTag(value: string): string {
     .replace(/\s+(?:[+-]?\d+(?:\.\d+)?[kKmM]?|[+-]\d+)$/, "")
     .trim()
     .slice(0, 120);
+}
+
+function absoluteHttpUrl(value: string | null, baseUrl: string): string {
+  const raw = (value || "").trim();
+  if (!raw || raw.startsWith("#") || /^javascript:/i.test(raw)) return "";
+  try {
+    const url = new URL(raw, baseUrl);
+    return ["http:", "https:"].includes(url.protocol) ? url.href : "";
+  } catch {
+    return "";
+  }
 }
