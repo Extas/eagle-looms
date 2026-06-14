@@ -90,6 +90,27 @@ describe('Eagle tags', () => {
     ]);
   });
 
+  it('keeps gallery raw tag categories while normalizing author/copyright namespaces', () => {
+    const meta = new GalleryMeta('https://hdoujin.org/g/1/key', 'gallery');
+    meta.tags = {
+      circle: ['circle name'],
+      parody: ['project sekai'],
+      male_tags: ['glasses'],
+      female_tags: ['school uniform'],
+      genres: ['comedy'],
+      categories: ['doujinshi'],
+    };
+
+    expect(sourceTagsFromGalleryMeta(meta, 'https://hdoujin.org/g/1/key/read/1')).toEqual([
+      'author:circle name',
+      'copyright:project sekai',
+      'glasses',
+      'school uniform',
+      'comedy',
+      'doujinshi',
+    ]);
+  });
+
   it('uses only matching per-post metadata buckets for Pixiv-style metadata', () => {
     const meta = new GalleryMeta('https://www.pixiv.net/users/42', 'pixiv_42');
     meta.tags = {

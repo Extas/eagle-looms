@@ -66,7 +66,7 @@ class HDoujinMatcher extends BaseMatcher<HDoujinImg[]> {
   tagNamespace(namespace: number): string {
     const map: Record<number, string> = {
       1: "artist",
-      2: "cricle",
+      2: "circle",
       3: "parody",
       7: "uploader",
       8: "male_tags",

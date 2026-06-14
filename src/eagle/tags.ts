@@ -160,7 +160,15 @@ function isRawSourceTagCategory(category: string): boolean {
     case "tags":
     case "general":
     case "female":
+    case "female tags":
+    case "female_tags":
+    case "genre":
+    case "genres":
+    case "category":
+    case "categories":
     case "male":
+    case "male tags":
+    case "male_tags":
     case "mixed":
     case "other":
     case "cosplayer":
