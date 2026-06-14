@@ -49,7 +49,7 @@ export function sourceTagsFromGalleryMeta(meta: GalleryMeta, sourceUrl: string):
     }
 
     if (isRawSourceTagCategory(category)) {
-      tags.push(...values);
+      tags.push(...sourceTagsFromPostMetadata(rawValues));
     }
   }
 
@@ -224,7 +224,7 @@ function metaValueTexts(value: unknown): string[] {
   if (Array.isArray(value)) return value.flatMap(metaValueTexts);
   if (!value || typeof value !== "object") return [];
   const object = value as Record<string, unknown>;
-  for (const key of ["name", "tag", "tag_en", "tagName", "tag_name", "value", "label", "title", "displayName", "display_name", "nameEn", "name_en", "translatedName", "translated_name"]) {
+  for (const key of ["name", "tag", "tag_en", "tagName", "tag_name", "value", "label", "title", "slug", "display", "text", "displayName", "display_name", "nameEn", "name_en", "translatedName", "translated_name"]) {
     const candidate = object[key];
     if (typeof candidate === "string" && candidate.trim()) return [candidate];
   }
@@ -258,12 +258,22 @@ function metaValueCategory(object: Record<string, unknown>): string {
       const value = String(candidate).trim();
       if (value) return value;
     }
+    if (candidate && typeof candidate === "object") {
+      const value = metaValueCategoryText(candidate);
+      if (value) return value;
+    }
   }
   const nested = object.tag;
   if (nested && typeof nested === "object") {
     return metaValueCategory(nested as Record<string, unknown>);
   }
   return "";
+}
+
+function metaValueCategoryText(value: object): string {
+  const nestedCategory = metaValueCategory(value as Record<string, unknown>);
+  if (nestedCategory) return nestedCategory;
+  return metaValueTexts(value)[0] || "";
 }
 
 function splitMaybeDelimitedTags(value: string): string[] {

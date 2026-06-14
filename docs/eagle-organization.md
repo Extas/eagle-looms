@@ -88,7 +88,7 @@ author / artist / creator / illustrator / writer / translator / editor / mangaka
 
 Other reliable source tags are imported as raw tags. The visible tag cap defaults to 20 and is clamped to `0..100`; `0` copies no visible source tags. Within the cap, `copyright:`, `character:`, and `author:` are ordered before general visual tags.
 
-Object-shaped source tags extract common display fields such as `name`, `tag`, `tag_en`, `tag_name`, `display_name`, `name_en`, and `translated_name`; source-provided `translation.en` / `localized.english` style fields are accepted when no direct display field exists; nested `tag`, `tags`, `values`, and `items` containers are flattened.
+Object-shaped source tags extract common display fields such as `name`, `tag`, `tag_en`, `tag_name`, `slug`, `display`, `text`, `display_name`, `name_en`, and `translated_name`; source-provided `translation.en` / `localized.english` style fields are accepted when no direct display field exists; nested `tag`, `tags`, `values`, and `items` containers are flattened. Object-shaped category fields such as `category: { name: "artist" }` or `tag_type: { slug: "copyright" }` are normalized before import.
 
 Category labels normalize common page decorations before mapping, including case, underscores, hyphens, trailing `:` / `：`, and optional plural markers such as `Artist(s)` or `Tag(s)`.
 

@@ -284,6 +284,9 @@ describe('Eagle tags', () => {
         { translation: { en: 'long hair' } },
         { localized: { english: 'smile' } },
         { tag: { tag_en: 'smile' } },
+        { slug: 'stage costume' },
+        { display: 'microphone' },
+        { text: 'spotlight' },
       ],
     };
 
@@ -295,6 +298,30 @@ describe('Eagle tags', () => {
       'school uniform',
       'long hair',
       'smile',
+      'stage costume',
+      'microphone',
+      'spotlight',
+    ]);
+  });
+
+  it('normalizes object-shaped metadata categories from API payloads', () => {
+    const meta = new GalleryMeta('https://example.test/posts', 'posts');
+    meta.tags = {
+      tags: [
+        { name: 'soha blan', category: { name: 'artist' } },
+        { tag: 'project sekai', tag_type: { display: 'game copyright' } },
+        { value: 'kusanagi nene', type: { slug: 'character' } },
+        { label: 'blue eyes', kind: { text: 'general' } },
+        { tag: { name: 'bang dream', category: { name: 'series' } } },
+      ],
+    };
+
+    expect(sourceTagsFromGalleryMeta(meta, 'https://example.test/posts/100')).toEqual([
+      'author:soha blan',
+      'copyright:project sekai',
+      'character:kusanagi nene',
+      'blue eyes',
+      'copyright:bang dream',
     ]);
   });
 
