@@ -38,7 +38,7 @@ export function sourceTagsFromGalleryMeta(meta: GalleryMeta, sourceUrl: string):
     if (values.length === 0) continue;
 
     if (metadataBucketMatchesPostId(category, postId)) {
-      tags.push(...values);
+      tags.push(...sourceTagsFromPostMetadata(rawValues));
       continue;
     }
 
@@ -174,6 +174,33 @@ function normalizeMetaValues(value: unknown): string[] {
     .filter(Boolean);
 }
 
+function sourceTagsFromPostMetadata(value: unknown): string[] {
+  const rawValues = Array.isArray(value) ? value : [value];
+  return rawValues
+    .flatMap(value => postMetadataValueTags(value))
+    .filter(Boolean);
+}
+
+function postMetadataValueTags(value: unknown): string[] {
+  if (typeof value === "string") {
+    const tag = normalizeSourceMetadataTag(value) || cleanSourceTagValue(value);
+    return tag ? [tag] : [];
+  }
+  if (Array.isArray(value)) return value.flatMap(postMetadataValueTags);
+  if (!value || typeof value !== "object") return [];
+
+  const object = value as Record<string, unknown>;
+  const category = metaValueCategory(object);
+  const values = normalizeMetaValues(value);
+  if (category && values.length) {
+    const namespace = normalizeSourceNamespace(category);
+    if (namespace) return values.map(value => `${namespace}:${value}`);
+    if (isRawSourceTagCategory(category)) return values;
+  }
+
+  return values.map(value => normalizeSourceMetadataTag(value) || value);
+}
+
 function metaValueTexts(value: unknown): string[] {
   if (typeof value === "string") return [value];
   if (Array.isArray(value)) return value.flatMap(metaValueTexts);
@@ -191,6 +218,21 @@ function metaValueTexts(value: unknown): string[] {
     }
   }
   return [];
+}
+
+function metaValueCategory(object: Record<string, unknown>): string {
+  for (const key of ["type", "category", "tagType", "tag_type", "namespace", "kind"]) {
+    const candidate = object[key];
+    if (typeof candidate === "string" || typeof candidate === "number") {
+      const value = String(candidate).trim();
+      if (value) return value;
+    }
+  }
+  const nested = object.tag;
+  if (nested && typeof nested === "object") {
+    return metaValueCategory(nested as Record<string, unknown>);
+  }
+  return "";
 }
 
 function splitMaybeDelimitedTags(value: string): string[] {

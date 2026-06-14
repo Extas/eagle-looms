@@ -338,7 +338,7 @@ describe('Eagle tags', () => {
       'post:100': ['copyright:project sekai'],
       'id：100': ['character:kusanagi nene'],
       id_100: [{ name: 'character:kusanagi nene' }],
-      'artwork-100': ['author:soha blan'],
+      'artwork-100': ['artist:soha blan'],
       'post:101': ['wrong post'],
     };
 
@@ -346,6 +346,26 @@ describe('Eagle tags', () => {
       'copyright:project sekai',
       'character:kusanagi nene',
       'author:soha blan',
+    ]);
+  });
+
+  it('preserves namespaces from structured per-post metadata values', () => {
+    const meta = new GalleryMeta('https://example.test/posts', 'posts');
+    meta.tags = {
+      id_100: [
+        { type: 'artist', name: 'soha blan' },
+        { category: 'character', tag_name: 'kusanagi nene' },
+        { tag_type: 'copyright', tag: { tag_en: 'project sekai' } },
+        { type: 'tag', name: 'blue eyes' },
+      ],
+      id_101: [{ type: 'artist', name: 'wrong artist' }],
+    };
+
+    expect(sourceTagsFromGalleryMeta(meta, 'https://example.test/posts/100')).toEqual([
+      'author:soha blan',
+      'character:kusanagi nene',
+      'copyright:project sekai',
+      'blue eyes',
     ]);
   });
 
