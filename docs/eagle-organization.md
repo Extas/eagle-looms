@@ -96,7 +96,7 @@ Source-site display counts are removed from tag values, including suffixes like 
 
 Per-item metadata buckets such as `post:123`, `id_123`, Pixiv-style artwork IDs, and slug/hash buckets like `project:neon-garden` or `artwork-neon-garden` use the matching bucket only. If bucket values are structured objects, their own `type`, `category`, `tag_type`, `namespace`, or nested `tag` category is normalized before import.
 
-Author URL extraction follows the same author-like categories where source pages expose tag links, including artist, author, creator, illustrator, writer, translator, editor, colorist, letterer, mangaka, group, and circle.
+Author URL extraction follows the same author-like categories where source pages expose tag links, including artist, author, creator, illustrator, writer, translator, editor, colorist, letterer, mangaka, group, and circle. Category labels are normalized before matching, so decorated labels such as `Artist(s):`, `Illustrator(s)`, and `Circle(s)` are accepted.
 
 `eagle-looms` and `eagle-looms:raw` are not added to new imports.
 

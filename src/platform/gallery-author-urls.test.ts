@@ -55,4 +55,34 @@ describe("gallery author URL extraction", () => {
       "https://hentainexus.com/editor/e/",
     ]);
   });
+
+  it("normalizes decorated author category labels", () => {
+    document.body.innerHTML = `
+      <ul class="details">
+        <li>
+          <span class="label">Artist(s):</span>
+          <a class="tag" href="/artist/a/">Artist A</a>
+        </li>
+        <li>
+          <span class="label">Writer(s)</span>
+          <a class="tag" href="/writer/w/">Writer W</a>
+        </li>
+        <li>
+          <span class="label">Circle(s)</span>
+          <a class="tag" href="/circle/c/">Circle C</a>
+        </li>
+        <li>
+          <span class="label">Illustrator(s)</span>
+          <a class="tag" href="/illustrator/i/">Illustrator I</a>
+        </li>
+      </ul>
+    `;
+
+    expect(extractGalleryAuthorUrls(document, ".details > li", ".label", "a.tag[href]", "https://example.test/gallery/1")).toEqual([
+      "https://example.test/artist/a/",
+      "https://example.test/writer/w/",
+      "https://example.test/circle/c/",
+      "https://example.test/illustrator/i/",
+    ]);
+  });
 });

@@ -41,6 +41,9 @@ export function extractEhentaiAuthorUrls(document: Document, baseUrl = window.lo
 function cleanCategory(value: string): string {
   return value
     .replace(/[:：]\s*$/, "")
+    .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
+    .replace(/[_-]+/g, " ")
+    .replace(/\(\s*s\s*\)/gi, "")
     .replace(/\s+/g, " ")
     .trim()
     .toLowerCase();

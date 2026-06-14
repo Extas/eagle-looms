@@ -29,6 +29,14 @@ describe("E-Hentai source metadata", () => {
           <td><a href="/tag/mangaka:comic_author">comic author</a></td>
         </tr>
         <tr>
+          <td>Artist(s):</td>
+          <td><a href="/tag/artist:decorated_artist">decorated artist</a></td>
+        </tr>
+        <tr>
+          <td>Letterer(s):</td>
+          <td><a href="/tag/letterer:lettering_name">lettering name</a></td>
+        </tr>
+        <tr>
           <td>character:</td>
           <td><a href="/tag/character:kusanagi_nene">kusanagi nene</a></td>
         </tr>
@@ -41,6 +49,8 @@ describe("E-Hentai source metadata", () => {
       "https://exhentai.org/tag/circles:studio_name",
       "https://exhentai.org/tag/translator:translation_circle",
       "https://exhentai.org/tag/mangaka:comic_author",
+      "https://exhentai.org/tag/artist:decorated_artist",
+      "https://exhentai.org/tag/letterer:lettering_name",
     ]);
   });
 });

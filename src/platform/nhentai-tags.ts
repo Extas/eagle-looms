@@ -54,6 +54,9 @@ export function nhentaiAuthorUrlsFromDocument(document: Document, baseUrl = wind
 function cleanTagType(value: unknown): string {
   return String(value ?? "")
     .replace(/[:：]\s*$/, "")
+    .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
+    .replace(/[_-]+/g, " ")
+    .replace(/\(\s*s\s*\)/gi, "")
     .replace(/\s+/g, " ")
     .trim()
     .toLowerCase();

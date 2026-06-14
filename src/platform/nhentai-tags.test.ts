@@ -9,6 +9,8 @@ describe("nhentai source metadata", () => {
       { type: "creator", url: "/creator/source-creator/" },
       { type: "writer", url: "/writer/scenario-name/" },
       { type: "editor", url: "/editor/source-editor/" },
+      { type: "Illustrator(s)", url: "/illustrator/source-illustrator/" },
+      { type: "letterer_name", url: "/letterer/not-a-category/" },
       { type: "tag", url: "/tag/school-uniform/" },
       { type: "artist", url: "/artist/soha-blan/" },
     ], "https://nhentai.net/g/123/")).toEqual([
@@ -17,6 +19,7 @@ describe("nhentai source metadata", () => {
       "https://nhentai.net/creator/source-creator/",
       "https://nhentai.net/writer/scenario-name/",
       "https://nhentai.net/editor/source-editor/",
+      "https://nhentai.net/illustrator/source-illustrator/",
     ]);
   });
 
@@ -41,6 +44,10 @@ describe("nhentai source metadata", () => {
             <a class="tag_btn" href="/letterer/lettering-name/"><span class="tag_name">lettering name</span></a>
           </li>
           <li class="tags">
+            <span class="text">Artist(s):</span>
+            <a class="tag_btn" href="/artist/decorated-artist/"><span class="tag_name">decorated artist</span></a>
+          </li>
+          <li class="tags">
             <span class="text">Tags:</span>
             <a class="tag_btn" href="/tag/school-uniform/"><span class="tag_name">school uniform</span></a>
           </li>
@@ -53,6 +60,7 @@ describe("nhentai source metadata", () => {
       "https://nhentai.xxx/group/circle-name/",
       "https://nhentai.xxx/creator/source-creator/",
       "https://nhentai.xxx/letterer/lettering-name/",
+      "https://nhentai.xxx/artist/decorated-artist/",
     ]);
   });
 });
