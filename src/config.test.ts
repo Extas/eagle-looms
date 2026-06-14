@@ -31,7 +31,21 @@ describe("config migrations", () => {
 
     const migrated = getConf();
 
-    expect(migrated.configPatchVersion).toBe(12);
+    expect(migrated.configPatchVersion).toBe(13);
+    expect(migrated.eagleFolderPreset).toBe("date");
+    expect(migrated.eagleFolderPath).toBe("Eagle Looms/{site}/{date}");
+  });
+
+  it("migrates patch 12 Eagle gallery presets to the site/date default", () => {
+    const config = defaultConf();
+    config.configPatchVersion = 12;
+    config.eagleFolderPreset = "gallery";
+    config.eagleFolderPath = "Eagle Looms/{site}/{gallery}";
+    storage.set(CONFIG_KEY, JSON.stringify(config));
+
+    const migrated = getConf();
+
+    expect(migrated.configPatchVersion).toBe(13);
     expect(migrated.eagleFolderPreset).toBe("date");
     expect(migrated.eagleFolderPath).toBe("Eagle Looms/{site}/{date}");
   });
@@ -45,7 +59,7 @@ describe("config migrations", () => {
 
     const migrated = getConf();
 
-    expect(migrated.configPatchVersion).toBe(12);
+    expect(migrated.configPatchVersion).toBe(13);
     expect(migrated.eagleFolderPreset).toBe("custom");
     expect(migrated.eagleFolderPath).toBe("Eagle Looms/{site}/curated");
   });
@@ -59,7 +73,21 @@ describe("config migrations", () => {
 
     const migrated = getSiteConfig("Twitter | X");
 
-    expect(migrated.configPatchVersion).toBe(12);
+    expect(migrated.configPatchVersion).toBe(13);
+    expect(migrated.eagleFolderPreset).toBe("date");
+    expect(migrated.eagleFolderPath).toBe("Eagle Looms/{site}/{date}");
+  });
+
+  it("migrates patch 12 site-level Eagle gallery presets to site/date", () => {
+    storage.set(siteConfigKey("Twitter | X"), JSON.stringify({
+      configPatchVersion: 12,
+      eagleFolderPreset: "gallery",
+      eagleFolderPath: "Eagle Looms/{site}/{gallery}",
+    }));
+
+    const migrated = getSiteConfig("Twitter | X");
+
+    expect(migrated.configPatchVersion).toBe(13);
     expect(migrated.eagleFolderPreset).toBe("date");
     expect(migrated.eagleFolderPath).toBe("Eagle Looms/{site}/{date}");
   });
@@ -72,7 +100,7 @@ describe("config migrations", () => {
 
     const siteConfig = getSiteConfig("Twitter | X");
 
-    expect(siteConfig.configPatchVersion).toBe(12);
+    expect(siteConfig.configPatchVersion).toBe(13);
     expect(siteConfig.eagleFolderPreset).toBe("gallery");
     expect(siteConfig.eagleFolderPath).toBe("Eagle Looms/{site}/{gallery}");
   });

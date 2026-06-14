@@ -226,7 +226,7 @@ export function defaultConf(): Config {
 }
 
 const CONF_VERSION = "4.4.0";
-const CURRENT_CONFIG_PATCH_VERSION = 12;
+const CURRENT_CONFIG_PATCH_VERSION = 13;
 const LEGACY_BUILT_IN_EAGLE_FOLDER_TEMPLATES = [
   "Eagle Looms/{site}/{copyright}",
   EAGLE_FOLDER_PRESET_TEMPLATES.gallery,
@@ -405,19 +405,18 @@ function patchConfig(cf: Config): Config | null {
     changed = true;
   }
   if (cf.configPatchVersion < 11) {
-    if (LEGACY_BUILT_IN_EAGLE_FOLDER_TEMPLATES.includes(normalizeEagleFolderTemplate(cf.eagleFolderPath))) {
-      cf.eagleFolderPath = DEFAULT_EAGLE_FOLDER_TEMPLATE;
-      cf.eagleFolderPreset = DEFAULT_EAGLE_FOLDER_PRESET;
-    }
+    changed = migrateLegacyEagleFolderTemplate(cf) || changed;
     cf.configPatchVersion = 11;
     changed = true;
   }
   if (cf.configPatchVersion < 12) {
-    if (LEGACY_BUILT_IN_EAGLE_FOLDER_TEMPLATES.includes(normalizeEagleFolderTemplate(cf.eagleFolderPath))) {
-      cf.eagleFolderPath = DEFAULT_EAGLE_FOLDER_TEMPLATE;
-      cf.eagleFolderPreset = DEFAULT_EAGLE_FOLDER_PRESET;
-    }
+    changed = migrateLegacyEagleFolderTemplate(cf) || changed;
     cf.configPatchVersion = 12;
+    changed = true;
+  }
+  if (cf.configPatchVersion < 13) {
+    changed = migrateLegacyEagleFolderTemplate(cf) || changed;
+    cf.configPatchVersion = 13;
     changed = true;
   }
   return changed ? cf : null;
@@ -427,17 +426,21 @@ function patchSiteConfig(cf: SiteConfig): boolean {
   let changed = false;
   const version = Number(cf.configPatchVersion || 0);
   if (version < CURRENT_CONFIG_PATCH_VERSION) {
-    if (cf.eagleFolderPath !== undefined && LEGACY_BUILT_IN_EAGLE_FOLDER_TEMPLATES.includes(normalizeEagleFolderTemplate(cf.eagleFolderPath))) {
-      cf.eagleFolderPath = DEFAULT_EAGLE_FOLDER_TEMPLATE;
-      cf.eagleFolderPreset = DEFAULT_EAGLE_FOLDER_PRESET;
-      changed = true;
-    }
+    changed = migrateLegacyEagleFolderTemplate(cf) || changed;
     if (cf.configPatchVersion !== undefined || changed) {
       cf.configPatchVersion = CURRENT_CONFIG_PATCH_VERSION;
       changed = true;
     }
   }
   return changed;
+}
+
+function migrateLegacyEagleFolderTemplate(cf: Pick<SiteConfig, "eagleFolderPath" | "eagleFolderPreset">): boolean {
+  if (cf.eagleFolderPath === undefined) return false;
+  if (!LEGACY_BUILT_IN_EAGLE_FOLDER_TEMPLATES.includes(normalizeEagleFolderTemplate(cf.eagleFolderPath))) return false;
+  cf.eagleFolderPath = DEFAULT_EAGLE_FOLDER_TEMPLATE;
+  cf.eagleFolderPreset = DEFAULT_EAGLE_FOLDER_PRESET;
+  return true;
 }
 
 export function resetConf(name?: string) {
