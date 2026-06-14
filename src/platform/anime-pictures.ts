@@ -205,16 +205,10 @@ function findSmallestPanel(document: Document, requiredTerms: string[], optional
 }
 
 function classifyAnimePicturesCategory(value: string): "copyright" | "character" | "author" | "raw" | "" | undefined {
-  const normalized = compactText(value).toLowerCase();
+  const normalized = normalizeCategory(value);
+  const namespace = animePicturesNamespaceForCategory(normalized);
+  if (namespace) return namespace;
   switch (normalized) {
-    case "game copyright":
-    case "copyright":
-      return "copyright";
-    case "character":
-      return "character";
-    case "author":
-    case "artist":
-      return "author";
     case "reference":
     case "object":
     case "general":
@@ -229,6 +223,61 @@ function classifyAnimePicturesCategory(value: string): "copyright" | "character"
   }
 }
 
+function animePicturesNamespaceForCategory(value: string): "copyright" | "character" | "author" | "" {
+  switch (normalizeCategory(value)) {
+    case "game copyright":
+    case "copyright":
+    case "copyrights":
+    case "other copyright":
+    case "parody":
+    case "parodies":
+    case "parodys":
+    case "series":
+    case "work":
+    case "works":
+    case "work title":
+    case "source work":
+    case "original":
+    case "original work":
+    case "franchise":
+    case "franchises":
+    case "ip":
+    case "property":
+    case "properties":
+      return "copyright";
+    case "character":
+    case "characters":
+    case "char":
+      return "character";
+    case "author":
+    case "authors":
+    case "artist":
+    case "artists":
+    case "creator":
+    case "creators":
+    case "illustrator":
+    case "illustrators":
+    case "writer":
+    case "writers":
+    case "translator":
+    case "translators":
+    case "editor":
+    case "editors":
+    case "colorist":
+    case "colorists":
+    case "letterer":
+    case "letterers":
+    case "mangaka":
+    case "circle":
+    case "circles":
+    case "group":
+    case "groups":
+      return "author";
+    default:
+      return "";
+  }
+}
+
 function directText(element: Element): string {
   return [...element.childNodes]
     .filter(node => node.nodeType === Node.TEXT_NODE)
@@ -238,6 +287,17 @@ function directText(element: Element): string {
 
 function compactText(value: string): string {
   return value.replace(/[\n\r\t]+/g, " ").replace(/\s+/g, " ").trim();
+}
+
+function normalizeCategory(value: string): string {
+  return compactText(value)
+    .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
+    .replace(/[_-]+/g, " ")
+    .replace(/\(\s*s\s*\)/gi, "")
+    .replace(/[:：]+$/g, "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .toLowerCase();
 }
 
 function cleanSourceTagName(value: string): string {
@@ -294,20 +354,7 @@ function apiTags(tags: unknown): string[] {
 }
 
 function normalizeApiTagCategory(value: string): "copyright" | "character" | "author" | "" {
-  const category = value.toLowerCase().replace(/[_-]+/g, " ").trim();
-  switch (category) {
-    case "copyright":
-    case "game copyright":
-    case "other copyright":
-      return "copyright";
-    case "character":
-      return "character";
-    case "author":
-    case "artist":
-      return "author";
-    default:
-      return "";
-  }
+  return animePicturesNamespaceForCategory(value);
 }
 
 function extractPublishedAt(document: Document): string | undefined {

@@ -112,7 +112,7 @@ yande.re / konachan
   use Moebooru Post.register / Post.register_tags when present, including multiline/repeated tag maps and the same copyright/character/author alias families
 
 anime-pictures
-  map game copyright, character, and author blocks; keep other detail tags raw
+  map game copyright/copyright-like blocks, character blocks, and author-like blocks from detail pages and API payloads; keep other detail tags raw
 
 E-Hentai / ExHentai
   map gallery namespaces: parody -> copyright, character -> character, artist/group/circle -> author
