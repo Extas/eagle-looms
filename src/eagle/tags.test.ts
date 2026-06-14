@@ -87,6 +87,7 @@ describe('Eagle tags', () => {
       'character:takamatzu tomori',
       'author:soha blan',
       'school uniform',
+      'japanese',
     ]);
   });
 
@@ -99,6 +100,8 @@ describe('Eagle tags', () => {
       female_tags: ['school uniform'],
       genres: ['comedy'],
       categories: ['doujinshi'],
+      languages: ['english'],
+      uploader: ['source uploader'],
     };
 
     expect(sourceTagsFromGalleryMeta(meta, 'https://hdoujin.org/g/1/key/read/1')).toEqual([
@@ -108,6 +111,23 @@ describe('Eagle tags', () => {
       'school uniform',
       'comedy',
       'doujinshi',
+      'english',
+      'source uploader',
+    ]);
+  });
+
+  it('keeps common gallery type and misc categories from API metadata', () => {
+    const meta = new GalleryMeta('https://eahentai.com/a/1', 'gallery');
+    meta.tags = {
+      albumType: ['Image Set'],
+      type: ['Doujinshi'],
+      misc: ['uncategorized tag'],
+    };
+
+    expect(sourceTagsFromGalleryMeta(meta, 'https://eahentai.com/a/1/0')).toEqual([
+      'Image Set',
+      'Doujinshi',
+      'uncategorized tag',
     ]);
   });
 

@@ -166,12 +166,21 @@ function isRawSourceTagCategory(category: string): boolean {
     case "genres":
     case "category":
     case "categories":
+    case "album type":
+    case "albumtype":
+    case "type":
+    case "types":
+    case "language":
+    case "languages":
     case "male":
     case "male tags":
     case "male_tags":
     case "mixed":
     case "other":
+    case "misc":
     case "cosplayer":
+    case "uploader":
+    case "uploaders":
     case "meta":
       return true;
     default:
