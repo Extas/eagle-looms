@@ -88,11 +88,17 @@ describe('Eagle tags', () => {
     expect(normalizeSourceMetadataTag('artist：soha blan')).toBe('author:soha blan');
     expect(normalizeSourceMetadataTag('parody:bang dream')).toBe('copyright:bang dream');
     expect(sourceMetadataTag('parodys', 'project sekai')).toBe('copyright:project sekai');
+    expect(sourceMetadataTag('work_title', 'project sekai')).toBe('copyright:project sekai');
+    expect(sourceMetadataTag('originalWork', 'bang dream')).toBe('copyright:bang dream');
+    expect(sourceMetadataTag('IP', 'vocaloid')).toBe('copyright:vocaloid');
     expect(sourceMetadataTag('Franchise(s):', 'bang dream')).toBe('copyright:bang dream');
     expect(normalizeSourceMetadataTag('group:circle name')).toBe('author:circle name');
     expect(sourceMetadataTag('circles', 'circle name')).toBe('author:circle name');
     expect(sourceMetadataTag('Illustrator(s):', 'soha blan')).toBe('author:soha blan');
     expect(sourceMetadataTag('Writer', 'scenario name')).toBe('author:scenario name');
+    expect(sourceMetadataTag('Translator(s):', 'translation circle')).toBe('author:translation circle');
+    expect(sourceMetadataTag('Editor', 'source editor')).toBe('author:source editor');
+    expect(sourceMetadataTag('Letterer', 'lettering name')).toBe('author:lettering name');
     expect(sourceMetadataTag('Mangaka', 'comic author')).toBe('author:comic author');
     expect(sourceMetadataTag('作品', 'project sekai')).toBe('copyright:project sekai');
     expect(sourceMetadataTag('角色', 'kusanagi nene')).toBe('character:kusanagi nene');
@@ -318,9 +324,11 @@ describe('Eagle tags', () => {
     meta.tags = {
       game_copyright: ['project sekai 403'],
       'other-copyright': ['bang dream +20'],
+      originalWork: ['vocaloid'],
       'Character:': ['kusanagi nene'],
       'Artist：': ['soha blan'],
       Artist: ['soha blan'],
+      translator: ['translation circle'],
       'female：': ['school uniform'],
       'Female Tag(s)': ['casual outfit'],
       'Tag(s):': ['blue eyes'],
@@ -330,8 +338,10 @@ describe('Eagle tags', () => {
     expect(sourceTagsFromGalleryMeta(meta, 'https://example.test/gallery/1')).toEqual([
       'copyright:project sekai',
       'copyright:bang dream',
+      'copyright:vocaloid',
       'character:kusanagi nene',
       'author:soha blan',
+      'author:translation circle',
       'school uniform',
       'casual outfit',
       'blue eyes',

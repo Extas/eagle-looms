@@ -121,8 +121,17 @@ function normalizeSourceNamespace(category: string): "copyright" | "character" |
     case "parodies":
     case "parodys":
     case "series":
+    case "work":
+    case "works":
+    case "work title":
+    case "source work":
+    case "original":
+    case "original work":
     case "franchise":
     case "franchises":
+    case "ip":
+    case "property":
+    case "properties":
     case "作品":
     case "原作":
     case "系列":
@@ -149,6 +158,14 @@ function normalizeSourceNamespace(category: string): "copyright" | "character" |
     case "illustrators":
     case "writer":
     case "writers":
+    case "translator":
+    case "translators":
+    case "editor":
+    case "editors":
+    case "colorist":
+    case "colorists":
+    case "letterer":
+    case "letterers":
     case "mangaka":
     case "作者":
     case "作家":
