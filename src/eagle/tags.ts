@@ -118,6 +118,7 @@ function normalizeSourceNamespace(category: string): "copyright" | "character" |
     case "other copyright":
     case "parody":
     case "parodies":
+    case "parodys":
     case "series":
       return "copyright";
     case "4":

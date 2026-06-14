@@ -79,7 +79,7 @@ post:*
 Source metadata namespaces are normalized globally:
 
 ```text
-copyright / game copyright / parody / series  -> copyright:{name}
+copyright / game copyright / parody / parodys / series  -> copyright:{name}
 character / char                              -> character:{name}
 author / artist / creator / group / circle    -> author:{name}
 ```
@@ -104,6 +104,9 @@ anime-pictures
 
 E-Hentai / ExHentai
   map gallery namespaces: parody -> copyright, character -> character, artist/group/circle -> author
+
+Hitomi
+  map galleryinfo parodys -> copyright, characters -> character, artists/groups -> author
 
 Pixiv
   author comes from Pixiv user identity; artwork tags are raw because Pixiv does not classify copyright/character reliably

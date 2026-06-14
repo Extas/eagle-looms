@@ -71,6 +71,7 @@ describe('Eagle tags', () => {
     expect(normalizeSourceMetadataTag('artist:soha blan')).toBe('author:soha blan');
     expect(normalizeSourceMetadataTag('artist：soha blan')).toBe('author:soha blan');
     expect(normalizeSourceMetadataTag('parody:bang dream')).toBe('copyright:bang dream');
+    expect(sourceMetadataTag('parodys', 'project sekai')).toBe('copyright:project sekai');
     expect(normalizeSourceMetadataTag('group:circle name')).toBe('author:circle name');
     expect(sourceMetadataTag('circles', 'circle name')).toBe('author:circle name');
     expect(sourceMetadataTag('Artist:', 'soha blan')).toBe('author:soha blan');
@@ -166,6 +167,27 @@ describe('Eagle tags', () => {
       'author:soha_blan',
       'blue_eyes',
       'highres',
+    ]);
+  });
+
+  it('maps Hitomi API category spellings into unified source namespaces', () => {
+    const meta = new GalleryMeta('https://hitomi.la/galleries/123.html', 'gallery');
+    meta.tags = {
+      parodys: ['project sekai'],
+      artists: ['soha blan'],
+      groups: ['circle name'],
+      characters: ['kusanagi nene'],
+      tags: ['school uniform'],
+    };
+    (meta.tags as Record<string, unknown>).language = 'english';
+
+    expect(sourceTagsFromGalleryMeta(meta, 'https://hitomi.la/galleries/123.html')).toEqual([
+      'copyright:project sekai',
+      'author:soha blan',
+      'author:circle name',
+      'character:kusanagi nene',
+      'school uniform',
+      'english',
     ]);
   });
 
