@@ -264,6 +264,7 @@ function eagleConfigPreviewHTML(): string {
   const site = ADAPTER.matcher?.name || location.hostname || "site";
   const samplePaths = resolveEagleFolderPaths(conf.eagleFolderPath, {
     site,
+    date: "2026-05-31",
     gallery: "gallery",
     chapter: "chapter",
     copyright: "series",
@@ -302,6 +303,8 @@ function eagleFolderPresetLabel(value: string): string {
   switch (value) {
     case "custom":
       return i18n.eagleFolderPresetCustom.get();
+    case "date":
+      return i18n.eagleFolderPresetDate.get();
     case "copyright":
       return i18n.eagleFolderPresetCopyright.get();
     case "gallery":

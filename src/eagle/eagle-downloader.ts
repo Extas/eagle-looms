@@ -10,12 +10,12 @@ import EBUS from "../event-bus";
 import { EagleWebApi, AddItemInput } from "./eagle-web-api";
 import { ensureFolderPath } from "./folders";
 import { arrayBufferToBase64 } from "./transport";
-import { DEFAULT_EAGLE_FOLDER_TEMPLATE, EagleFolderTokens, normalizeEagleBaseUrl, normalizeEagleFolderTemplate, normalizeEagleImportLimit, resolveEagleFolderPaths } from "./options";
+import { EAGLE_FOLDER_PRESET_TEMPLATES, EagleFolderTokens, normalizeEagleBaseUrl, normalizeEagleFolderTemplate, normalizeEagleImportLimit, resolveEagleFolderPaths } from "./options";
 import { duplicateQueries, hasPlannedAssetKey, isDuplicateItem, isSessionImported, markPlannedAssetKey, markSessionImported } from "./duplicates";
 import { normalizeEagleItemTags, normalizeEagleTags, semanticSourceTags, sourceTagsFromGalleryMeta } from "./tags";
 import { isReadyForEagleImport } from "./import-readiness";
 import { eaglePlanCompactParts, eaglePlanCompactSummary, eaglePlanHeadline, eaglePlanSummaryParts, eagleSummaryParts, eagleToastSummary, EagleImportSummaryStats, shouldConfirmImportPlan } from "./import-summary";
-import { createEagleItemName, normalizeEagleItemNameWithDatePrefix } from "./naming";
+import { createEagleItemName, normalizeEagleItemNameWithDatePrefix, sourceDatePrefix } from "./naming";
 import { i18n } from "../utils/i18n";
 
 const FILENAME_INVALIDCHAR = /[\\/:*?"<>|\n\t]/g;
@@ -324,7 +324,7 @@ export class EagleDownloader extends Downloader {
         originUrl: imf.node.originSrc,
         tags,
         website: imf.node.href,
-        folderTokens: eagleFolderTokens([...tags, ...folderTags], meta, chapter, directory),
+        folderTokens: eagleFolderTokens([...tags, ...folderTags], meta, chapter, directory, imf.node.publishedAt),
         sourceTags,
         chapter,
         chapterDirectory: directory,
@@ -544,12 +544,13 @@ function eagleSourceTags(imf: IMGFetcher, meta: GalleryMeta): string[] {
   ];
 }
 
-function eagleFolderTokens(tags: string[], meta: GalleryMeta, chapter: Chapter, chapterDirectory: string): EagleFolderTokens {
+function eagleFolderTokens(tags: string[], meta: GalleryMeta, chapter: Chapter, chapterDirectory: string, publishedAt?: unknown): EagleFolderTokens {
   const copyrights = tagValues(tags, "copyright");
   const characters = collapseCharacterValues(tagValues(tags, "character"));
   const authors = tagValues(tags, "author");
   return {
     site: ADAPTER.matcher?.name || location.hostname,
+    date: sourceDatePrefix(publishedAt) || localDatePrefix(),
     gallery: safeTitle(meta.title || ""),
     chapter: chapterDirectory,
     copyright: shortestTagValue(copyrights),
@@ -621,7 +622,7 @@ function missingFolderTokenCounts(folderTemplate: string, jobs: EagleImportJob[]
   const counts: Record<string, number> = {};
   for (const token of METADATA_FOLDER_TOKENS) {
     if (!folderTemplate.includes(`{${token}}`)) continue;
-    if (usesDefaultCopyrightFallback(folderTemplate) && token === "copyright") continue;
+    if (usesCopyrightFolderFallback(folderTemplate) && token === "copyright") continue;
     const missing = jobs.filter(job => folderTokenValues(job.asset.folderTokens, token).length === 0).length;
     if (missing > 0) counts[token] = missing;
   }
@@ -629,7 +630,7 @@ function missingFolderTokenCounts(folderTemplate: string, jobs: EagleImportJob[]
 }
 
 function fallbackFolderTokenCounts(folderTemplate: string, jobs: EagleImportJob[]): Record<string, number> {
-  if (!usesDefaultCopyrightFallback(folderTemplate)) return {};
+  if (!usesCopyrightFolderFallback(folderTemplate)) return {};
   const count = jobs.filter(job => folderTokenValues(job.asset.folderTokens, "copyright").length === 0).length;
   return count > 0 ? { copyright: count } : {};
 }
@@ -649,8 +650,16 @@ function folderTokenValues(tokens: EagleFolderTokens, token: typeof METADATA_FOL
   return value ? [value] : [];
 }
 
-function usesDefaultCopyrightFallback(folderTemplate: string): boolean {
-  return normalizeEagleFolderTemplate(folderTemplate) === DEFAULT_EAGLE_FOLDER_TEMPLATE;
+function usesCopyrightFolderFallback(folderTemplate: string): boolean {
+  return normalizeEagleFolderTemplate(folderTemplate) === EAGLE_FOLDER_PRESET_TEMPLATES.copyright;
+}
+
+function localDatePrefix(date = new Date()): string {
+  return [
+    date.getFullYear(),
+    String(date.getMonth() + 1).padStart(2, "0"),
+    String(date.getDate()).padStart(2, "0"),
+  ].join("-");
 }
 
 function limitImportJobs(jobs: EagleImportJob[], value: number): { jobs: EagleImportJob[]; limit: number; selected: number; omittedByLimit: number } {

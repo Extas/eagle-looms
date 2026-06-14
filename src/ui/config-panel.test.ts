@@ -159,6 +159,7 @@ describe("ConfigPanel Eagle preview", () => {
 
     expect(options.map(option => option.textContent)).toEqual([
       i18n.eagleFolderPresetCustom.get(),
+      i18n.eagleFolderPresetDate.get(),
       i18n.eagleFolderPresetCopyright.get(),
       i18n.eagleFolderPresetGallery.get(),
       i18n.eagleFolderPresetChapter.get(),

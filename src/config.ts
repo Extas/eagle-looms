@@ -226,6 +226,7 @@ export function defaultConf(): Config {
 }
 
 const CONF_VERSION = "4.4.0";
+const LEGACY_DEFAULT_EAGLE_FOLDER_TEMPLATE = "Eagle Looms/{site}/{copyright}";
 export const signal = { first: true };
 
 const CONFIG_KEY = "ehvh_cfg_";
@@ -392,6 +393,14 @@ function patchConfig(cf: Config): Config | null {
   if (cf.configPatchVersion < 10) {
     cf.configPatchVersion = 10;
     cf.customStyle = "";
+    changed = true;
+  }
+  if (cf.configPatchVersion < 11) {
+    if (normalizeEagleFolderTemplate(cf.eagleFolderPath) === LEGACY_DEFAULT_EAGLE_FOLDER_TEMPLATE) {
+      cf.eagleFolderPath = DEFAULT_EAGLE_FOLDER_TEMPLATE;
+      cf.eagleFolderPreset = DEFAULT_EAGLE_FOLDER_PRESET;
+    }
+    cf.configPatchVersion = 11;
     changed = true;
   }
   return changed ? cf : null;

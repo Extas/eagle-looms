@@ -171,7 +171,7 @@ describe('Eagle import summary', () => {
     expect(shouldConfirmImportPlan({ ...basePlan, writable: 1, explicitConfirm: true })).toBe(true);
   });
 
-  it('distinguishes default folder fallback from missing custom folder metadata', () => {
+  it('distinguishes copyright preset fallback from missing custom folder metadata', () => {
     expect(eaglePlanSummary({
       folderTemplate: 'Eagle Looms/{site}/{copyright}',
       sourceTagLimit: 20,

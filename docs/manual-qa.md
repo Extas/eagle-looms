@@ -141,7 +141,7 @@ Default settings:
 
 ```text
 Eagle API URL: http://localhost:41595
-Folder template: Eagle Looms/{site}/{copyright}
+Folder template: Eagle Looms/{site}/{date}
 Import limit: 100
 Source tag limit: 20
 Confirmation mode: auto
@@ -160,7 +160,7 @@ omitted count when over Eagle Import Limit
 will-write count
 session and Eagle duplicate preflight skips
 missing folder metadata counts for used metadata tokens
-folder fallback counts when the default Site / Copyright preset has to replace missing copyright
+folder fallback counts when the optional Site / Copyright preset has to replace missing copyright
 sample resolved copyright/character/author values when present
 source tag limit and duplicate policy
 ```
@@ -169,7 +169,7 @@ After import, inspect Eagle:
 
 ```text
 item names use source identity, without generated 001_ order prefixes
-default MyGO folder resolves under Eagle Looms/anime-pictures.net/bang dream when copyright metadata is present
+default MyGO folder resolves under Eagle Looms/anime-pictures.net/YYYY-MM-DD
 items have website pointing to source post URL
 items have original image url when Eagle preserves it
 visible tags contain source semantic tags only
@@ -186,7 +186,8 @@ Folder-token behavior:
 ```text
 folder tokens resolve from uncapped source metadata even when visible source tag limit is low
 multiple copyright values choose the shortest normalized folder value
-default Site / Copyright preset falls back to gallery, author, chapter, then Unsorted when copyright is missing
+default Site / Date preset uses source date when available and import date otherwise
+optional Site / Copyright preset falls back to gallery, author, chapter, then Unsorted when copyright is missing
 templates using {character} add the same image to multiple character folders when distinct characters exist
 longer outfit-style character variants fold into the shorter character name
 ```

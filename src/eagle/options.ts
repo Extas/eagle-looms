@@ -1,6 +1,6 @@
 export const DEFAULT_EAGLE_BASE_URL = "http://localhost:41595";
-export const DEFAULT_EAGLE_FOLDER_TEMPLATE = "Eagle Looms/{site}/{copyright}";
-export const DEFAULT_EAGLE_FOLDER_PRESET = "copyright";
+export const DEFAULT_EAGLE_FOLDER_TEMPLATE = "Eagle Looms/{site}/{date}";
+export const DEFAULT_EAGLE_FOLDER_PRESET = "date";
 export const DEFAULT_EAGLE_IMPORT_LIMIT = 100;
 export const DEFAULT_EAGLE_MAX_SOURCE_TAGS = 20;
 export const DEFAULT_EAGLE_NAME_DATE_PREFIX = true;
@@ -14,6 +14,7 @@ const FOLDER_INVALID_CHARS = /[\\/:*?"<>|\n\r\t]+/g;
 
 export type EagleFolderTokens = {
   site: string;
+  date?: string;
   gallery: string;
   chapter: string;
   copyright?: string;
@@ -36,13 +37,14 @@ export type EagleConfigPatch = {
   eagleConfirmThreshold?: unknown;
 };
 
-export const EAGLE_FOLDER_PRESETS = ["custom", "copyright", "gallery", "chapter", "copyrightAuthor", "copyrightCharacter"] as const;
+export const EAGLE_FOLDER_PRESETS = ["custom", "date", "copyright", "gallery", "chapter", "copyrightAuthor", "copyrightCharacter"] as const;
 export type EagleFolderPreset = typeof EAGLE_FOLDER_PRESETS[number];
 export const EAGLE_CONFIRM_MODES = ["auto", "always", "never"] as const;
 export type EagleConfirmMode = typeof EAGLE_CONFIRM_MODES[number];
 
 export const EAGLE_FOLDER_PRESET_TEMPLATES: Record<Exclude<EagleFolderPreset, "custom">, string> = {
-  copyright: DEFAULT_EAGLE_FOLDER_TEMPLATE,
+  date: DEFAULT_EAGLE_FOLDER_TEMPLATE,
+  copyright: "Eagle Looms/{site}/{copyright}",
   gallery: "Eagle Looms/{site}/{gallery}",
   chapter: "Eagle Looms/{site}/{gallery}/{chapter}",
   copyrightAuthor: "Eagle Looms/{site}/{copyright}/{author}",
@@ -51,6 +53,7 @@ export const EAGLE_FOLDER_PRESET_TEMPLATES: Record<Exclude<EagleFolderPreset, "c
 
 export const EAGLE_FOLDER_PRESET_OPTIONS: { value: EagleFolderPreset; display: string }[] = [
   { value: "custom", display: "Custom path" },
+  { value: "date", display: "Site / Date" },
   { value: "copyright", display: "Site / Copyright" },
   { value: "gallery", display: "Site / Gallery" },
   { value: "chapter", display: "Site / Gallery / Chapter" },
@@ -156,7 +159,7 @@ export function resolveEagleFolderPath(template: string, tokens: EagleFolderToke
 
 export function resolveEagleFolderPaths(template: string, tokens: EagleFolderTokens): string[][] {
   const normalizedTemplate = normalizeEagleFolderTemplate(template);
-  const resolvedTokens = applyDefaultFolderFallback(normalizedTemplate, tokens);
+  const resolvedTokens = applyCopyrightFolderFallback(normalizedTemplate, tokens);
   const characterValues = normalizedTemplate.includes("{character}") ? tokenList(resolvedTokens.characters, resolvedTokens.character) : [resolvedTokens.character || ""];
   const paths = characterValues.length
     ? characterValues.map(character => resolveSingleFolderPath(normalizedTemplate, { ...resolvedTokens, character }))
@@ -164,8 +167,8 @@ export function resolveEagleFolderPaths(template: string, tokens: EagleFolderTok
   return uniquePaths(paths.length ? paths : [DEFAULT_EAGLE_FOLDER_TEMPLATE.split("/")]);
 }
 
-function applyDefaultFolderFallback(template: string, tokens: EagleFolderTokens): EagleFolderTokens {
-  if (normalizeEagleFolderTemplate(template) !== DEFAULT_EAGLE_FOLDER_TEMPLATE || cleanFolderName(tokens.copyright || "")) {
+function applyCopyrightFolderFallback(template: string, tokens: EagleFolderTokens): EagleFolderTokens {
+  if (normalizeEagleFolderTemplate(template) !== EAGLE_FOLDER_PRESET_TEMPLATES.copyright || cleanFolderName(tokens.copyright || "")) {
     return tokens;
   }
   return {
@@ -177,6 +180,7 @@ function applyDefaultFolderFallback(template: string, tokens: EagleFolderTokens)
 function resolveSingleFolderPath(template: string, tokens: EagleFolderTokens): string[] {
   const tokenValues = {
     site: cleanFolderName(tokens.site),
+    date: cleanFolderName(tokens.date || ""),
     gallery: cleanFolderName(tokens.gallery),
     chapter: cleanFolderName(tokens.chapter),
     copyright: cleanFolderName(tokens.copyright || ""),
@@ -185,6 +189,7 @@ function resolveSingleFolderPath(template: string, tokens: EagleFolderTokens): s
   };
   const raw = template
     .replaceAll("{site}", tokenValues.site)
+    .replaceAll("{date}", tokenValues.date)
     .replaceAll("{gallery}", tokenValues.gallery)
     .replaceAll("{chapter}", tokenValues.chapter)
     .replaceAll("{copyright}", tokenValues.copyright)

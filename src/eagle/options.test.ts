@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { eagleFolderPresetForTemplate, eagleFolderTemplateForPreset, normalizeEagleBaseUrl, normalizeEagleBoolean, normalizeEagleConfigPatch, normalizeEagleConfirmMode, normalizeEagleConfirmThreshold, normalizeEagleFolderPreset, normalizeEagleFolderTemplate, normalizeEagleImportLimit, normalizeEagleMaxSourceTags, resolveEagleFolderPath, resolveEagleFolderPaths } from './options';
+import { DEFAULT_EAGLE_FOLDER_TEMPLATE, eagleFolderPresetForTemplate, eagleFolderTemplateForPreset, normalizeEagleBaseUrl, normalizeEagleBoolean, normalizeEagleConfigPatch, normalizeEagleConfirmMode, normalizeEagleConfirmThreshold, normalizeEagleFolderPreset, normalizeEagleFolderTemplate, normalizeEagleImportLimit, normalizeEagleMaxSourceTags, resolveEagleFolderPath, resolveEagleFolderPaths } from './options';
 
 describe('Eagle options', () => {
   it('normalizes Eagle API URL input to an origin', () => {
@@ -20,18 +20,32 @@ describe('Eagle options', () => {
   });
 
   it('falls back to the default folder template when input has no valid segments', () => {
-    expect(normalizeEagleFolderTemplate('???///')).toBe('Eagle Looms/{site}/{copyright}');
+    expect(normalizeEagleFolderTemplate('???///')).toBe('Eagle Looms/{site}/{date}');
   });
 
   it('normalizes folder presets and exposes their templates', () => {
     expect(normalizeEagleFolderPreset('copyrightAuthor')).toBe('copyrightAuthor');
-    expect(normalizeEagleFolderPreset('unknown')).toBe('copyright');
+    expect(normalizeEagleFolderPreset('unknown')).toBe('date');
+    expect(eagleFolderTemplateForPreset('date')).toBe('Eagle Looms/{site}/{date}');
     expect(eagleFolderTemplateForPreset('copyright')).toBe('Eagle Looms/{site}/{copyright}');
     expect(eagleFolderTemplateForPreset('gallery')).toBe('Eagle Looms/{site}/{gallery}');
     expect(eagleFolderTemplateForPreset('custom')).toBeUndefined();
+    expect(eagleFolderPresetForTemplate(' Eagle Looms / {site} / {date} ')).toBe('date');
     expect(eagleFolderPresetForTemplate(' Eagle Looms / {site} / {copyright} ')).toBe('copyright');
     expect(eagleFolderPresetForTemplate('Eagle Looms/{site}/{copyright}/{author}')).toBe('copyrightAuthor');
     expect(eagleFolderPresetForTemplate('Eagle Looms/Custom')).toBe('custom');
+  });
+
+  it('resolves the default site/date preset without source taxonomy folders', () => {
+    expect(DEFAULT_EAGLE_FOLDER_TEMPLATE).toBe('Eagle Looms/{site}/{date}');
+    expect(resolveEagleFolderPath(DEFAULT_EAGLE_FOLDER_TEMPLATE, {
+      site: 'anime-pictures.net',
+      date: '2026-06-14',
+      gallery: 'bang dream',
+      chapter: '',
+      copyright: 'project sekai',
+      author: 'artist',
+    })).toEqual(['Eagle Looms', 'anime-pictures.net', '2026-06-14']);
   });
 
   it('expands character folder templates into multiple Eagle folders', () => {
@@ -48,7 +62,7 @@ describe('Eagle options', () => {
     ]);
   });
 
-  it('keeps the default copyright folder preset useful when copyright metadata is missing', () => {
+  it('keeps the optional copyright folder preset useful when copyright metadata is missing', () => {
     expect(resolveEagleFolderPath('Eagle Looms/{site}/{copyright}', {
       site: 'pixiv.net',
       gallery: 'artist 42',

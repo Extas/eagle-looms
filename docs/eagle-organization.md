@@ -15,13 +15,14 @@ This follows booru and tag-manager practice: category/namespace tags such as art
 Default template:
 
 ```text
-Eagle Looms/{site}/{copyright}
+Eagle Looms/{site}/{date}
 ```
 
 Supported path tokens:
 
 ```text
 {site}
+{date}
 {gallery}
 {chapter}
 {copyright}
@@ -32,6 +33,7 @@ Supported path tokens:
 Built-in presets:
 
 ```text
+Site / Date            Eagle Looms/{site}/{date}
 Site / Copyright       Eagle Looms/{site}/{copyright}
 Site / Gallery         Eagle Looms/{site}/{gallery}
 Site / Gallery / Chapter
@@ -46,8 +48,9 @@ Folder token rules:
 sanitize unsafe folder characters
 omit missing token segments
 resolve folder tokens from uncapped source metadata
+default {date} uses source publish/upload date when available, otherwise local import date
 choose the shortest normalized copyright when multiple copyright tags exist
-for the default Site / Copyright preset, fall back to gallery, author, chapter, then Unsorted when copyright is missing
+for the optional Site / Copyright preset, fall back to gallery, author, chapter, then Unsorted when copyright is missing
 expand multiple distinct characters into multiple Eagle folders only when the template uses {character}
 fold obvious outfit-style longer character variants into the shorter character name
 do not include parsed item counts, page numbers, retry state, or other run-state values in folder tokens
@@ -55,9 +58,9 @@ feed/home timelines without a stable collection title use semantic name plus loc
 search/list pages use source taxonomy labels, such as danbooru-search-bang_dream, not result counts
 ```
 
-The default stays at copyright level because booru general tags are high-cardinality and character tags often include costume/outfit variants. The fallback keeps non-booru sites such as Pixiv/Twitter from collapsing everything directly under the site root. Users can opt into gallery, author, or character folders when they want that browsing model.
+The default stays at site/date level to avoid creating too many taxonomy-derived subfolders. Tags carry copyright, character, author, and other source semantics for search. Users can opt into copyright, gallery, author, or character folders when they want that browsing model.
 
-Import plan messages report this as `folder fallback copyright N` instead of `missing folder metadata`, because the default preset already has a deterministic fallback path. Custom templates still report missing metadata so users can decide whether to change the template.
+Import plan messages report copyright fallback only when the optional Site / Copyright preset is selected. Custom templates still report missing metadata so users can decide whether to change the template.
 
 ## Visible Tags
 
