@@ -12,7 +12,7 @@ import { i18n } from "../../utils/i18n";
 import { HTMLUgoiraElement } from "../../utils/ugoira";
 import { replaceHost } from "../../utils/url";
 import { datedGalleryTitle, galleryTitle } from "../gallery-title";
-import { normalizePixivWorkTags } from "../pixiv-tags";
+import { normalizePixivWorkTags, pixivAuthorTag, pixivAuthorUrl } from "../pixiv-tags";
 
 type ArtistPIDs = {
   id?: string,
@@ -38,6 +38,9 @@ type Work = {
   illustType: 0 | 1 | 2,
   description: "",
   tags: string[],
+  userId?: string,
+  userName?: string,
+  userAccount?: string,
   pageCount: number,
   createDate?: string,
   uploadDate?: string,
@@ -304,6 +307,9 @@ class PixivMatcher extends BaseMatcher<ArtistPIDs[]> {
             illustType: w.illustType,
             description: w.description,
             tags: normalizePixivWorkTags(w.tags),
+            userId: stringValue(w.userId) || artistID,
+            userName: stringValue(w.userName),
+            userAccount: stringValue(w.userAccount),
             pageCount: w.pageCount,
             createDate: w.createDate,
             uploadDate: w.uploadDate,
@@ -417,10 +423,11 @@ class PixivMatcher extends BaseMatcher<ArtistPIDs[]> {
           { w: p.width, h: p.height }
         );
         const artistId = artistByPid[pid];
-        if (artistId) {
-          node.setTags(`author:${artistId}`);
-          node.setAuthorUrls(`https://www.pixiv.net/users/${artistId}`);
-        }
+        const work = this.works[pid];
+        const authorTag = pixivAuthorTag(work, artistId);
+        const authorUrl = pixivAuthorUrl(work, artistId);
+        if (authorTag) node.setTags(authorTag);
+        if (authorUrl) node.setAuthorUrls(authorUrl);
         node.setTags(...(this.works[pid]?.tags || []));
         node.setPublishedAt(this.works[pid]?.createDate || this.works[pid]?.uploadDate);
         node.actions.push(actionLike);
@@ -448,6 +455,10 @@ class PixivMatcher extends BaseMatcher<ArtistPIDs[]> {
       return { url: node.originSrc! };
     }
   }
+}
+
+function stringValue(value: unknown): string | undefined {
+  return typeof value === "string" || typeof value === "number" ? String(value) : undefined;
 }
 
 
