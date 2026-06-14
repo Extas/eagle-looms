@@ -120,6 +120,8 @@ function normalizeSourceNamespace(category: string): "copyright" | "character" |
     case "parodies":
     case "parodys":
     case "series":
+    case "franchise":
+    case "franchises":
     case "作品":
     case "原作":
     case "系列":
@@ -142,6 +144,11 @@ function normalizeSourceNamespace(category: string): "copyright" | "character" |
     case "circles":
     case "group":
     case "groups":
+    case "illustrator":
+    case "illustrators":
+    case "writer":
+    case "writers":
+    case "mangaka":
     case "作者":
     case "作家":
     case "艺术家":

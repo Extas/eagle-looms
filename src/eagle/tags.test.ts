@@ -72,8 +72,12 @@ describe('Eagle tags', () => {
     expect(normalizeSourceMetadataTag('artist：soha blan')).toBe('author:soha blan');
     expect(normalizeSourceMetadataTag('parody:bang dream')).toBe('copyright:bang dream');
     expect(sourceMetadataTag('parodys', 'project sekai')).toBe('copyright:project sekai');
+    expect(sourceMetadataTag('Franchise(s):', 'bang dream')).toBe('copyright:bang dream');
     expect(normalizeSourceMetadataTag('group:circle name')).toBe('author:circle name');
     expect(sourceMetadataTag('circles', 'circle name')).toBe('author:circle name');
+    expect(sourceMetadataTag('Illustrator(s):', 'soha blan')).toBe('author:soha blan');
+    expect(sourceMetadataTag('Writer', 'scenario name')).toBe('author:scenario name');
+    expect(sourceMetadataTag('Mangaka', 'comic author')).toBe('author:comic author');
     expect(sourceMetadataTag('作品', 'project sekai')).toBe('copyright:project sekai');
     expect(sourceMetadataTag('角色', 'kusanagi nene')).toBe('character:kusanagi nene');
     expect(sourceMetadataTag('藝術家', 'soha blan')).toBe('author:soha blan');
