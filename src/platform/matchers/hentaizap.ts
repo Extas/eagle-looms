@@ -1,6 +1,7 @@
 import { GalleryMeta } from "../../download/gallery-meta";
 import ImageNode from "../../img-node";
 import { ADAPTER } from "../adapt";
+import { extractGalleryAuthorUrls } from "../gallery-author-urls";
 import { BaseMatcher, OriginMeta, Result } from "../platform";
 
 type HentaiZapGalleryInfo = {
@@ -33,6 +34,7 @@ class HentaiZapMatcher extends BaseMatcher<HentaiZapGalleryInfo> {
       const tags = Array.from(ul.querySelectorAll<HTMLElement>("a.gp_btn_tag")).map(e => e.firstChild?.textContent).filter(Boolean) as string[];
       this.meta!.tags[category] = tags;
     });
+    this.meta.authorUrls = extractGalleryAuthorUrls(document, ".gp_top_right_info > ul", "span.info_txt", "a.gp_btn_tag[href]");
     return this.meta;
   }
 

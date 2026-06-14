@@ -2,6 +2,7 @@ import { GalleryMeta } from "../../download/gallery-meta";
 import ImageNode from "../../img-node";
 import q from "../../utils/query-element";
 import { ADAPTER } from "../adapt";
+import { extractGalleryAuthorUrls } from "../gallery-author-urls";
 import { BaseMatcher, OriginMeta, Result } from "../platform";
 
 class IMHentaiMatcher extends BaseMatcher<null> {
@@ -77,6 +78,7 @@ class IMHentaiMatcher extends BaseMatcher<null> {
       const tags = Array.from(li.querySelectorAll("a.tag")).map(a => a.firstChild?.textContent?.trim()).filter(v => Boolean(v));
       meta.tags[cat] = tags;
     }
+    meta.authorUrls = extractGalleryAuthorUrls(document, ".galleries_info > li", ".tags_text", "a.tag[href]");
     this.meta = meta;
     return this.meta;
   }

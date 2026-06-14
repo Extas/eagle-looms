@@ -2,6 +2,7 @@ import { GalleryMeta } from "../../download/gallery-meta";
 import ImageNode from "../../img-node";
 import { Chapter } from "../../page-fetcher";
 import { ADAPTER } from "../adapt";
+import { extractGalleryAuthorUrls } from "../gallery-author-urls";
 import { BaseMatcher, OriginMeta, Result } from "../platform";
 
 type HNImageInfo = {
@@ -74,6 +75,7 @@ class HentaiNexusMatcher extends BaseMatcher<Document> {
       }
       meta.tags[category] = values;
     });
+    meta.authorUrls = extractGalleryAuthorUrls(doc, ".view-page-details tr", ".viewcolumn", ".viewcolumn + td a[href]");
     return meta;
   }
 
