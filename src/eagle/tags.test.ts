@@ -71,6 +71,7 @@ describe('Eagle tags', () => {
     expect(normalizeSourceMetadataTag('artist:soha blan')).toBe('author:soha blan');
     expect(normalizeSourceMetadataTag('parody:bang dream')).toBe('copyright:bang dream');
     expect(normalizeSourceMetadataTag('group:circle name')).toBe('author:circle name');
+    expect(sourceMetadataTag('circles', 'circle name')).toBe('author:circle name');
     expect(sourceMetadataTag('Artist:', 'soha blan')).toBe('author:soha blan');
     expect(normalizeSourceMetadataTag('general:blue eyes')).toBe('');
   });

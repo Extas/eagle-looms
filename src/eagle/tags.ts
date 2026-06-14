@@ -130,6 +130,7 @@ function normalizeSourceNamespace(category: string): "copyright" | "character" |
     case "creator":
     case "creators":
     case "circle":
+    case "circles":
     case "group":
     case "groups":
       return "author";
