@@ -169,6 +169,22 @@ describe('Eagle tags', () => {
     ]);
   });
 
+  it('matches common per-post metadata bucket key variants', () => {
+    const meta = new GalleryMeta('https://example.test/posts', 'posts');
+    meta.tags = {
+      'post:100': ['copyright:project sekai'],
+      id_100: ['character:kusanagi nene'],
+      'artwork-100': ['author:soha blan'],
+      'post:101': ['wrong post'],
+    };
+
+    expect(sourceTagsFromGalleryMeta(meta, 'https://example.test/posts/100')).toEqual([
+      'copyright:project sekai',
+      'character:kusanagi nene',
+      'author:soha blan',
+    ]);
+  });
+
   it('derives a required extension tag from title, url, or format query', () => {
     expect(eagleExtensionTag('anime-pictures-917184.png')).toBe('ext:png');
     expect(eagleExtensionTag(undefined, 'https://example.test/image.JPG?token=1')).toBe('ext:jpg');

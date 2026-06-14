@@ -37,7 +37,7 @@ export function sourceTagsFromGalleryMeta(meta: GalleryMeta, sourceUrl: string):
     const values = normalizeMetaValues(rawValues);
     if (values.length === 0) continue;
 
-    if (postId && category === postId) {
+    if (metadataBucketMatchesPostId(category, postId)) {
       tags.push(...values);
       continue;
     }
@@ -203,6 +203,14 @@ function postIdFromSourceUrl(sourceUrl: string): string {
   return sourceUrl.match(/(?:artworks|posts|post\/show|view_post)\/(\d+)/)?.[1]
     || sourceUrl.match(/[?&]id=(\d+)/)?.[1]
     || "";
+}
+
+function metadataBucketMatchesPostId(category: string, postId: string): boolean {
+  if (!postId) return false;
+  const normalized = normalizeSourceCategoryKey(category).replace(/[:#]+/g, " ");
+  if (normalized === postId) return true;
+  const match = normalized.match(/^(?:post|id|pid|artwork|artworks|illust|illust id)\s*(\d+)$/);
+  return match?.[1] === postId;
 }
 
 function extensionFromSource(source: string | undefined): string {
