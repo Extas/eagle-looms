@@ -137,6 +137,23 @@ describe('Eagle tags', () => {
     ]);
   });
 
+  it('extracts common object-shaped metadata tag values without stringifying objects', () => {
+    const meta = new GalleryMeta('https://example.test/gallery/1', 'gallery');
+    meta.tags = {
+      artist: [{ name: 'soha blan' }, { label: 'circle name' }],
+      character: [{ tag: 'kusanagi nene' }],
+      tags: [{ value: 'blue eyes' }, { title: 'school uniform' }, { count: 42 }],
+    };
+
+    expect(sourceTagsFromGalleryMeta(meta, 'https://example.test/gallery/1')).toEqual([
+      'author:soha blan',
+      'author:circle name',
+      'character:kusanagi nene',
+      'blue eyes',
+      'school uniform',
+    ]);
+  });
+
   it('normalizes source metadata category key shape before mapping', () => {
     const meta = new GalleryMeta('https://example.test/gallery/1', 'gallery');
     meta.tags = {
@@ -173,7 +190,7 @@ describe('Eagle tags', () => {
     const meta = new GalleryMeta('https://example.test/posts', 'posts');
     meta.tags = {
       'post:100': ['copyright:project sekai'],
-      id_100: ['character:kusanagi nene'],
+      id_100: [{ name: 'character:kusanagi nene' }],
       'artwork-100': ['author:soha blan'],
       'post:101': ['wrong post'],
     };
