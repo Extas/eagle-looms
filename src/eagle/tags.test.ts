@@ -66,9 +66,12 @@ describe('Eagle tags', () => {
 
   it('normalizes only supported source metadata namespaces', () => {
     expect(sourceMetadataTag('game copyright', 'project sekai 403')).toBe('copyright:project sekai');
+    expect(sourceMetadataTag('game_copyright', 'project sekai 403')).toBe('copyright:project sekai');
+    expect(sourceMetadataTag('other-copyright', 'project sekai +403')).toBe('copyright:project sekai');
     expect(normalizeSourceMetadataTag('artist:soha blan')).toBe('author:soha blan');
     expect(normalizeSourceMetadataTag('parody:bang dream')).toBe('copyright:bang dream');
     expect(normalizeSourceMetadataTag('group:circle name')).toBe('author:circle name');
+    expect(sourceMetadataTag('Artist:', 'soha blan')).toBe('author:soha blan');
     expect(normalizeSourceMetadataTag('general:blue eyes')).toBe('');
   });
 
@@ -121,13 +124,34 @@ describe('Eagle tags', () => {
     meta.tags = {
       albumType: ['Image Set'],
       type: ['Doujinshi'],
+      maleTags: ['glasses'],
       misc: ['uncategorized tag'],
     };
 
     expect(sourceTagsFromGalleryMeta(meta, 'https://eahentai.com/a/1/0')).toEqual([
       'Image Set',
       'Doujinshi',
+      'glasses',
       'uncategorized tag',
+    ]);
+  });
+
+  it('normalizes source metadata category key shape before mapping', () => {
+    const meta = new GalleryMeta('https://example.test/gallery/1', 'gallery');
+    meta.tags = {
+      game_copyright: ['project sekai 403'],
+      'other-copyright': ['bang dream +20'],
+      'Character:': ['kusanagi nene'],
+      Artist: ['soha blan'],
+      femaleTags: ['school uniform'],
+    };
+
+    expect(sourceTagsFromGalleryMeta(meta, 'https://example.test/gallery/1')).toEqual([
+      'copyright:project sekai',
+      'copyright:bang dream',
+      'character:kusanagi nene',
+      'author:soha blan',
+      'school uniform',
     ]);
   });
 

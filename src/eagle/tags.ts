@@ -109,7 +109,7 @@ function cleanSourceTagValue(value: string): string {
 }
 
 function normalizeSourceNamespace(category: string): "copyright" | "character" | "author" | "" {
-  const normalized = cleanTag(category).toLowerCase();
+  const normalized = normalizeSourceCategoryKey(category);
   switch (normalized) {
     case "copyright":
     case "copyrights":
@@ -155,7 +155,7 @@ function splitMaybeDelimitedTags(value: string): string[] {
 }
 
 function isRawSourceTagCategory(category: string): boolean {
-  switch (cleanTag(category).toLowerCase()) {
+  switch (normalizeSourceCategoryKey(category)) {
     case "tag":
     case "tags":
     case "general":
@@ -186,6 +186,16 @@ function isRawSourceTagCategory(category: string): boolean {
     default:
       return false;
   }
+}
+
+function normalizeSourceCategoryKey(category: string): string {
+  return cleanTag(category)
+    .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
+    .replace(/[_-]+/g, " ")
+    .replace(/:+$/g, "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .toLowerCase();
 }
 
 function postIdFromSourceUrl(sourceUrl: string): string {
