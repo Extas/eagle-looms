@@ -111,6 +111,7 @@ function cleanSourceTagValue(value: string): string {
 function normalizeSourceNamespace(category: string): "copyright" | "character" | "author" | "" {
   const normalized = normalizeSourceCategoryKey(category);
   switch (normalized) {
+    case "3":
     case "copyright":
     case "copyrights":
     case "game copyright":
@@ -119,10 +120,12 @@ function normalizeSourceNamespace(category: string): "copyright" | "character" |
     case "parodies":
     case "series":
       return "copyright";
+    case "4":
     case "character":
     case "characters":
     case "char":
       return "character";
+    case "1":
     case "author":
     case "authors":
     case "artist":
@@ -174,6 +177,8 @@ function splitMaybeDelimitedTags(value: string): string[] {
 
 function isRawSourceTagCategory(category: string): boolean {
   switch (normalizeSourceCategoryKey(category)) {
+    case "0":
+    case "5":
     case "tag":
     case "tags":
     case "general":

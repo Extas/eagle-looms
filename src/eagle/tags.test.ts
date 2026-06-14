@@ -142,6 +142,33 @@ describe('Eagle tags', () => {
     ]);
   });
 
+  it('maps numeric booru metadata categories from structured gallery metadata', () => {
+    const meta = new GalleryMeta('https://danbooru.donmai.us/posts', 'posts');
+    meta.tags = {
+      '3': ['project_sekai 403'],
+      '4': ['kusanagi_nene 26'],
+      '1': ['soha_blan 11'],
+      '0': ['blue_eyes 120K'],
+      '5': ['highres 80K'],
+    };
+
+    const sourceTags = sourceTagsFromGalleryMeta(meta, 'https://danbooru.donmai.us/posts/100');
+    expect(sourceTags).toEqual([
+      'blue_eyes',
+      'author:soha_blan',
+      'copyright:project_sekai',
+      'character:kusanagi_nene',
+      'highres',
+    ]);
+    expect(normalizeEagleItemTags(sourceTags, 10)).toEqual([
+      'copyright:project_sekai',
+      'character:kusanagi_nene',
+      'author:soha_blan',
+      'blue_eyes',
+      'highres',
+    ]);
+  });
+
   it('keeps language-like flag metadata from API galleries', () => {
     const meta = new GalleryMeta('https://yabai.si/g/test', 'gallery');
     meta.tags = {
