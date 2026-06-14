@@ -50,20 +50,54 @@ function normalizeMoebooruTagType(value: unknown): "copyright" | "character" | "
   switch (raw) {
     case "1":
     case "artist":
+    case "artists":
     case "author":
+    case "authors":
     case "circle":
+    case "circles":
     case "creator":
+    case "creators":
     case "group":
+    case "groups":
+    case "illustrator":
+    case "illustrators":
+    case "writer":
+    case "writers":
+    case "translator":
+    case "translators":
+    case "editor":
+    case "editors":
+    case "colorist":
+    case "colorists":
+    case "letterer":
+    case "letterers":
+    case "mangaka":
       return "author";
     case "3":
     case "copyright":
+    case "copyrights":
+    case "game copyright":
+    case "other copyright":
+    case "parody":
+    case "parodies":
+    case "parodys":
     case "series":
     case "work":
+    case "works":
+    case "work title":
     case "source work":
+    case "original":
     case "original work":
+    case "franchise":
+    case "franchises":
+    case "ip":
+    case "property":
+    case "properties":
       return "copyright";
     case "4":
     case "character":
+    case "characters":
+    case "char":
       return "character";
     default:
       return "";

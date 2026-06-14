@@ -88,6 +88,36 @@ describe("booru source tags", () => {
     ]);
   });
 
+  it("supports copyright-like booru data attributes and tag lists", () => {
+    document.body.innerHTML = `
+      <article
+        data-tag-string-parody="project_sekai"
+        data-tag-string-source-work="bang_dream"
+        data-tag-string-franchise="vocaloid"
+      ></article>
+      <ul>
+        <li class="tag-type-series"><a>blue_archive 120K</a></li>
+        <li data-category="original-work"><a>girls_band_cry +23</a></li>
+      </ul>
+    `;
+
+    expect(extractBooruSourceTags(document, [
+      "project_sekai",
+      "bang_dream",
+      "vocaloid",
+      "blue_archive",
+      "girls_band_cry",
+      "purple_eyes",
+    ])).toEqual([
+      "copyright:project_sekai",
+      "copyright:bang_dream",
+      "copyright:vocaloid",
+      "copyright:blue_archive",
+      "copyright:girls_band_cry",
+      "purple_eyes",
+    ]);
+  });
+
   it("supports Danbooru numeric tag category classes and keeps general/meta tags raw", () => {
     document.body.innerHTML = `
       <ul>
@@ -135,13 +165,17 @@ describe("booru source tags", () => {
         <li class="category-1"><a href="https://gelbooru.com/index.php?page=post&s=list&tags=artist_name">artist_name 4</a></li>
         <li class="tag-type-translator"><a href="/artists?search[name]=translation_circle">translation_circle</a></li>
         <li data-category="editor"><a href="/index.php?page=post&s=list&tags=source_editor">source_editor</a></li>
+        <li class="tag-type-illustrator"><a href="/artists?search[name]=source_illustrator">source_illustrator</a></li>
+        <li class="category-mangaka"><a href="/artists?search[name]=source_mangaka">source_mangaka</a></li>
         <li class="tag-type-artist"><a href="#">ignored_anchor</a></li>
       </ul>
     `;
 
     expect(extractBooruAuthorUrls(document, "https://danbooru.donmai.us/posts/1")).toEqual([
       "https://danbooru.donmai.us/artists?search[name]=soha_blan",
+      "https://danbooru.donmai.us/artists?search[name]=source_illustrator",
       "https://danbooru.donmai.us/artists?search[name]=translation_circle",
+      "https://danbooru.donmai.us/artists?search[name]=source_mangaka",
       "https://gelbooru.com/index.php?page=post&s=list&tags=artist_name",
       "https://danbooru.donmai.us/index.php?page=post&s=list&tags=source_editor",
     ]);

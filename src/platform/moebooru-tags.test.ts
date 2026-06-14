@@ -52,32 +52,54 @@ describe("moebooru source tags", () => {
   });
 
   it("supports common named tag category aliases", () => {
-    expect(normalizeMoebooruSourceTags("creator_name group_name original_work character_name", {
+    expect(normalizeMoebooruSourceTags("creator_name group_name original_work character_name illustrator_name franchise_name", {
       creator_name: "creator",
       group_name: "group",
       original_work: "original work",
-      character_name: "character",
+      character_name: "characters",
+      illustrator_name: "illustrators",
+      franchise_name: "franchises",
     })).toEqual([
       "author:creator_name",
       "author:group_name",
       "copyright:original_work",
       "character:character_name",
+      "author:illustrator_name",
+      "copyright:franchise_name",
+    ]);
+  });
+
+  it("aligns expanded moebooru category aliases with source namespaces", () => {
+    expect(normalizeMoebooruSourceTags("translator_name editor_name work_title_name parody_name char_name", {
+      translator_name: "translator",
+      editor_name: "editors",
+      work_title_name: "work-title",
+      parody_name: "parody",
+      char_name: "char",
+    })).toEqual([
+      "author:translator_name",
+      "author:editor_name",
+      "copyright:work_title_name",
+      "copyright:parody_name",
+      "character:char_name",
     ]);
   });
 
   it("derives traceable author tag URLs from categorized artist tags", () => {
     expect(moebooruAuthorUrlsFromTags(
-      "artist_name source_work circle_name artist_name character_name",
+      "artist_name source_work circle_name illustrator_name artist_name character_name",
       {
         artist_name: "artist",
         source_work: "copyright",
         circle_name: "circle",
+        illustrator_name: "illustrator",
         character_name: "character",
       },
       "https://yande.re/post?page=2&tags=project_sekai",
     )).toEqual([
       "https://yande.re/post?tags=artist_name",
       "https://yande.re/post?tags=circle_name",
+      "https://yande.re/post?tags=illustrator_name",
     ]);
   });
 });
