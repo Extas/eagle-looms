@@ -2,7 +2,7 @@ import { GM_getValue, GM_setValue } from "$";
 import type { AppEventIDInBigImgFrame, AppEventIDInFullViewGrid, AppEventIDInMain } from "./ui/event";
 import { i18n } from "./utils/i18n";
 import { b64EncodeUnicode, uuid } from "./utils/random";
-import { DEFAULT_EAGLE_BASE_URL, DEFAULT_EAGLE_CONFIRM_MODE, DEFAULT_EAGLE_CONFIRM_THRESHOLD, DEFAULT_EAGLE_FOLDER_PRESET, DEFAULT_EAGLE_FOLDER_TEMPLATE, DEFAULT_EAGLE_IMPORT_LIMIT, DEFAULT_EAGLE_MAX_SOURCE_TAGS, DEFAULT_EAGLE_NAME_DATE_PREFIX, EAGLE_CONFIRM_MODES, EAGLE_FOLDER_PRESET_OPTIONS, eagleFolderPresetForTemplate, normalizeEagleBaseUrl, normalizeEagleBoolean, normalizeEagleConfirmMode, normalizeEagleConfirmThreshold, normalizeEagleFolderPreset, normalizeEagleFolderTemplate, normalizeEagleImportLimit, normalizeEagleMaxSourceTags } from "./eagle/options";
+import { DEFAULT_EAGLE_BASE_URL, DEFAULT_EAGLE_CONFIRM_MODE, DEFAULT_EAGLE_CONFIRM_THRESHOLD, DEFAULT_EAGLE_FOLDER_PRESET, DEFAULT_EAGLE_FOLDER_TEMPLATE, DEFAULT_EAGLE_IMPORT_LIMIT, DEFAULT_EAGLE_MAX_SOURCE_TAGS, DEFAULT_EAGLE_NAME_DATE_PREFIX, EAGLE_CONFIRM_MODES, EAGLE_FOLDER_PRESET_OPTIONS, EAGLE_FOLDER_PRESET_TEMPLATES, eagleFolderPresetForTemplate, normalizeEagleBaseUrl, normalizeEagleBoolean, normalizeEagleConfirmMode, normalizeEagleConfirmThreshold, normalizeEagleFolderPreset, normalizeEagleFolderTemplate, normalizeEagleImportLimit, normalizeEagleMaxSourceTags } from "./eagle/options";
 import type { EagleConfirmMode, EagleFolderPreset } from "./eagle/options";
 
 export const IS_MOBILE = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|Mobile/i.test(navigator.userAgent);
@@ -226,7 +226,13 @@ export function defaultConf(): Config {
 }
 
 const CONF_VERSION = "4.4.0";
-const LEGACY_DEFAULT_EAGLE_FOLDER_TEMPLATE = "Eagle Looms/{site}/{copyright}";
+const LEGACY_BUILT_IN_EAGLE_FOLDER_TEMPLATES = [
+  "Eagle Looms/{site}/{copyright}",
+  EAGLE_FOLDER_PRESET_TEMPLATES.gallery,
+  EAGLE_FOLDER_PRESET_TEMPLATES.chapter,
+  EAGLE_FOLDER_PRESET_TEMPLATES.copyrightAuthor,
+  EAGLE_FOLDER_PRESET_TEMPLATES.copyrightCharacter,
+].map(normalizeEagleFolderTemplate);
 export const signal = { first: true };
 
 const CONFIG_KEY = "ehvh_cfg_";
@@ -396,11 +402,19 @@ function patchConfig(cf: Config): Config | null {
     changed = true;
   }
   if (cf.configPatchVersion < 11) {
-    if (normalizeEagleFolderTemplate(cf.eagleFolderPath) === LEGACY_DEFAULT_EAGLE_FOLDER_TEMPLATE) {
+    if (LEGACY_BUILT_IN_EAGLE_FOLDER_TEMPLATES.includes(normalizeEagleFolderTemplate(cf.eagleFolderPath))) {
       cf.eagleFolderPath = DEFAULT_EAGLE_FOLDER_TEMPLATE;
       cf.eagleFolderPreset = DEFAULT_EAGLE_FOLDER_PRESET;
     }
     cf.configPatchVersion = 11;
+    changed = true;
+  }
+  if (cf.configPatchVersion < 12) {
+    if (LEGACY_BUILT_IN_EAGLE_FOLDER_TEMPLATES.includes(normalizeEagleFolderTemplate(cf.eagleFolderPath))) {
+      cf.eagleFolderPath = DEFAULT_EAGLE_FOLDER_TEMPLATE;
+      cf.eagleFolderPreset = DEFAULT_EAGLE_FOLDER_PRESET;
+    }
+    cf.configPatchVersion = 12;
     changed = true;
   }
   return changed ? cf : null;
