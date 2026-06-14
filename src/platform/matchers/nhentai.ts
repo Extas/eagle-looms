@@ -2,6 +2,7 @@ import { GalleryMeta } from "../../download/gallery-meta";
 import ImageNode from "../../img-node";
 import { sleep } from "../../utils/sleep";
 import { ADAPTER } from "../adapt";
+import { nhentaiAuthorUrlsFromDocument, nhentaiAuthorUrlsFromTags } from "../nhentai-tags";
 import { BaseMatcher, OriginMeta, Result } from "../platform";
 
 function nhParseExt(str: string): string {
@@ -56,6 +57,7 @@ class NHMatcher extends BaseMatcher<Document> {
     const meta = new GalleryMeta(window.location.href, info.title?.english || document.title);
     meta.originTitle = info.title?.japanese;
     if (info.tags && info.tags.length > 0) {
+      meta.authorUrls = nhentaiAuthorUrlsFromTags(info.tags, window.location.href);
       meta.tags = info.tags.reduce<Record<string, any[]>>((prev, curr) => {
         if (!prev[curr.type]) {
           prev[curr.type] = [];
@@ -130,6 +132,7 @@ class NHxxxMatcher extends BaseMatcher<Document> {
       const tags = Array.from(ele.querySelectorAll("a.tag_btn > .tag_name")).map(t => t.textContent?.trim()).filter(Boolean) as string[];
       meta.tags[cat] = tags;
     });
+    meta.authorUrls = nhentaiAuthorUrlsFromDocument(document, window.location.href);
     this.meta = meta;
   }
   async *fetchPagesSource(): AsyncGenerator<Result<Document>> {
