@@ -15,7 +15,7 @@ class Hanime1Matcher extends BaseMatcher<Document> {
     meta.originTitle = originTItle ?? undefined;
     Array.from(document.querySelectorAll(".comics-panel-margin .comics-metadata-margin-top h5")).forEach(ele => {
       let cat = ele.firstChild?.textContent ?? "misc";
-      cat = cat.trim().replace(/：:/, "");
+      cat = cat.trim().replace(/[:：]+$/g, "");
       const tags = Array.from(ele.querySelectorAll("a")).map(t => t.textContent?.trim()).filter(Boolean) as string[];
       meta.tags[cat] = tags;
     });

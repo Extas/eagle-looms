@@ -74,6 +74,10 @@ describe('Eagle tags', () => {
     expect(sourceMetadataTag('parodys', 'project sekai')).toBe('copyright:project sekai');
     expect(normalizeSourceMetadataTag('group:circle name')).toBe('author:circle name');
     expect(sourceMetadataTag('circles', 'circle name')).toBe('author:circle name');
+    expect(sourceMetadataTag('作品', 'project sekai')).toBe('copyright:project sekai');
+    expect(sourceMetadataTag('角色', 'kusanagi nene')).toBe('character:kusanagi nene');
+    expect(sourceMetadataTag('藝術家', 'soha blan')).toBe('author:soha blan');
+    expect(sourceMetadataTag('社团', 'circle name')).toBe('author:circle name');
     expect(sourceMetadataTag('Artist:', 'soha blan')).toBe('author:soha blan');
     expect(normalizeSourceMetadataTag('general:blue eyes')).toBe('');
   });
@@ -167,6 +171,25 @@ describe('Eagle tags', () => {
       'author:soha_blan',
       'blue_eyes',
       'highres',
+    ]);
+  });
+
+  it('normalizes common Chinese metadata categories from gallery pages', () => {
+    const meta = new GalleryMeta('https://hanime1.me/comic/123', 'gallery');
+    meta.tags = {
+      '作品：': ['project sekai'],
+      '角色': ['kusanagi nene'],
+      '作者：': ['soha blan'],
+      '標籤': ['school uniform'],
+      '語言': ['chinese'],
+    };
+
+    expect(sourceTagsFromGalleryMeta(meta, 'https://hanime1.me/comic/123')).toEqual([
+      'copyright:project sekai',
+      'character:kusanagi nene',
+      'author:soha blan',
+      'school uniform',
+      'chinese',
     ]);
   });
 

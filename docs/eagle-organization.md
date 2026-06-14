@@ -79,9 +79,9 @@ post:*
 Source metadata namespaces are normalized globally:
 
 ```text
-copyright / game copyright / parody / parodys / series  -> copyright:{name}
-character / char                              -> character:{name}
-author / artist / creator / group / circle    -> author:{name}
+copyright / game copyright / parody / parodys / series / 作品 / 原作 / 系列  -> copyright:{name}
+character / char / 角色 / 人物                                                -> character:{name}
+author / artist / creator / group / circle / 作者 / 藝術家 / 社團             -> author:{name}
 ```
 
 Other reliable source tags are imported as raw tags. The visible tag cap defaults to 20 and is clamped to `0..100`; `0` copies no visible source tags. Within the cap, `copyright:`, `character:`, and `author:` are ordered before general visual tags.
@@ -107,6 +107,9 @@ E-Hentai / ExHentai
 
 Hitomi
   map galleryinfo parodys -> copyright, characters -> character, artists/groups -> author
+
+Chinese gallery pages
+  map common labels such as 作品/角色/作者/藝術家/社團 into global namespaces; keep 標籤/分類/語言 as raw tags
 
 Pixiv
   author comes from Pixiv user identity; artwork tags are raw because Pixiv does not classify copyright/character reliably

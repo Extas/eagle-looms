@@ -120,11 +120,16 @@ function normalizeSourceNamespace(category: string): "copyright" | "character" |
     case "parodies":
     case "parodys":
     case "series":
+    case "作品":
+    case "原作":
+    case "系列":
       return "copyright";
     case "4":
     case "character":
     case "characters":
     case "char":
+    case "角色":
+    case "人物":
       return "character";
     case "1":
     case "author":
@@ -137,6 +142,16 @@ function normalizeSourceNamespace(category: string): "copyright" | "character" |
     case "circles":
     case "group":
     case "groups":
+    case "作者":
+    case "作家":
+    case "艺术家":
+    case "藝術家":
+    case "画师":
+    case "畫師":
+    case "社团":
+    case "社團":
+    case "团体":
+    case "團體":
       return "author";
     default:
       return "";
@@ -198,6 +213,20 @@ function isRawSourceTagCategory(category: string): boolean {
     case "types":
     case "language":
     case "languages":
+    case "标签":
+    case "標籤":
+    case "分类":
+    case "分類":
+    case "类别":
+    case "類別":
+    case "语言":
+    case "語言":
+    case "类型":
+    case "類型":
+    case "其他":
+    case "其它":
+    case "杂项":
+    case "雜項":
     case "male":
     case "male tag":
     case "male tags":
