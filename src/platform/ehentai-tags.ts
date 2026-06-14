@@ -6,6 +6,7 @@ const AUTHOR_TAG_CATEGORIES = new Set([
   "creator",
   "creators",
   "circle",
+  "circles",
   "group",
   "groups",
 ]);

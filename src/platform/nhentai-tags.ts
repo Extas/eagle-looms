@@ -8,6 +8,8 @@ const AUTHOR_TAG_TYPES = new Set([
   "artists",
   "author",
   "authors",
+  "creator",
+  "creators",
   "circle",
   "circles",
   "group",

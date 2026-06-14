@@ -17,6 +17,10 @@ describe("E-Hentai source metadata", () => {
           <td><a href="https://exhentai.org/tag/group:circle_name">circle name</a></td>
         </tr>
         <tr>
+          <td>circles:</td>
+          <td><a href="/tag/circles:studio_name">studio name</a></td>
+        </tr>
+        <tr>
           <td>character:</td>
           <td><a href="/tag/character:kusanagi_nene">kusanagi nene</a></td>
         </tr>
@@ -26,6 +30,7 @@ describe("E-Hentai source metadata", () => {
     expect(extractEhentaiAuthorUrls(document, "https://exhentai.org/g/1/token")).toEqual([
       "https://exhentai.org/tag/artist:soha_blan",
       "https://exhentai.org/tag/group:circle_name",
+      "https://exhentai.org/tag/circles:studio_name",
     ]);
   });
 });

@@ -6,11 +6,13 @@ describe("nhentai source metadata", () => {
     expect(nhentaiAuthorUrlsFromTags([
       { type: "artist", url: "/artist/soha-blan/" },
       { type: "group", url: "https://nhentai.net/group/circle-name/" },
+      { type: "creator", url: "/creator/source-creator/" },
       { type: "tag", url: "/tag/school-uniform/" },
       { type: "artist", url: "/artist/soha-blan/" },
     ], "https://nhentai.net/g/123/")).toEqual([
       "https://nhentai.net/artist/soha-blan/",
       "https://nhentai.net/group/circle-name/",
+      "https://nhentai.net/creator/source-creator/",
     ]);
   });
 
@@ -27,6 +29,10 @@ describe("nhentai source metadata", () => {
             <a class="tag_btn" href="https://nhentai.xxx/group/circle-name/"><span class="tag_name">circle name</span></a>
           </li>
           <li class="tags">
+            <span class="text">Creators:</span>
+            <a class="tag_btn" href="/creator/source-creator/"><span class="tag_name">source creator</span></a>
+          </li>
+          <li class="tags">
             <span class="text">Tags:</span>
             <a class="tag_btn" href="/tag/school-uniform/"><span class="tag_name">school uniform</span></a>
           </li>
@@ -37,6 +43,7 @@ describe("nhentai source metadata", () => {
     expect(nhentaiAuthorUrlsFromDocument(document, "https://nhentai.xxx/g/123/")).toEqual([
       "https://nhentai.xxx/artist/soha-blan/",
       "https://nhentai.xxx/group/circle-name/",
+      "https://nhentai.xxx/creator/source-creator/",
     ]);
   });
 });
