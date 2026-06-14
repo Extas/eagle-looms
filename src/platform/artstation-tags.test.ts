@@ -9,6 +9,21 @@ describe("ArtStation source tags", () => {
     ]);
   });
 
+  it("extracts common object-shaped project tag values", () => {
+    expect(normalizeArtStationTags([
+      { name: "concept art" },
+      { tag: "character design" },
+      { title: "illustration" },
+      { slug: "mygo" },
+      { count: 42 },
+    ])).toEqual([
+      "concept art",
+      "character design",
+      "illustration",
+      "mygo",
+    ]);
+  });
+
   it("prefers username for author tags and falls back to full name", () => {
     expect(artStationAuthorTag({ username: " artist\nname ", full_name: "Full Name" })).toBe("author:artist name");
     expect(artStationAuthorTag({ full_name: "Full Name" })).toBe("author:Full Name");

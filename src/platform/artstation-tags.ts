@@ -6,7 +6,7 @@ type ArtStationAuthor = {
 
 export function normalizeArtStationTags(value: unknown): string[] {
   const values = Array.isArray(value) ? value : [value];
-  return [...new Set(values.map(cleanArtStationValue).filter(Boolean))];
+  return [...new Set(values.flatMap(artStationTagValues).map(cleanArtStationValue).filter(Boolean))];
 }
 
 export function artStationAuthorTag(value: ArtStationAuthor): string {
@@ -21,7 +21,18 @@ export function artStationAuthorUrl(value: ArtStationAuthor): string {
   return username ? `https://www.artstation.com/${username}` : "";
 }
 
+function artStationTagValues(value: unknown): unknown[] {
+  if (typeof value === "string" || typeof value === "number") return [value];
+  if (!value || typeof value !== "object") return [];
+  const object = value as Record<string, unknown>;
+  for (const key of ["name", "tag", "title", "label", "slug", "value"]) {
+    if (typeof object[key] === "string" || typeof object[key] === "number") return [object[key]];
+  }
+  return [];
+}
+
 function cleanArtStationValue(value: unknown): string {
+  if (typeof value !== "string" && typeof value !== "number") return "";
   return String(value ?? "")
     .replace(/[\n\r\t]+/g, " ")
     .replace(/\s+/g, " ")

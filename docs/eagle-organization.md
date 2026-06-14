@@ -126,6 +126,9 @@ Chinese gallery pages
 Pixiv
   author comes from Pixiv user identity; artwork tags stay raw because Pixiv does not classify copyright/character reliably; source-provided tag translations are kept as additional raw tags
 
+ArtStation
+  author comes from user identity; project tags stay raw and support string or common object-shaped tag values
+
 Twitter / X
   author comes from screen_name; hashtags stay raw
 ```
