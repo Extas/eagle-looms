@@ -30,14 +30,14 @@ export function sourceMetadataTag(category: string, value: string): string {
 
 export function sourceTagsFromGalleryMeta(meta: GalleryMeta, sourceUrl: string): string[] {
   const tags: string[] = [];
-  const postId = postIdFromSourceUrl(sourceUrl);
+  const sourceIdentityKeys = sourceIdentityKeysFromUrl(sourceUrl);
   const metadata = meta.tags || {};
 
   for (const [category, rawValues] of Object.entries(metadata)) {
     const values = normalizeMetaValues(rawValues);
     if (values.length === 0) continue;
 
-    if (metadataBucketMatchesPostId(category, postId)) {
+    if (metadataBucketMatchesSourceIdentity(category, sourceIdentityKeys)) {
       tags.push(...sourceTagsFromPostMetadata(rawValues));
       continue;
     }
@@ -338,18 +338,113 @@ function normalizeSourceCategoryKey(category: string): string {
     .toLowerCase();
 }
 
-function postIdFromSourceUrl(sourceUrl: string): string {
-  return sourceUrl.match(/(?:artworks|posts|post\/show|view_post)\/(\d+)/)?.[1]
-    || sourceUrl.match(/[?&]id=(\d+)/)?.[1]
-    || "";
+function sourceIdentityKeysFromUrl(sourceUrl: string): string[] {
+  const keys: string[] = [];
+  const add = (value: string | null | undefined) => {
+    const key = normalizeSourceIdentityKey(value || "");
+    if (key) keys.push(key);
+  };
+
+  try {
+    const url = new URL(sourceUrl, "https://eagle-looms.invalid");
+    for (const [key, value] of url.searchParams.entries()) {
+      if (isSourceIdentityQueryKey(key)) add(value);
+    }
+
+    const segments = url.pathname.split("/").map(segment => safeDecodeURIComponent(segment)).filter(Boolean);
+    for (let i = 0; i < segments.length; i++) {
+      const segment = normalizeSourceCategoryKey(segments[i]);
+      if (segment === "post" && normalizeSourceCategoryKey(segments[i + 1] || "") === "show") {
+        add(segments[i + 2]);
+        continue;
+      }
+      if (isSourceIdentityPathSegment(segment)) add(segments[i + 1]);
+    }
+  } catch {
+    // Fall through to regex extraction for malformed but still useful source URLs.
+  }
+
+  for (const pattern of [
+    /(?:^|\/)post\/show\/([^/?#]+)/i,
+    /(?:^|\/)post\/(?!show\/)([^/?#]+)/i,
+    /(?:^|\/)(?:artworks?|posts|illusts?|projects?|status(?:es)?|view_post)\/([^/?#]+)/i,
+  ]) {
+    add(sourceUrl.match(pattern)?.[1]);
+  }
+
+  for (const match of sourceUrl.matchAll(/[?&]([^=&#]+)=([^&#]+)/g)) {
+    if (isSourceIdentityQueryKey(match[1])) add(match[2]);
+  }
+
+  return [...new Set(keys)];
 }
 
-function metadataBucketMatchesPostId(category: string, postId: string): boolean {
-  if (!postId) return false;
-  const normalized = normalizeSourceCategoryKey(category).replace(/[:：#]+/g, " ");
-  if (normalized === postId) return true;
-  const match = normalized.match(/^(?:post|id|pid|artwork|artworks|illust|illust id)\s*(\d+)$/);
-  return match?.[1] === postId;
+function metadataBucketMatchesSourceIdentity(category: string, sourceIdentityKeys: string[]): boolean {
+  if (sourceIdentityKeys.length === 0) return false;
+  if (normalizeSourceNamespace(category) || isRawSourceTagCategory(category)) return false;
+
+  const keys = new Set(sourceIdentityKeys);
+  const normalized = normalizeSourceIdentityKey(category);
+  if (keys.has(normalized)) return true;
+
+  const match = normalized.match(/^(?:post|id|pid|artwork|artworks|illust|illust id|project|projects|slug|source|status|tweet)\s+(.+)$/);
+  return Boolean(match && keys.has(match[1]));
+}
+
+function normalizeSourceIdentityKey(value: string): string {
+  const decoded = safeDecodeURIComponent(value);
+  return cleanTag(decoded)
+    .replace(/\.[a-z0-9]{2,8}$/i, "")
+    .replace(/[:：#_-]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .toLowerCase();
+}
+
+function isSourceIdentityPathSegment(segment: string): boolean {
+  switch (segment) {
+    case "artwork":
+    case "artworks":
+    case "illust":
+    case "illusts":
+    case "post":
+    case "posts":
+    case "project":
+    case "projects":
+    case "status":
+    case "statuses":
+    case "view post":
+    case "view_post":
+      return true;
+    default:
+      return false;
+  }
+}
+
+function isSourceIdentityQueryKey(key: string): boolean {
+  switch (normalizeSourceCategoryKey(key)) {
+    case "id":
+    case "pid":
+    case "post id":
+    case "postid":
+    case "artwork id":
+    case "artworkid":
+    case "illust id":
+    case "illustid":
+    case "project id":
+    case "projectid":
+      return true;
+    default:
+      return false;
+  }
+}
+
+function safeDecodeURIComponent(value: string): string {
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return value;
+  }
 }
 
 function extensionFromSource(source: string | undefined): string {

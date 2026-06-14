@@ -378,6 +378,62 @@ describe('Eagle tags', () => {
     ]);
   });
 
+  it('matches legacy post/show item URLs without treating show as an item key', () => {
+    const meta = new GalleryMeta('https://example.test/post', 'post');
+    meta.tags = {
+      'post:100': ['copyright:project sekai'],
+      show: ['wrong bucket'],
+    };
+
+    expect(sourceTagsFromGalleryMeta(meta, 'https://example.test/post/show/100')).toEqual([
+      'copyright:project sekai',
+    ]);
+  });
+
+  it('matches slug-like per-item metadata bucket key variants', () => {
+    const meta = new GalleryMeta('https://www.artstation.com/artist', 'artstation-artist');
+    meta.tags = {
+      'project:neon-garden': ['copyright:bang dream'],
+      slug_neon_garden: ['character:tomori takamatsu'],
+      'artwork-neon-garden': ['artist:soha blan'],
+      'project:other-work': ['wrong project'],
+    };
+
+    expect(sourceTagsFromGalleryMeta(meta, 'https://www.artstation.com/artwork/neon-garden')).toEqual([
+      'copyright:bang dream',
+      'character:tomori takamatsu',
+      'author:soha blan',
+    ]);
+  });
+
+  it('matches common source identity query parameter buckets', () => {
+    const meta = new GalleryMeta('https://example.test/search', 'search');
+    meta.tags = {
+      'post:abc-123': ['copyright:project sekai'],
+      'id abc 123': ['character:kusanagi nene'],
+      'post:other': ['wrong post'],
+    };
+
+    expect(sourceTagsFromGalleryMeta(meta, 'https://example.test/view?post_id=abc-123')).toEqual([
+      'copyright:project sekai',
+      'character:kusanagi nene',
+    ]);
+  });
+
+  it('does not treat source identity collisions as normal metadata buckets', () => {
+    const meta = new GalleryMeta('https://example.test/posts', 'posts');
+    meta.tags = {
+      artist: ['soha blan'],
+      tags: ['blue eyes'],
+      'artist:100': ['wrong bucket'],
+    };
+
+    expect(sourceTagsFromGalleryMeta(meta, 'https://example.test/posts/artist')).toEqual([
+      'author:soha blan',
+      'blue eyes',
+    ]);
+  });
+
   it('preserves namespaces from structured per-post metadata values', () => {
     const meta = new GalleryMeta('https://example.test/posts', 'posts');
     meta.tags = {

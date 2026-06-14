@@ -94,7 +94,7 @@ Category labels normalize common page decorations before mapping, including case
 
 Source-site display counts are removed from tag values, including suffixes like `120K`, `+403`, `(11)`, and `[1,234]`; non-count qualifiers such as `miku (vocaloid)` are preserved.
 
-Per-post metadata buckets such as `post:123`, `id_123`, and Pixiv-style artwork IDs use the matching bucket only. If bucket values are structured objects, their own `type`, `category`, `tag_type`, `namespace`, or nested `tag` category is normalized before import.
+Per-item metadata buckets such as `post:123`, `id_123`, Pixiv-style artwork IDs, and slug/hash buckets like `project:neon-garden` or `artwork-neon-garden` use the matching bucket only. If bucket values are structured objects, their own `type`, `category`, `tag_type`, `namespace`, or nested `tag` category is normalized before import.
 
 Author URL extraction follows the same author-like categories where source pages expose tag links, including artist, author, creator, illustrator, writer, translator, editor, colorist, letterer, mangaka, group, and circle.
 
