@@ -3,12 +3,14 @@ import ImageNode from "../../img-node";
 import q from "../../utils/query-element";
 import { ADAPTER } from "../adapt";
 import { extractGalleryAuthorUrls } from "../gallery-author-urls";
+import { extractGalleryPublishedAt } from "../gallery-published-at";
 import { BaseMatcher, OriginMeta, Result } from "../platform";
 
 class IMHentaiMatcher extends BaseMatcher<null> {
   meta?: GalleryMeta;
   data?: { server: string, uid: string, gid: string, imgDir: string, total: number };
   gth?: Record<string, string>;
+  publishedAt = "";
 
   async fetchOriginMeta(node: ImageNode, _: boolean): Promise<OriginMeta> {
     return { url: node.originSrc! };
@@ -31,12 +33,14 @@ class IMHentaiMatcher extends BaseMatcher<null> {
         wh = { w: parseInt(splits[1]), h: parseInt(splits[2]) };
       }
       const node = new ImageNode(url, href, `${i.toString().padStart(digits, "0")}.${ext}`, undefined, originSrc, wh);
+      node.setPublishedAt(this.publishedAt);
       ret.push(node);
     }
     return ret;
   }
 
   async *fetchPagesSource(): AsyncGenerator<Result<null>> {
+    this.publishedAt = imHentaiPublishedAtFromDocument(document);
     const server = q<HTMLInputElement>("#load_server", document).value;
     const uid = q<HTMLInputElement>("#gallery_id", document).value;
     const gid = q<HTMLInputElement>("#load_id", document).value;
@@ -83,6 +87,10 @@ class IMHentaiMatcher extends BaseMatcher<null> {
     return this.meta;
   }
 
+}
+
+export function imHentaiPublishedAtFromDocument(doc: Document): string {
+  return extractGalleryPublishedAt(doc, ".galleries_info > li", ".tags_text");
 }
 
 function imParseExt(str: string): string {

@@ -3,6 +3,7 @@ import ImageNode from "../../img-node";
 import { Chapter } from "../../page-fetcher";
 import { ADAPTER } from "../adapt";
 import { extractGalleryAuthorUrls } from "../gallery-author-urls";
+import { extractGalleryPublishedAt } from "../gallery-published-at";
 import { BaseMatcher, OriginMeta, Result } from "../platform";
 
 type HNImageInfo = {
@@ -148,45 +149,7 @@ class HentaiNexusMatcher extends BaseMatcher<Document> {
 }
 
 export function hentaiNexusPublishedAtFromDocument(doc: Document): string {
-  for (const row of doc.querySelectorAll(".view-page-details tr")) {
-    const category = cleanHentaiNexusValue(row.querySelector(".viewcolumn")?.textContent).toLowerCase();
-    if (!isHentaiNexusDateCategory(category)) continue;
-    const value = cleanHentaiNexusValue(row.querySelector(".viewcolumn + td")?.textContent);
-    if (value) return value;
-  }
-  return "";
-}
-
-function isHentaiNexusDateCategory(value: string): boolean {
-  const category = value
-    .replace(/[:：]\s*$/, "")
-    .replace(/[_-]+/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
-  return [
-    "date",
-    "upload date",
-    "uploaded",
-    "posted",
-    "posted date",
-    "published",
-    "published date",
-    "released",
-    "released date",
-    "created",
-    "created date",
-    "added",
-    "added date",
-  ].includes(category);
-}
-
-function cleanHentaiNexusValue(value: unknown): string {
-  if (typeof value !== "string" && typeof value !== "number") return "";
-  return String(value)
-    .replace(/[\n\r\t]+/g, " ")
-    .replace(/\s+/g, " ")
-    .trim()
-    .slice(0, 120);
+  return extractGalleryPublishedAt(doc, ".view-page-details tr", ".viewcolumn", ".viewcolumn + td");
 }
 
 ADAPTER.addSetup({
