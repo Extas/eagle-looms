@@ -150,6 +150,9 @@ Yabai
 Chinese gallery pages
   map common labels such as 作品/角色/作者/藝術家/社團 into global namespaces; keep 標籤/分類/語言 as raw tags
 
+Hanime1
+  map comic metadata rows through source metadata; author URLs point to author-like metadata links; image publish date comes from date-like metadata rows
+
 Pixiv
   author comes from Pixiv user identity; artwork tags stay raw because Pixiv does not classify copyright/character reliably; source-provided tag translations are kept as additional raw tags
 
