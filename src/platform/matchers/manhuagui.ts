@@ -7,12 +7,14 @@ import { BaseMatcher, OriginMeta, Result } from "../platform";
 class MHGMatcher extends BaseMatcher<string> {
   meta?: GalleryMeta;
   chapterCount: number = 0;
+  publishedAt = "";
   galleryMeta(): GalleryMeta {
     if (this.meta) return this.meta;
     let title = document.querySelector(".book-title > h1")?.textContent ?? document.title;
     title += "-c" + this.chapterCount;
-    const matches = document.querySelector(".detail-list .status")?.textContent?.match(STATUS_REGEX);
+    const matches = manhuaguiStatusText(document).match(STATUS_REGEX);
     const date = matches?.[1];
+    this.publishedAt = manhuaguiPublishedAtFromDocument(document);
     title += date ? "-" + date : "";
     const last = matches?.[2];
     title += last ? "-" + last.trim() : "";
@@ -36,7 +38,9 @@ class MHGMatcher extends BaseMatcher<string> {
     return data.files.map((f, i) => {
       const src = `${server}/${data.path}/${f}?e=${data.sl.e}&m=${data.sl.m}}`;
       const href = `https://www.manhuagui.com/comic/${data.bid}/${data.cid}.html#p=${i + 1}`;
-      return new ImageNode("", href, f, undefined, src);
+      const node = new ImageNode("", href, f, undefined, src);
+      node.setPublishedAt(this.publishedAt || manhuaguiPublishedAtFromDocument(document));
+      return node;
     });
   }
   async fetchOriginMeta(node: ImageNode): Promise<OriginMeta> {
@@ -167,6 +171,15 @@ function getServer(): string {
 
 const STATUS_REGEX = /\[(\d{4}-\d{2}-\d{2})\].*?\[(.*?)\]/;
 const IMG_DATA_PARAM_REGEX = /\('\w+\.\w+\((.*?)\).*?,(\d+),(\d+),'(.*?)'\[/;
+
+export function manhuaguiPublishedAtFromDocument(doc: Document): string {
+  return manhuaguiStatusText(doc).match(STATUS_REGEX)?.[1] || "";
+}
+
+function manhuaguiStatusText(doc: Document): string {
+  return doc.querySelector(".detail-list .status")?.textContent || "";
+}
+
 function decompressFromBase64(input: string): string {
   // @ts-ignore
   return LZString.decompressFromBase64(input);
