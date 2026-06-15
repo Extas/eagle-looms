@@ -56,12 +56,7 @@ class WnacgMatcher extends BaseMatcher<GalleryImage[]> {
   }
 
   private pasrseGalleryMeta(doc: Document): GalleryMeta {
-    const title = doc.querySelector<HTMLTitleElement>("#bodywrap > h2")?.textContent || "unknown";
-    const meta = new GalleryMeta(this.baseURL || window.location.href, title);
-    const tags = Array.from(doc.querySelectorAll(".asTB .tagshow")).map(ele => ele.textContent).filter(Boolean);
-    const description = Array.from(doc.querySelector(".asTB > .asTBcell.uwconn > p")?.childNodes || []).map(e => e.textContent).filter(Boolean) as string[];
-    meta.tags = { "tags": tags, "description": description }
-    return meta;
+    return wnacgGalleryMetaFromDocument(doc, this.baseURL || window.location.href);
   }
 
   private async requestGalleryImages(galleryURL: string): Promise<GalleryImage[]> {
@@ -125,6 +120,29 @@ type GalleryImage = {
   url: string;
   caption: string;
 }
+
+export function wnacgGalleryMetaFromDocument(doc: Document, href: string): GalleryMeta {
+  const title = cleanWnacgText(doc.querySelector<HTMLTitleElement>("#bodywrap > h2")?.textContent) || "unknown";
+  const meta = new GalleryMeta(href, title);
+  const tags = uniqueWnacgValues(Array.from(doc.querySelectorAll(".asTB .tagshow")).map(ele => ele.textContent));
+  const description = uniqueWnacgValues(Array.from(doc.querySelector(".asTB > .asTBcell.uwconn > p")?.childNodes || []).map(e => e.textContent));
+  meta.tags = { tags, description };
+  return meta;
+}
+
+function uniqueWnacgValues(values: unknown[]): string[] {
+  return [...new Set(values.map(cleanWnacgText).filter(Boolean))];
+}
+
+function cleanWnacgText(value: unknown): string {
+  if (typeof value !== "string" && typeof value !== "number") return "";
+  return String(value)
+    .replace(/[\n\r\t]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 120);
+}
+
 ADAPTER.addSetup({
   name: "绅士漫画",
   workURLs: [

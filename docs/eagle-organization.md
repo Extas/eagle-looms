@@ -186,6 +186,9 @@ Komiic
 MangaCopy
   image publish date comes from comic detail update date when available
 
+WNACG
+  gallery tag chips stay raw source tags; gallery description is kept in source metadata but not imported as visible tags
+
 KuaiKan
   image publish date comes from chapter creation date metadata
 
