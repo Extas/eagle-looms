@@ -120,6 +120,9 @@ E-Hentai / ExHentai
 Hitomi
   map galleryinfo parodys -> copyright, characters -> character, artists/groups -> author
 
+HDoujin / Niyaniya
+  map numeric API tag namespaces such as artist/circle/parody into global tags where applicable; image publish date comes from gallery creation time
+
 Chinese gallery pages
   map common labels such as 作品/角色/作者/藝術家/社團 into global namespaces; keep 標籤/分類/語言 as raw tags
 

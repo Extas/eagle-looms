@@ -110,7 +110,9 @@ class NiyaniyaMatcher extends BaseMatcher<string> {
       const href = `${window.location.origin}/reader/${galleryID}/${i + 1}`;
       const title = (i + 1).toString().padStart(pad, "0") + "." + item.path.split(".").pop();
       const src = itemBase + item.path;
-      return new ImageNode(thumbBase + thumbs[i].path, href, title, undefined, src, { w: item.dimensions[0], h: item.dimensions[1] });
+      const node = new ImageNode(thumbBase + thumbs[i].path, href, title, undefined, src, { w: item.dimensions[0], h: item.dimensions[1] });
+      node.setPublishedAt(niyaniyaPublishedAt(detail));
+      return node;
     });
   }
   async fetchOriginMeta(node: ImageNode): Promise<OriginMeta> {
@@ -124,6 +126,20 @@ class NiyaniyaMatcher extends BaseMatcher<string> {
   }
 
 }
+
+export function niyaniyaPublishedAt(value: Pick<BookDetail, "created_at">): string {
+  return cleanNiyaniyaValue(value.created_at);
+}
+
+function cleanNiyaniyaValue(value: unknown): string {
+  if (typeof value !== "string" && typeof value !== "number") return "";
+  return String(value)
+    .replace(/[\n\r\t]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 120);
+}
+
 ADAPTER.addSetup({
   name: "niyaniya.moe",
   workURLs: [

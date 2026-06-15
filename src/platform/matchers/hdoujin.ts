@@ -12,6 +12,7 @@ type HDoujinImg = {
   width: number,
   height: number,
   title: string,
+  publishedAt?: number,
 }
 
 type HDoujinEntry = {
@@ -129,6 +130,7 @@ class HDoujinMatcher extends BaseMatcher<HDoujinImg[]> {
         width: entry.dimensions[0],
         height: entry.dimensions[1],
         title: (i + 1).toString().padStart(digits, "0") + "." + ext,
+        publishedAt: gallery.created_at,
       })
     }
     yield Result.ok(ret);
@@ -141,7 +143,9 @@ class HDoujinMatcher extends BaseMatcher<HDoujinImg[]> {
 
   async parseImgNodes(images: HDoujinImg[],): Promise<ImageNode[]> {
     return images.map(img => {
-      return new ImageNode(img.thumb, img.href, img.title, undefined, img.large, { w: img.width, h: img.height });
+      const node = new ImageNode(img.thumb, img.href, img.title, undefined, img.large, { w: img.width, h: img.height });
+      node.setPublishedAt(hdoujinPublishedAt(img));
+      return node;
     });
   }
   // headers(_node: ImageNode): Record<string, string> {
@@ -164,6 +168,20 @@ class HDoujinMatcher extends BaseMatcher<HDoujinImg[]> {
     return { url: node.originSrc! };
   }
 
+}
+
+export function hdoujinPublishedAt(value: Pick<HDoujinGallery, "created_at"> | Pick<HDoujinImg, "publishedAt">): string {
+  const timestamp = (value as { publishedAt?: unknown }).publishedAt ?? (value as { created_at?: unknown }).created_at;
+  return cleanHDoujinValue(timestamp);
+}
+
+function cleanHDoujinValue(value: unknown): string {
+  if (typeof value !== "string" && typeof value !== "number") return "";
+  return String(value)
+    .replace(/[\n\r\t]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 120);
 }
 
 ADAPTER.addSetup({
