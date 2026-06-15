@@ -4,7 +4,7 @@ import EBUS from "../../event-bus";
 import ImageNode, { NodeAction } from "../../img-node";
 import { evLog } from "../../utils/ev-log";
 import { ADAPTER } from "../adapt";
-import { extractBooruAuthorUrls, extractBooruSourceTags, normalizeBooruSourceTags } from "../../eagle/adapters/booru";
+import { booruPublishedAtFromDocument, extractBooruAuthorUrls, extractBooruSourceTags, normalizeBooruSourceTags } from "../../eagle/adapters/booru";
 import { searchGalleryTitle } from "../gallery-title";
 import { BaseMatcher, OriginMeta, Result } from "../platform";
 
@@ -55,7 +55,7 @@ abstract class DanbooruMatcher extends BaseMatcher<Document> {
       url = this.getNormalURL(doc);
     }
     if (!url) throw new Error("Cannot find origin image or video url");
-    const publishedAt = sourcePublishedAtFromBooruDocument(doc);
+    const publishedAt = booruPublishedAtFromDocument(doc);
     let title: string | undefined;
     // extract ext from url
     const ext = url.split(".").pop()?.match(/^\w+/)?.[0];
@@ -113,7 +113,7 @@ abstract class DanbooruMatcher extends BaseMatcher<Document> {
     const sourceTags = extractBooruSourceTags(doc, []);
     node.setTags(...sourceTags);
     node.setAuthorUrls(...extractBooruAuthorUrls(doc, window.location.href));
-    node.setPublishedAt(sourcePublishedAtFromBooruDocument(doc));
+    node.setPublishedAt(booruPublishedAtFromDocument(doc));
     this.tags[id] = sourceTags;
     return node;
   }
@@ -403,13 +403,6 @@ ADAPTER.addSetup({
   match: ["https://danbooru.donmai.us/*"],
   constructor: () => new DanbooruDonmaiMatcher(),
 });
-
-function sourcePublishedAtFromBooruDocument(doc: Document): string | undefined {
-  return doc.querySelector<HTMLElement>("article[data-created-at]")?.getAttribute("data-created-at")
-    || doc.querySelector<HTMLTimeElement>("time[datetime]")?.getAttribute("datetime")
-    || doc.querySelector<HTMLMetaElement>("meta[property='article:published_time'], meta[name='date']")?.getAttribute("content")
-    || undefined;
-}
 
 function absoluteUrl(value: string): string {
   try {

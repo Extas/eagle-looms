@@ -1,7 +1,32 @@
 import { describe, expect, it } from "vitest";
-import { nhentaiAuthorUrlsFromDocument, nhentaiAuthorUrlsFromTags } from "./nhentai";
+import { nhentaiAuthorUrlsFromDocument, nhentaiAuthorUrlsFromTags, nhentaiPublishedAt, nhentaiPublishedAtFromDocument } from "./nhentai";
 
 describe("nhentai source metadata", () => {
+  it("derives published timestamps from API upload dates", () => {
+    expect(nhentaiPublishedAt({ upload_date: 1781411696 })).toBe("1781411696");
+    expect(nhentaiPublishedAt({ upload_date: "" })).toBe("");
+  });
+
+  it("derives published timestamps from structured document dates", () => {
+    const doc = new DOMParser().parseFromString(`
+      <html><head>
+        <meta property="article:published_time" content="2026-06-14T08:00:00Z">
+      </head><body></body></html>
+    `, "text/html");
+
+    expect(nhentaiPublishedAtFromDocument(doc)).toBe("2026-06-14T08:00:00Z");
+  });
+
+  it("falls back to uploaded text dates", () => {
+    const doc = new DOMParser().parseFromString(`
+      <html><body>
+        <section>Uploaded: 2026-06-14 08:00:00</section>
+      </body></html>
+    `, "text/html");
+
+    expect(nhentaiPublishedAtFromDocument(doc)).toBe("2026-06-14 08:00:00");
+  });
+
   it("extracts author URLs from API tag payloads", () => {
     expect(nhentaiAuthorUrlsFromTags([
       { type: "artist", url: "/artist/soha-blan/" },

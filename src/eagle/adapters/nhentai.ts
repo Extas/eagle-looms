@@ -1,9 +1,23 @@
+import { cleanSourceTag, isEagleAuthorCategory } from "./source-tags";
+
 type NhentaiTag = {
   type?: unknown;
   url?: unknown;
 };
 
-import { isEagleAuthorCategory } from "./source-tags";
+export function nhentaiPublishedAt(info: { upload_date?: unknown }): string {
+  return cleanNhentaiValue(info.upload_date);
+}
+
+export function nhentaiPublishedAtFromDocument(doc: Document): string {
+  const structured = doc.querySelector<HTMLTimeElement>("time[datetime]")?.getAttribute("datetime")
+    || doc.querySelector<HTMLMetaElement>("meta[property='article:published_time'], meta[name='date'], meta[name='pubdate']")?.getAttribute("content");
+  if (structured) return cleanNhentaiValue(structured);
+
+  const text = doc.body?.textContent || "";
+  const match = text.match(/\b(?:uploaded|posted|published)\s*:?\s*(\d{4}[-/.]\d{1,2}[-/.]\d{1,2}(?:\s+\d{1,2}:\d{2}(?::\d{2})?)?)/i);
+  return cleanNhentaiValue(match?.[1]);
+}
 
 export function nhentaiAuthorUrlsFromTags(tags: NhentaiTag[] | undefined, baseUrl = window.location.href): string[] {
   const urls = (tags || [])
@@ -35,4 +49,8 @@ function absoluteHttpUrl(value: unknown, baseUrl: string): string {
   } catch {
     return "";
   }
+}
+
+function cleanNhentaiValue(value: unknown): string {
+  return cleanSourceTag(value);
 }

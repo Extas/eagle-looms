@@ -1,16 +1,8 @@
-import { describe, expect, it, vi } from "vitest";
-import { sourceTagsFromGalleryMeta } from "../eagle/tags";
-import { mangaCopyGalleryMetaFromDocument, mangaCopyPublishedAtFromDocument } from "./matchers/mangacopy";
+import { describe, expect, it } from "vitest";
+import { sourceTagsFromGalleryMeta } from "../tags";
+import { mangaCopyGalleryMetaFromDocument, mangaCopyPublishedAtFromDocument } from "./mangacopy";
 
-vi.mock("$", () => ({
-  GM: {
-    xmlHttpRequest: () => undefined,
-  },
-  GM_getValue: () => null,
-  GM_setValue: () => undefined,
-}));
-
-describe("MangaCopy matcher metadata", () => {
+describe("MangaCopy Eagle metadata adapter", () => {
   it("derives published timestamps from comic detail dates", () => {
     const doc = new DOMParser().parseFromString(`
       <div class="comicParticulars-title-right">

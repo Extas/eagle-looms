@@ -5,6 +5,49 @@ export type TwitterEagleMetadata = {
   hashtags?: unknown[];
 };
 
+type TwitterLegacy = {
+  created_at?: string,
+  entities?: {
+    media?: unknown[],
+    hashtags?: { text?: string }[],
+  },
+  retweeted_status_result?: {
+    result?: TwitterItemResult,
+  },
+};
+
+type TwitterItemResult = {
+  legacy?: TwitterLegacy,
+  tweet?: {
+    legacy?: TwitterLegacy,
+  },
+  core?: {
+    user_results?: {
+      result?: {
+        legacy?: {
+          screen_name?: string,
+        },
+        core?: {
+          screen_name?: string,
+        },
+      },
+    },
+  },
+};
+
+export type TwitterEagleItem = {
+  itemContent?: {
+    tweet_results?: {
+      result?: TwitterItemResult,
+    },
+  },
+};
+
+type TwitterSourceCandidate = {
+  result?: TwitterItemResult,
+  legacy?: TwitterLegacy,
+};
+
 export function twitterEagleSourceTags(metadata: TwitterEagleMetadata): string[] {
   const tags = new Set<string>();
   const author = twitterEagleAuthorTag(metadata.screenName);
@@ -21,8 +64,79 @@ export function twitterEagleAuthorUrls(screenName: unknown): string[] {
   return user ? [`https://x.com/${user}`] : [];
 }
 
+export function twitterItemSourceTags(item: TwitterEagleItem): string[] {
+  const sourceCandidates = twitterMediaSourceCandidates(item);
+  const user = twitterScreenNameFromCandidates(sourceCandidates) || twitterScreenName(item);
+  const legacyCandidates = sourceCandidates.length
+    ? sourceCandidates.map(candidate => candidate.legacy)
+    : twitterLegacyCandidates(item);
+  const hashtags: string[] = [];
+  for (const legacy of legacyCandidates) {
+    legacy?.entities?.hashtags?.forEach(hashtag => {
+      const tag = hashtag.text?.trim();
+      if (tag) hashtags.push(tag);
+    });
+  }
+  return twitterEagleSourceTags({ screenName: user, hashtags });
+}
+
+export function twitterItemAuthorUrls(item: TwitterEagleItem): string[] {
+  const user = twitterScreenNameFromCandidates(twitterMediaSourceCandidates(item)) || twitterScreenName(item);
+  return twitterEagleAuthorUrls(user);
+}
+
+export function twitterItemPublishedAt(item: TwitterEagleItem): string {
+  const sourceCandidates = twitterMediaSourceCandidates(item);
+  const legacyCandidates = sourceCandidates.length
+    ? sourceCandidates.map(candidate => candidate.legacy)
+    : twitterLegacyCandidates(item);
+  return legacyCandidates
+    .map(legacy => legacy?.created_at || "")
+    .find(Boolean) || "";
+}
+
 function twitterEagleAuthorTag(screenName: unknown): string {
   return sourceMetadataTag("author", cleanTwitterScreenName(screenName));
+}
+
+function twitterScreenName(item: TwitterEagleItem): string {
+  const user = item.itemContent?.tweet_results?.result?.core?.user_results?.result;
+  return user?.legacy?.screen_name || user?.core?.screen_name || "";
+}
+
+function twitterMediaSourceCandidates(item: TwitterEagleItem): TwitterSourceCandidate[] {
+  const result = item.itemContent?.tweet_results?.result;
+  const retweeted1 = result?.legacy?.retweeted_status_result?.result;
+  const retweeted2 = result?.tweet?.legacy?.retweeted_status_result?.result;
+  return [
+    { result, legacy: result?.legacy },
+    { result: retweeted1, legacy: retweeted1?.tweet?.legacy },
+    { result: retweeted1, legacy: retweeted1?.legacy },
+    { result, legacy: result?.tweet?.legacy },
+    { result: retweeted2, legacy: retweeted2?.tweet?.legacy },
+    { result: retweeted2, legacy: retweeted2?.legacy },
+  ].filter(candidate => Boolean(candidate.legacy?.entities?.media?.length));
+}
+
+function twitterScreenNameFromCandidates(candidates: TwitterSourceCandidate[]): string {
+  return candidates
+    .map(candidate => {
+      const user = candidate.result?.core?.user_results?.result;
+      return user?.legacy?.screen_name || user?.core?.screen_name || "";
+    })
+    .find(Boolean) || "";
+}
+
+function twitterLegacyCandidates(item: TwitterEagleItem): Array<TwitterLegacy | undefined> {
+  const result = item.itemContent?.tweet_results?.result;
+  return [
+    result?.legacy,
+    result?.tweet?.legacy,
+    result?.legacy?.retweeted_status_result?.result?.legacy,
+    result?.legacy?.retweeted_status_result?.result?.tweet?.legacy,
+    result?.tweet?.legacy?.retweeted_status_result?.result?.legacy,
+    result?.tweet?.legacy?.retweeted_status_result?.result?.tweet?.legacy,
+  ];
 }
 
 function cleanTwitterScreenName(value: unknown): string {

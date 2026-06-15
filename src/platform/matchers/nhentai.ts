@@ -2,7 +2,7 @@ import { GalleryMeta } from "../../download/gallery-meta";
 import ImageNode from "../../img-node";
 import { sleep } from "../../utils/sleep";
 import { ADAPTER } from "../adapt";
-import { nhentaiAuthorUrlsFromDocument, nhentaiAuthorUrlsFromTags } from "../../eagle/adapters/nhentai";
+import { nhentaiAuthorUrlsFromDocument, nhentaiAuthorUrlsFromTags, nhentaiPublishedAt, nhentaiPublishedAtFromDocument } from "../../eagle/adapters/nhentai";
 import { BaseMatcher, OriginMeta, Result } from "../platform";
 
 function nhParseExt(str: string): string {
@@ -187,29 +187,6 @@ class NHxxxMatcher extends BaseMatcher<Document> {
   async fetchOriginMeta(node: ImageNode): Promise<OriginMeta> {
     return { url: node.originSrc! };
   }
-}
-
-export function nhentaiPublishedAt(info: Pick<NHGalleryInfo, "upload_date">): string {
-  return cleanNhentaiValue(info.upload_date);
-}
-
-export function nhentaiPublishedAtFromDocument(doc: Document): string {
-  const structured = doc.querySelector<HTMLTimeElement>("time[datetime]")?.getAttribute("datetime")
-    || doc.querySelector<HTMLMetaElement>("meta[property='article:published_time'], meta[name='date'], meta[name='pubdate']")?.getAttribute("content");
-  if (structured) return cleanNhentaiValue(structured);
-
-  const text = doc.body?.textContent || "";
-  const match = text.match(/\b(?:uploaded|posted|published)\s*:?\s*(\d{4}[-/.]\d{1,2}[-/.]\d{1,2}(?:\s+\d{1,2}:\d{2}(?::\d{2})?)?)/i);
-  return cleanNhentaiValue(match?.[1]);
-}
-
-function cleanNhentaiValue(value: unknown): string {
-  if (typeof value !== "string" && typeof value !== "number") return "";
-  return String(value)
-    .replace(/[\n\r\t]+/g, " ")
-    .replace(/\s+/g, " ")
-    .trim()
-    .slice(0, 120);
 }
 
 ADAPTER.addSetup({

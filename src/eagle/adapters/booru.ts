@@ -257,6 +257,13 @@ export function extractBooruAuthorUrls(root: ParentNode, baseUrl = window.locati
   return [...new Set(urls)];
 }
 
+export function booruPublishedAtFromDocument(doc: Document): string | undefined {
+  return doc.querySelector<HTMLElement>("article[data-created-at]")?.getAttribute("data-created-at")
+    || doc.querySelector<HTMLTimeElement>("time[datetime]")?.getAttribute("datetime")
+    || doc.querySelector<HTMLMetaElement>("meta[property='article:published_time'], meta[name='date']")?.getAttribute("content")
+    || undefined;
+}
+
 function elementsWithAnyAttribute(root: ParentNode, attrs: readonly string[]): Element[] {
   const selectors = attrs.map(attr => `[${attr}]`);
   const elements: Element[] = [];

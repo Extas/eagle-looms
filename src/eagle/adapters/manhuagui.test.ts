@@ -1,20 +1,12 @@
-import { describe, expect, it, vi } from "vitest";
-import { sourceTagsFromGalleryMeta } from "../eagle/tags";
-import { manhuaguiGalleryMetaFromDocument, manhuaguiPublishedAtFromDocument } from "./matchers/manhuagui";
-
-vi.mock("$", () => ({
-  GM: {
-    xmlHttpRequest: () => undefined,
-  },
-  GM_getValue: () => null,
-  GM_setValue: () => undefined,
-}));
+import { describe, expect, it } from "vitest";
+import { sourceTagsFromGalleryMeta } from "../tags";
+import { manhuaguiGalleryMetaFromDocument, manhuaguiPublishedAtFromDocument } from "./manhuagui";
 
 function parseDocument(html: string): Document {
   return new DOMParser().parseFromString(html, "text/html");
 }
 
-describe("Manhuagui matcher metadata", () => {
+describe("Manhuagui Eagle metadata adapter", () => {
   it("extracts publish dates from detail status text", () => {
     const doc = parseDocument(`
       <div class="detail-list">

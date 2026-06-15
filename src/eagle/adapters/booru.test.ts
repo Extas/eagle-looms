@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { extractBooruAuthorUrls, extractBooruSourceTags, normalizeBooruSourceTags } from "./booru";
+import { booruPublishedAtFromDocument, extractBooruAuthorUrls, extractBooruSourceTags, normalizeBooruSourceTags } from "./booru";
 
 describe("booru source tags", () => {
   it("normalizes known booru categories and keeps other tags raw", () => {
@@ -71,6 +71,14 @@ describe("booru source tags", () => {
       "long_hair",
       "highres",
     ]);
+  });
+
+  it("derives publish timestamps from booru detail pages", () => {
+    document.body.innerHTML = `<article data-created-at="2026-06-14T08:00:00Z"></article>`;
+    expect(booruPublishedAtFromDocument(document)).toBe("2026-06-14T08:00:00Z");
+
+    document.body.innerHTML = `<time datetime="2026-06-15T09:00:00Z"></time>`;
+    expect(booruPublishedAtFromDocument(document)).toBe("2026-06-15T09:00:00Z");
   });
 
   it("supports author-like booru data attributes", () => {
