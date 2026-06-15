@@ -464,8 +464,8 @@ export function twitterGalleryTitleFromURL(href: string, fallbackTitle = "twitte
   if (path === "/home") return datedGalleryTitle(["twitter", "home"], date);
   const listId = path.match(/^\/i\/lists\/([^/]+)/)?.[1];
   if (listId) return datedGalleryTitle(["twitter", "list", listId], date);
-  const userName = path.match(/^\/([^/]+)/)?.[1];
-  return datedGalleryTitle(["twitter", "user", cleanGalleryTitlePart(userName || fallbackTitle).replace(/^@/, "")], date);
+  if (path.match(/^\/[^/]+/)) return datedGalleryTitle(["twitter", "user"], date);
+  return datedGalleryTitle(["twitter", cleanGalleryTitlePart(fallbackTitle)], date);
 }
 
 function getMyID(): string | undefined {

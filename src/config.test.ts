@@ -12,7 +12,7 @@ vi.mock("$", () => ({
 }));
 
 const CONFIG_KEY = "ehvh_cfg_";
-const EXPECTED_CONFIG_PATCH_VERSION = 19;
+const EXPECTED_CONFIG_PATCH_VERSION = 20;
 
 function siteConfigKey(name: string): string {
   return CONFIG_KEY + b64EncodeUnicode(name).replaceAll(/[+=\/]/g, "-");
@@ -124,6 +124,20 @@ describe("config migrations", () => {
   it("migrates patch 18 Eagle gallery presets to the site/date default", () => {
     const config = defaultConf();
     config.configPatchVersion = 18;
+    config.eagleFolderPreset = "gallery";
+    config.eagleFolderPath = "Eagle Looms/{site}/{gallery}";
+    storage.set(CONFIG_KEY, JSON.stringify(config));
+
+    const migrated = getConf();
+
+    expect(migrated.configPatchVersion).toBe(EXPECTED_CONFIG_PATCH_VERSION);
+    expect(migrated.eagleFolderPreset).toBe("date");
+    expect(migrated.eagleFolderPath).toBe("Eagle Looms/{site}/{date}");
+  });
+
+  it("migrates patch 19 Eagle gallery presets to the site/date default", () => {
+    const config = defaultConf();
+    config.configPatchVersion = 19;
     config.eagleFolderPreset = "gallery";
     config.eagleFolderPath = "Eagle Looms/{site}/{gallery}";
     storage.set(CONFIG_KEY, JSON.stringify(config));
@@ -250,6 +264,20 @@ describe("config migrations", () => {
   it("migrates patch 18 site-level Eagle gallery presets to site/date", () => {
     storage.set(siteConfigKey("Twitter | X"), JSON.stringify({
       configPatchVersion: 18,
+      eagleFolderPreset: "gallery",
+      eagleFolderPath: "Eagle Looms/{site}/{gallery}",
+    }));
+
+    const migrated = getSiteConfig("Twitter | X");
+
+    expect(migrated.configPatchVersion).toBe(EXPECTED_CONFIG_PATCH_VERSION);
+    expect(migrated.eagleFolderPreset).toBe("date");
+    expect(migrated.eagleFolderPath).toBe("Eagle Looms/{site}/{date}");
+  });
+
+  it("migrates patch 19 site-level Eagle gallery presets to site/date", () => {
+    storage.set(siteConfigKey("Twitter | X"), JSON.stringify({
+      configPatchVersion: 19,
       eagleFolderPreset: "gallery",
       eagleFolderPath: "Eagle Looms/{site}/{gallery}",
     }));

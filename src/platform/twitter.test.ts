@@ -17,8 +17,8 @@ describe("Twitter matcher metadata", () => {
     expect(twitterGalleryTitleFromURL("https://twitter.com/home", "", date)).toBe("twitter-home-2026-05-31");
   });
 
-  it("keeps user and list timelines readable", () => {
-    expect(twitterGalleryTitleFromURL("https://x.com/MapoMagpie/media", "", date)).toBe("twitter-user-MapoMagpie-2026-05-31");
+  it("keeps user and list timelines readable without author folders", () => {
+    expect(twitterGalleryTitleFromURL("https://x.com/MapoMagpie/media", "", date)).toBe("twitter-user-2026-05-31");
     expect(twitterGalleryTitleFromURL("https://x.com/i/lists/12345", "", date)).toBe("twitter-list-12345-2026-05-31");
   });
 

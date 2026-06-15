@@ -54,7 +54,7 @@ for the optional Site / Copyright preset, fall back to gallery, author, chapter,
 expand multiple distinct characters into multiple Eagle folders only when the template uses {character}
 fold obvious outfit-style longer character variants into the shorter character name
 do not include parsed item counts, page numbers, retry state, or other run-state values in folder tokens
-feed/home timelines without a stable collection title use semantic name plus local date, such as twitter-home-2026-05-31
+feed/home/user timelines without a stable collection title use semantic name plus local date, such as twitter-home-2026-05-31 or twitter-user-2026-05-31
 search/list pages use source taxonomy labels, such as danbooru-search-bang_dream, not result counts
 ```
 
