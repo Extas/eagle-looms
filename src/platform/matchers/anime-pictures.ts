@@ -48,7 +48,6 @@ class AnimePicturesMatcher extends BaseMatcher<Document> {
     return entries.map((entry) => {
       const title = `anime-pictures-${entry.id}.${extensionFromUrl(entry.thumbnailUrl || "") || "jpg"}`;
       const node = new ImageNode(entry.thumbnailUrl || "", entry.postUrl, title, undefined, undefined, entry.width && entry.height ? { w: entry.width, h: entry.height } : undefined);
-      node.setTags("site:anime-pictures.net", `post:${entry.id}`);
       node.setPublishedAt(entry.publishedAt);
       return node;
     });

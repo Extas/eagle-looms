@@ -1,3 +1,6 @@
+import { animePicturesApiSourceTag, animePicturesCategory, animePicturesSourceTag } from "../eagle/adapters/anime-pictures";
+import type { AnimePicturesCategory } from "../eagle/adapters/anime-pictures";
+
 const POST_RE = /\/(?:posts|pictures\/view_post)\/(\d+)/;
 const IMAGE_EXT_RE = /\.(?:jpe?g|png|webp|gif)(?:[?#].*)?$/i;
 
@@ -164,9 +167,9 @@ function currentPostEntry(document: Document, pageUrl: string): AnimePicturesPos
 
 function extractCategorizedTags(root: Element, baseUrl: string): string[] {
   const tags: string[] = [];
-  let currentCategory = "";
+  let currentCategory: AnimePicturesCategory | undefined = "";
   const updateCategory = (value: string) => {
-    const next = classifyAnimePicturesCategory(value);
+    const next = animePicturesCategory(value);
     if (next !== undefined) currentCategory = next;
   };
   const walk = (node: ChildNode) => {
@@ -179,7 +182,8 @@ function extractCategorizedTags(root: Element, baseUrl: string): string[] {
     updateCategory(directText(element));
     if (element.tagName.toLowerCase() === "a" && currentCategory) {
       const name = cleanSourceTagName(element.textContent || (element as HTMLAnchorElement).title || tagNameFromUrl((element as HTMLAnchorElement).href, baseUrl));
-      if (name) tags.push(currentCategory === "raw" ? name : `${currentCategory}:${name}`);
+      const tag = animePicturesSourceTag(currentCategory, name);
+      if (tag) tags.push(tag);
       return;
     }
     element.childNodes.forEach(walk);
@@ -204,80 +208,6 @@ function findSmallestPanel(document: Document, requiredTerms: string[], optional
   return candidates.sort((a, b) => (a.textContent || "").length - (b.textContent || "").length)[0];
 }
 
-function classifyAnimePicturesCategory(value: string): "copyright" | "character" | "author" | "raw" | "" | undefined {
-  const normalized = normalizeCategory(value);
-  const namespace = animePicturesNamespaceForCategory(normalized);
-  if (namespace) return namespace;
-  switch (normalized) {
-    case "reference":
-    case "object":
-    case "general":
-    case "meta":
-    case "style":
-    case "tag":
-      return "raw";
-    case "tags":
-      return "";
-    default:
-      return undefined;
-  }
-}
-
-function animePicturesNamespaceForCategory(value: string): "copyright" | "character" | "author" | "" {
-  switch (normalizeCategory(value)) {
-    case "game copyright":
-    case "copyright":
-    case "copyrights":
-    case "other copyright":
-    case "parody":
-    case "parodies":
-    case "parodys":
-    case "series":
-    case "work":
-    case "works":
-    case "work title":
-    case "source work":
-    case "original":
-    case "original work":
-    case "franchise":
-    case "franchises":
-    case "ip":
-    case "property":
-    case "properties":
-      return "copyright";
-    case "character":
-    case "characters":
-    case "char":
-      return "character";
-    case "author":
-    case "authors":
-    case "artist":
-    case "artists":
-    case "creator":
-    case "creators":
-    case "illustrator":
-    case "illustrators":
-    case "writer":
-    case "writers":
-    case "translator":
-    case "translators":
-    case "editor":
-    case "editors":
-    case "colorist":
-    case "colorists":
-    case "letterer":
-    case "letterers":
-    case "mangaka":
-    case "circle":
-    case "circles":
-    case "group":
-    case "groups":
-      return "author";
-    default:
-      return "";
-  }
-}
-
 function directText(element: Element): string {
   return [...element.childNodes]
     .filter(node => node.nodeType === Node.TEXT_NODE)
@@ -287,17 +217,6 @@ function directText(element: Element): string {
 
 function compactText(value: string): string {
   return value.replace(/[\n\r\t]+/g, " ").replace(/\s+/g, " ").trim();
-}
-
-function normalizeCategory(value: string): string {
-  return compactText(value)
-    .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
-    .replace(/[_-]+/g, " ")
-    .replace(/\(\s*s\s*\)/gi, "")
-    .replace(/[:：]+$/g, "")
-    .replace(/\s+/g, " ")
-    .trim()
-    .toLowerCase();
 }
 
 function cleanSourceTagName(value: string): string {
@@ -346,15 +265,10 @@ function apiTags(tags: unknown): string[] {
     const raw = (entry as any)?.tag || entry;
     const value = typeof raw === "string" ? raw : raw?.tag || raw?.name || raw?.tag_en || "";
     const category = raw?.type || raw?.category || raw?.tag_type || (entry as any)?.type || (entry as any)?.tag_type || "";
-    const normalized = normalizeApiTagCategory(String(category));
     const name = cleanSourceTagName(String(value || ""));
     if (!name) return "";
-    return normalized ? `${normalized}:${name}` : name;
+    return animePicturesApiSourceTag(category, name);
   }).filter(Boolean))];
-}
-
-function normalizeApiTagCategory(value: string): "copyright" | "character" | "author" | "" {
-  return animePicturesNamespaceForCategory(value);
 }
 
 function extractPublishedAt(document: Document): string | undefined {
