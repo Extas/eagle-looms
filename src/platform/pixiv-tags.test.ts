@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { normalizePixivWorkTags, pixivAuthorTag, pixivAuthorUrl } from "./pixiv-tags";
+import { normalizePixivWorkTags, pixivAuthorLabel, pixivAuthorUrl } from "./pixiv-tags";
 
 describe("Pixiv source tags", () => {
   it("normalizes profile/illusts string tags", () => {
@@ -44,12 +44,12 @@ describe("Pixiv source tags", () => {
       userAccount: "soha_blan",
     };
 
-    expect(pixivAuthorTag(work)).toBe("author:soha blan");
+    expect(pixivAuthorLabel(work)).toBe("soha blan");
     expect(pixivAuthorUrl(work)).toBe("https://www.pixiv.net/users/81925632");
   });
 
   it("falls back to Pixiv user id when no readable author name is present", () => {
-    expect(pixivAuthorTag({}, "81925632")).toBe("author:81925632");
+    expect(pixivAuthorLabel({}, "81925632")).toBe("81925632");
     expect(pixivAuthorUrl({}, "81925632")).toBe("https://www.pixiv.net/users/81925632");
   });
 });

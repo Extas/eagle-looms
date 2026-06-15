@@ -22,11 +22,11 @@ export function normalizePixivWorkTags(value: unknown): string[] {
     .filter(Boolean))];
 }
 
-export function pixivAuthorTag(value: unknown, fallbackUserId?: unknown): string {
+export function pixivAuthorLabel(value: unknown, fallbackUserId?: unknown): string {
   const author = pixivAuthorName(value);
-  if (author) return `author:${author}`;
+  if (author) return author;
   const id = cleanPixivTag(String(fallbackUserId ?? pixivAuthorId(value) ?? ""));
-  return id ? `author:${id}` : "";
+  return id;
 }
 
 export function pixivAuthorUrl(value: unknown, fallbackUserId?: unknown): string {

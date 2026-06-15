@@ -29,13 +29,16 @@ src/main.ts
   userscript bootstrap, route refresh, EagleDownloader wiring
 
 src/platform/
-  Comic Looms compatible matchers and source metadata extraction
+  Comic Looms compatible matchers and neutral source metadata extraction
 
 src/download/
   upstream downloader, chapter selection, cherry-pick, and queue flow
 
 src/eagle/
   Eagle Web API client, import target, folder/tags/options/duplicates helpers
+
+src/eagle/adapters/
+  Eagle-specific source metadata adapters called from narrow matcher integration points
 
 src/ui/
   upstream Comic Looms UI; Eagle settings are normal ConfigPanel entries
@@ -122,7 +125,7 @@ git log --oneline 8ce7f98fc2539d8e2a6ba2199b60ea03c6d0ad1f..upstream/master
 git diff 8ce7f98fc2539d8e2a6ba2199b60ea03c6d0ad1f..upstream/master -- src package.json vite.config.ts tsconfig.json
 ```
 
-Review copied Comic Looms areas (`src/platform/`, `src/download/`, `src/ui/`, `src/utils/`, queue/fetcher files, config, main), port only compatible changes, keep Eagle-specific logic in `src/eagle/` or small adapter points, then run `npm run verify:local`.
+Review copied Comic Looms areas (`src/platform/`, `src/download/`, `src/ui/`, `src/utils/`, queue/fetcher files, config, main), port only compatible changes, keep Eagle-specific logic in `src/eagle/` or `src/eagle/adapters/` with only small matcher call sites, then run `npm run verify:local`.
 
 ## Site Coverage
 

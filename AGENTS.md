@@ -29,6 +29,9 @@ Do not build a parallel collector, queue, or Eagle-only panel unless the user ex
 src/eagle/
   Eagle-specific API, import, option, folder, tag, duplicate logic
 
+src/eagle/adapters/
+  Eagle-specific source metadata adapters; keep matcher changes to narrow calls into these files
+
 src/platform/
   site matchers and source metadata extraction; keep Comic Looms matcher contract
 
@@ -83,7 +86,7 @@ upstream  https://github.com/MapoMagpie/comic-looms.git
 anchor    8ce7f98fc2539d8e2a6ba2199b60ea03c6d0ad1f
 ```
 
-Do not merge upstream wholesale. Fetch and diff deliberately, then port compatible changes while keeping Eagle logic in `src/eagle/` or narrow adapter points.
+Do not merge upstream wholesale. Fetch and diff deliberately, then port compatible changes while keeping Eagle logic in `src/eagle/` / `src/eagle/adapters/` and only narrow adapter calls in upstream-derived files.
 
 ## Versioning
 

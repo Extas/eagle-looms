@@ -12,7 +12,8 @@ import { i18n } from "../../utils/i18n";
 import { HTMLUgoiraElement } from "../../utils/ugoira";
 import { replaceHost } from "../../utils/url";
 import { datedGalleryTitle, galleryTitle } from "../gallery-title";
-import { normalizePixivWorkTags, pixivAuthorTag, pixivAuthorUrl } from "../pixiv-tags";
+import { pixivEagleArtworkMetadataBuckets, pixivEagleAuthorUrl, pixivEagleSourceTags } from "../../eagle/adapters/pixiv";
+import { normalizePixivWorkTags } from "../pixiv-tags";
 
 type ArtistPIDs = {
   id?: string,
@@ -284,10 +285,7 @@ export class PixivMatcher extends BaseMatcher<ArtistPIDs[]> {
     this.meta.title = sourceTitle === "home"
       ? datedGalleryTitle(["pixiv", "home"])
       : galleryTitle(["pixiv", "user", sourceTitle]);
-    this.meta.tags = Object.entries(this.works).reduce<Record<string, string[]>>((tags, [pid, work]) => {
-      tags[pid] = [pixivAuthorTag(work), ...work.tags].filter(Boolean);
-      return tags;
-    }, {});
+    this.meta.tags = pixivEagleArtworkMetadataBuckets(this.works);
     return this.meta;
   }
 
@@ -424,11 +422,9 @@ export class PixivMatcher extends BaseMatcher<ArtistPIDs[]> {
         );
         const artistId = artistByPid[pid];
         const work = this.works[pid];
-        const authorTag = pixivAuthorTag(work, artistId);
-        const authorUrl = pixivAuthorUrl(work, artistId);
-        if (authorTag) node.setTags(authorTag);
+        const authorUrl = pixivEagleAuthorUrl(work, artistId);
+        node.setTags(...pixivEagleSourceTags(work, artistId));
         if (authorUrl) node.setAuthorUrls(authorUrl);
-        node.setTags(...(this.works[pid]?.tags || []));
         node.setPublishedAt(this.works[pid]?.createDate || this.works[pid]?.uploadDate);
         node.actions.push(actionLike);
         node.actions.push(actionBookmark);
