@@ -1,7 +1,7 @@
 import { GalleryMeta } from "../../download/gallery-meta";
 import ImageNode from "../../img-node";
 import { ADAPTER } from "../adapt";
-import { hanime1AuthorUrlsFromDocument, hanime1PublishedAtFromDocument } from "../../eagle/adapters/hanime1";
+import { hanime1GalleryMetaFromDocument, hanime1PublishedAtFromDocument } from "../../eagle/adapters/hanime1";
 import { BaseMatcher, OriginMeta, Result } from "../platform";
 
 class Hanime1Matcher extends BaseMatcher<Document> {
@@ -11,17 +11,7 @@ class Hanime1Matcher extends BaseMatcher<Document> {
     return this.meta!;
   }
   parseMeta() {
-    const title = document.querySelector(".comics-panel-margin h3.title")?.textContent?.replaceAll(/\s/g, "");
-    const originTItle = document.querySelector(".comics-panel-margin h4.title")?.textContent?.replaceAll(/\s/g, "");
-    const meta = new GalleryMeta(window.location.href, title ?? document.title);
-    meta.originTitle = originTItle ?? undefined;
-    Array.from(document.querySelectorAll(".comics-panel-margin .comics-metadata-margin-top h5")).forEach(ele => {
-      let cat = ele.firstChild?.textContent ?? "misc";
-      cat = cat.trim().replace(/[:：]+$/g, "");
-      const tags = Array.from(ele.querySelectorAll("a")).map(t => t.textContent?.trim()).filter(Boolean) as string[];
-      meta.tags[cat] = tags;
-    });
-    meta.authorUrls = hanime1AuthorUrlsFromDocument(document);
+    const meta = hanime1GalleryMetaFromDocument(document, window.location.href);
     this.publishedAt = hanime1PublishedAtFromDocument(document);
     this.meta = meta;
   }

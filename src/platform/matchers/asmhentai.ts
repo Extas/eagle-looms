@@ -1,7 +1,7 @@
 import { GalleryMeta } from "../../download/gallery-meta";
 import ImageNode from "../../img-node";
 import { ADAPTER } from "../adapt";
-import { asmHentaiAuthorUrlsFromDocument, asmHentaiPublishedAtFromDocument } from "../../eagle/adapters/asmhentai";
+import { asmHentaiGalleryMetaFromDocument, asmHentaiPublishedAtFromDocument } from "../../eagle/adapters/asmhentai";
 import { BaseMatcher, OriginMeta, Result } from "../platform";
 
 class AsmHentaiMatcher extends BaseMatcher<string> {
@@ -53,22 +53,7 @@ class AsmHentaiMatcher extends BaseMatcher<string> {
   meta?: GalleryMeta;
   galleryMeta(): GalleryMeta {
     if (this.meta) return this.meta;
-    const title = document.querySelector(".right > .info > h1")?.textContent ?? document.title;
-    const meta = new GalleryMeta(window.location.href, title);
-    meta.originTitle = document.querySelector(".right > .info > h2")?.textContent ?? undefined;
-    Array.from(document.querySelectorAll<HTMLElement>(".right > .info > ul > .tags")).forEach(elem => {
-      const cate = elem.querySelector("h3")?.textContent?.trim().replace(":", "").toLowerCase();
-      if (cate) {
-        const tags = Array.from(elem.querySelectorAll<HTMLSpanElement>(".tag_list > a > span")).map(span =>
-          span.firstChild?.textContent ?? undefined
-        ).filter(Boolean) as string[];
-        if (tags.length > 0) {
-          meta.tags[cate] = tags;
-        }
-      }
-    });
-    meta.authorUrls = asmHentaiAuthorUrlsFromDocument(document);
-    this.meta = meta;
+    this.meta = asmHentaiGalleryMetaFromDocument(document, window.location.href);
     return this.meta;
   }
 

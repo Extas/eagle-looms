@@ -1,7 +1,7 @@
 import { GalleryMeta } from "../../download/gallery-meta";
 import ImageNode from "../../img-node";
 import { ADAPTER } from "../adapt";
-import { akumaAuthorUrlsFromDocument, akumaPublishedAtFromDocument } from "../../eagle/adapters/akuma";
+import { akumaGalleryMetaFromDocument, akumaPublishedAtFromDocument } from "../../eagle/adapters/akuma";
 import { BaseMatcher, Result, OriginMeta } from "../platform";
 
 class AkumaMatcher extends BaseMatcher<Document> {
@@ -19,18 +19,7 @@ class AkumaMatcher extends BaseMatcher<Document> {
     return this.meta!;
   }
   initGalleryMeta(doc: Document): GalleryMeta {
-    const title = doc.querySelector("header.entry-header > h1")?.textContent ?? doc.title;
-    const meta = new GalleryMeta(window.location.href, title);
-    meta.originTitle = doc.querySelector("header.entry-header > span")?.textContent || undefined;
-    meta.tags = Array.from(doc.querySelectorAll("ul.info-list > li.meta-data"))
-      .reduce<Record<string, string[]>>((prev, curr) => {
-        const cat = curr.querySelector("span.data")?.textContent?.replace(":", "").toLowerCase().trim();
-        if (cat) {
-          prev[cat] = Array.from(curr.querySelectorAll("span.value")).map(v => v.textContent?.trim()).filter(Boolean) as string[];
-        }
-        return prev;
-      }, {});
-    meta.authorUrls = akumaAuthorUrlsFromDocument(doc);
+    const meta = akumaGalleryMetaFromDocument(doc, window.location.href);
     this.publishedAt = akumaPublishedAtFromDocument(doc);
     return meta;
   }

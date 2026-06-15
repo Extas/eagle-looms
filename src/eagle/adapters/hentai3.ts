@@ -1,5 +1,22 @@
+import { GalleryMeta } from "../../download/gallery-meta";
 import { isGalleryAuthorCategory } from "./gallery-author-urls";
 import { cleanGalleryDateValue, isGalleryDateCategory } from "./gallery-published-at";
+import { cleanSourceTag } from "./source-tags";
+
+export function hentai3GalleryMetaFromDocument(doc: Document, href = window.location.href): GalleryMeta {
+  const title = cleanHentai3Value(doc.querySelector("#main-info > h1")?.textContent) || cleanHentai3Value(doc.title);
+  const meta = new GalleryMeta(href, title);
+  hentai3TagRows(doc).forEach(row => {
+    const cate = cleanHentai3Value(row.firstChild?.textContent).replace(":", "").toLowerCase();
+    const filterElem = Array.from(row.querySelectorAll<HTMLSpanElement>("span.filter-elem"));
+    if (cate && filterElem.length > 0) {
+      const tags = filterElem.map(elem => cleanHentai3Value(elem.textContent)).filter(Boolean);
+      meta.tags[cate] = tags;
+    }
+  });
+  meta.authorUrls = hentai3AuthorUrlsFromDocument(doc, href);
+  return meta;
+}
 
 export function hentai3AuthorUrlsFromDocument(doc: Document, baseUrl = window.location.href): string[] {
   const urls: string[] = [];
@@ -48,4 +65,8 @@ function absoluteHttpUrl(value: unknown, baseUrl: string): string {
   } catch {
     return "";
   }
+}
+
+function cleanHentai3Value(value: unknown): string {
+  return cleanSourceTag(value);
 }

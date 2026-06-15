@@ -1,7 +1,7 @@
 import { GalleryMeta } from "../../download/gallery-meta";
 import ImageNode from "../../img-node";
 import { ADAPTER } from "../adapt";
-import { hentai3AuthorUrlsFromDocument, hentai3PublishedAtFromDocument } from "../../eagle/adapters/hentai3";
+import { hentai3GalleryMetaFromDocument, hentai3PublishedAtFromDocument } from "../../eagle/adapters/hentai3";
 import { BaseMatcher, OriginMeta, Result } from "../platform";
 
 class Hentai3Matcher extends BaseMatcher<Document> {
@@ -60,19 +60,7 @@ class Hentai3Matcher extends BaseMatcher<Document> {
   meta?: GalleryMeta;
   galleryMeta(): GalleryMeta {
     if (this.meta) return this.meta;
-    const title = document.querySelector("#main-info > h1")?.textContent ?? document.title;
-    const meta = new GalleryMeta(window.location.href, title);
-    Array.from(document.querySelectorAll<HTMLDivElement>(".tag-container.field-name")).forEach(elem => {
-      const cate = elem.firstChild?.textContent?.trim()?.replace(":", "")?.toLowerCase()
-      const filterElem = Array.from(elem.querySelectorAll<HTMLSpanElement>("span.filter-elem"));
-      if (cate && filterElem.length > 0) {
-        const tags = filterElem.map(elem => elem.textContent?.trim()).filter(Boolean);
-        meta.tags[cate] = tags;
-      }
-    });
-    meta.authorUrls = hentai3AuthorUrlsFromDocument(document);
-
-    this.meta = meta;
+    this.meta = hentai3GalleryMetaFromDocument(document, window.location.href);
     return this.meta;
   }
 

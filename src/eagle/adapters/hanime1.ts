@@ -1,5 +1,21 @@
+import { GalleryMeta } from "../../download/gallery-meta";
 import { isGalleryAuthorCategory } from "./gallery-author-urls";
 import { cleanGalleryDateValue, isGalleryDateCategory } from "./gallery-published-at";
+import { cleanSourceTag } from "./source-tags";
+
+export function hanime1GalleryMetaFromDocument(doc: Document, href = window.location.href): GalleryMeta {
+  const title = cleanHanime1Title(doc.querySelector(".comics-panel-margin h3.title")?.textContent);
+  const originTitle = cleanHanime1Title(doc.querySelector(".comics-panel-margin h4.title")?.textContent);
+  const meta = new GalleryMeta(href, title || cleanHanime1Value(doc.title));
+  meta.originTitle = originTitle || undefined;
+  hanime1MetadataRows(doc).forEach(ele => {
+    const cat = cleanHanime1Value(ele.firstChild?.textContent || "misc").replace(/[:：]+$/g, "");
+    const tags = Array.from(ele.querySelectorAll("a")).map(t => cleanHanime1Value(t.textContent)).filter(Boolean);
+    meta.tags[cat] = tags;
+  });
+  meta.authorUrls = hanime1AuthorUrlsFromDocument(doc, href);
+  return meta;
+}
 
 export function hanime1AuthorUrlsFromDocument(doc: Document, baseUrl = window.location.href): string[] {
   const urls: string[] = [];
@@ -59,4 +75,12 @@ function absoluteHttpUrl(value: unknown, baseUrl: string): string {
   } catch {
     return "";
   }
+}
+
+function cleanHanime1Title(value: unknown): string {
+  return cleanHanime1Value(value).replaceAll(/\s/g, "");
+}
+
+function cleanHanime1Value(value: unknown): string {
+  return cleanSourceTag(value);
 }
