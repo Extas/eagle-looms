@@ -1,15 +1,7 @@
-import { describe, expect, it, vi } from "vitest";
-import { doubanAuthorUrls, doubanPublishedAt, doubanSourceTags } from "./matchers/douban";
+import { describe, expect, it } from "vitest";
+import { doubanAuthorUrls, doubanPublishedAt, doubanSourceTags } from "./douban";
 
-vi.mock("$", () => ({
-  GM: {
-    xmlHttpRequest: () => undefined,
-  },
-  GM_getValue: () => null,
-  GM_setValue: () => undefined,
-}));
-
-describe("Douban matcher metadata", () => {
+describe("Douban Eagle metadata adapter", () => {
   it("derives author source tags from album owner metadata", () => {
     expect(doubanSourceTags({ owner_name: "  Artist\nName  " })).toEqual([
       "author:Artist Name",

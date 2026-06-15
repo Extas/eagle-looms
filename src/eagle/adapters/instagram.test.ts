@@ -1,15 +1,7 @@
-import { describe, expect, it, vi } from "vitest";
-import { instagramAuthorUrls, instagramPublishedAt, instagramSourceTags } from "./matchers/instagram";
+import { describe, expect, it } from "vitest";
+import { instagramAuthorUrls, instagramPublishedAt, instagramSourceTags } from "./instagram";
 
-vi.mock("$", () => ({
-  GM: {
-    xmlHttpRequest: () => undefined,
-  },
-  GM_getValue: () => null,
-  GM_setValue: () => undefined,
-}));
-
-describe("Instagram matcher metadata", () => {
+describe("Instagram Eagle metadata adapter", () => {
   it("derives author and caption hashtag source tags", () => {
     expect(instagramSourceTags("@knokzm", "New art #MyGO #バンドリ #MyGO")).toEqual([
       "author:knokzm",

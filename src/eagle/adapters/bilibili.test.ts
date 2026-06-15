@@ -1,15 +1,7 @@
-import { describe, expect, it, vi } from "vitest";
-import { bilibiliAuthorUrls, bilibiliPublishedAt, bilibiliSourceTags } from "./matchers/bilibili";
+import { describe, expect, it } from "vitest";
+import { bilibiliAuthorUrls, bilibiliPublishedAt, bilibiliSourceTags } from "./bilibili";
 
-vi.mock("$", () => ({
-  GM: {
-    xmlHttpRequest: () => undefined,
-  },
-  GM_getValue: () => null,
-  GM_setValue: () => undefined,
-}));
-
-describe("Bilibili matcher metadata", () => {
+describe("Bilibili Eagle metadata adapter", () => {
   const detail = {
     id_str: "123456",
     modules: [
