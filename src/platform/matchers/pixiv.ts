@@ -223,7 +223,7 @@ class PixivArtistWorksAPI implements PixivAPI {
 
 const PID_EXTRACT = /\/(\d+)_([a-z]+)\d*\.\w*$/;
 type PageData = { error: boolean, message: string, body: Page[] };
-class PixivMatcher extends BaseMatcher<ArtistPIDs[]> {
+export class PixivMatcher extends BaseMatcher<ArtistPIDs[]> {
   api: PixivAPI;
   meta: GalleryMeta;
   pageCount: number = 0;
@@ -284,8 +284,8 @@ class PixivMatcher extends BaseMatcher<ArtistPIDs[]> {
     this.meta.title = sourceTitle === "home"
       ? datedGalleryTitle(["pixiv", "home"])
       : galleryTitle(["pixiv", "user", sourceTitle]);
-    this.meta.tags = Object.entries(this.works).reduce<Record<string, string[]>>((tags, work) => {
-      tags[work[0]] = work[1].tags;
+    this.meta.tags = Object.entries(this.works).reduce<Record<string, string[]>>((tags, [pid, work]) => {
+      tags[pid] = [pixivAuthorTag(work), ...work.tags].filter(Boolean);
       return tags;
     }, {});
     return this.meta;

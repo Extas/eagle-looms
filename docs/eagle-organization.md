@@ -160,7 +160,7 @@ Hanime1
   map comic metadata rows through source metadata; author URLs point to author-like metadata links; image publish date comes from date-like metadata rows
 
 Pixiv
-  author comes from Pixiv user identity; artwork tags stay raw because Pixiv does not classify copyright/character reliably; source-provided tag translations are kept as additional raw tags
+  author comes from Pixiv user identity in both item tags and per-artwork metadata buckets; artwork tags stay raw because Pixiv does not classify copyright/character reliably; source-provided tag translations are kept as additional raw tags
 
 ArtStation
   author comes from user identity; project tags stay raw and support string or common object-shaped tag values
