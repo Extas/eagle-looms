@@ -59,7 +59,9 @@ class EahentaiMatcher extends BaseMatcher<EahentaiGalleryData> {
       const href = `${window.location.origin}/a/${data.albumID}/${i}`;
       const ext = img.imageUri.split(".").pop() ?? "jpg";
       const origin = eahentaiGetURL(img.imageUri);
-      return new ImageNode(thumb, href, img.title + "." + ext, undefined, origin);
+      const node = new ImageNode(thumb, href, img.title + "." + ext, undefined, origin);
+      node.setPublishedAt(eahentaiPublishedAt(img, data));
+      return node;
     });
   }
 
@@ -72,6 +74,20 @@ class EahentaiMatcher extends BaseMatcher<EahentaiGalleryData> {
   }
 
 }
+
+export function eahentaiPublishedAt(image: { addDt?: unknown }, gallery?: { addDt?: unknown }): string {
+  return cleanEahentaiValue(image.addDt) || cleanEahentaiValue(gallery?.addDt);
+}
+
+function cleanEahentaiValue(value: unknown): string {
+  if (typeof value !== "string" && typeof value !== "number") return "";
+  return String(value)
+    .replace(/[\n\r\t]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 120);
+}
+
 ADAPTER.addSetup({
   name: "eahentai",
   workURLs: [
