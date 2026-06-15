@@ -3,6 +3,8 @@ import ImageNode from "../../img-node";
 import { Chapter } from "../../page-fetcher";
 import { evLog } from "../../utils/ev-log";
 import { ADAPTER } from "../adapt";
+import { isGalleryAuthorCategory } from "../gallery-author-urls";
+import { cleanGalleryDateValue, isGalleryDateCategory } from "../gallery-published-at";
 import { BaseMatcher, Result, OriginMeta } from "../platform";
 
 // TODO: don't reference the md5 on the page, to avoid errors when the script is not loaded
@@ -81,6 +83,7 @@ class Comic18Matcher extends BaseMatcher<string> {
 
   async parseImgNodes(source: string): Promise<ImageNode[]> {
     const list: ImageNode[] = [];
+    const publishedAt = comic18PublishedAtFromDocument(document);
     const raw = await window.fetch(source as string).then(resp => resp.text()).then(text => new DOMParser().parseFromString(text, "text/html")).catch(Error);
     if (raw instanceof Error) throw new Error("请求页面失败: " + source + "  " + raw.message, { cause: raw.cause });
     const elements = Array.from(raw.querySelectorAll<HTMLImageElement>(".owl-carousel-page > .center > img"));
@@ -92,7 +95,9 @@ class Comic18Matcher extends BaseMatcher<string> {
         continue;
       }
       const title = src.split("/").pop()!;
-      list.push(new ImageNode("", src, title, undefined, src));
+      const node = new ImageNode("", src, title, undefined, src);
+      node.setPublishedAt(publishedAt);
+      list.push(node);
     }
     return list;
   }
@@ -141,6 +146,7 @@ class Comic18Matcher extends BaseMatcher<string> {
       }
     });
     this.meta.tags = tags;
+    this.meta.authorUrls = comic18AuthorUrlsFromDocument(document);
     return this.meta;
   }
 
@@ -163,6 +169,43 @@ class Comic18Matcher extends BaseMatcher<string> {
     return { url: src };
   }
 }
+
+export function comic18AuthorUrlsFromDocument(doc: Document, baseUrl = window.location.href): string[] {
+  const urls: string[] = [];
+  comic18TagRows(doc).forEach(row => {
+    if (!isGalleryAuthorCategory(row.getAttribute("data-type"))) return;
+    row.querySelectorAll<HTMLAnchorElement>("a[href]").forEach(anchor => {
+      const url = absoluteHttpUrl(anchor.getAttribute("href"), baseUrl);
+      if (url) urls.push(url);
+    });
+  });
+  return [...new Set(urls)];
+}
+
+export function comic18PublishedAtFromDocument(doc: Document): string {
+  for (const row of comic18TagRows(doc)) {
+    if (!isGalleryDateCategory(row.getAttribute("data-type"))) continue;
+    const value = cleanGalleryDateValue(row.textContent);
+    if (value) return value;
+  }
+  return "";
+}
+
+function comic18TagRows(doc: Document): HTMLElement[] {
+  return Array.from(doc.querySelectorAll<HTMLElement>("div.tag-block > span[data-type]"));
+}
+
+function absoluteHttpUrl(value: unknown, baseUrl: string): string {
+  const raw = String(value ?? "").trim();
+  if (!raw || raw.startsWith("#") || /^javascript:/i.test(raw)) return "";
+  try {
+    const url = new URL(raw, baseUrl);
+    return ["http:", "https:"].includes(url.protocol) ? url.href : "";
+  } catch {
+    return "";
+  }
+}
+
 ADAPTER.addSetup({
   name: "禁漫",
   workURLs: [

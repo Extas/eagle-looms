@@ -135,6 +135,9 @@ AsmHentai
 3Hentai
   map direct-text tag rows through source metadata; author URLs point to author-like tag pages; image publish date comes from date-like tag rows
 
+18comic / JM
+  map data-type tag rows through source metadata; author URLs point to author-like tag pages; image publish date comes from date-like data-type rows
+
 Hitomi
   map galleryinfo parodys -> copyright, characters -> character, artists/groups -> author; image publish date comes from galleryinfo date metadata
 
