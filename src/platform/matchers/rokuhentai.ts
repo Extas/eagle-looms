@@ -2,6 +2,8 @@ import { GalleryMeta } from "../../download/gallery-meta";
 import ImageNode from "../../img-node";
 import { ImagePosition, splitImagesFromUrl } from "../../utils/sprite-split";
 import { ADAPTER } from "../adapt";
+import { isGalleryAuthorCategory } from "../gallery-author-urls";
+import { cleanGalleryDateValue, isGalleryDateCategory } from "../gallery-published-at";
 import { BaseMatcher, OriginMeta, Result } from "../platform";
 
 export class RokuHentaiMatcher extends BaseMatcher<[number, number]> {
@@ -9,21 +11,19 @@ export class RokuHentaiMatcher extends BaseMatcher<[number, number]> {
   fetchedThumbnail: (string | undefined)[] = [];
   galleryId: string = "";
   imgCount: number = 0;
+  publishedAt = "";
 
   galleryMeta(): GalleryMeta {
     const title = document.querySelector(".site-manga-info__title-text")?.textContent || "UNTITLE";
     const meta = new GalleryMeta(window.location.href, title);
     meta.originTitle = title;
-    const tagTrList = document.querySelectorAll<HTMLElement>("div.mdc-chip .site-tag-count");
     const tags: Record<string, string[]> = {};
-    tagTrList.forEach((tr) => {
-      const splits = tr.getAttribute("data-tag")?.trim().split(":");
-      if (splits === undefined || splits.length === 0) return;
-      const cat = splits[0];
-      if (tags[cat] === undefined) tags[cat] = [];
-      tags[cat].push(splits[1].replaceAll("\"", ""));
+    rokuHentaiTagsFromDocument(document).forEach((tag) => {
+      if (tags[tag.category] === undefined) tags[tag.category] = [];
+      tags[tag.category].push(tag.value);
     });
     meta.tags = tags;
+    meta.authorUrls = rokuHentaiAuthorUrlsFromDocument(document);
     return meta;
   }
 
@@ -43,7 +43,9 @@ export class RokuHentaiMatcher extends BaseMatcher<[number, number]> {
         thumbnail = `https://rokuhentai.com/_images/page-thumbnails/${this.galleryId}/${i}.jpg`;
       }
       const src = `https://rokuhentai.com/_images/pages/${this.galleryId}/${i}.jpg`;
-      list.push(new ImageNode(thumbnail, src, i.toString().padStart(digits, "0") + ".jpg", thumbnailAsync, src));
+      const node = new ImageNode(thumbnail, src, i.toString().padStart(digits, "0") + ".jpg", thumbnailAsync, src);
+      node.setPublishedAt(this.publishedAt);
+      list.push(node);
     }
     return list;
   }
@@ -56,6 +58,7 @@ export class RokuHentaiMatcher extends BaseMatcher<[number, number]> {
     }
     this.imgCount = imgCount;
     this.galleryId = window.location.href.split("/").pop()!; // TODO: maybe extract galleryId from doc;
+    this.publishedAt = rokuHentaiPublishedAtFromDocument(doc);
     // check sprite thumbnails
     const images = Array.from(doc.querySelectorAll<HTMLElement>(".mdc-layout-grid__cell .site-page-card__media"));
     for (const img of images) {
@@ -101,6 +104,65 @@ export class RokuHentaiMatcher extends BaseMatcher<[number, number]> {
     return [data, "image/jpeg"];
   }
 }
+
+type RokuHentaiTag = {
+  category: string;
+  value: string;
+  href: string;
+};
+
+export function rokuHentaiTagsFromDocument(doc: Document): RokuHentaiTag[] {
+  return Array.from(doc.querySelectorAll<HTMLElement>("div.mdc-chip .site-tag-count[data-tag]"))
+    .map(element => rokuHentaiTagFromElement(element))
+    .filter((tag): tag is RokuHentaiTag => Boolean(tag));
+}
+
+export function rokuHentaiAuthorUrlsFromDocument(doc: Document, baseUrl = window.location.href): string[] {
+  const urls = rokuHentaiTagsFromDocument(doc)
+    .filter(tag => isGalleryAuthorCategory(tag.category))
+    .map(tag => absoluteHttpUrl(tag.href, baseUrl))
+    .filter(Boolean);
+  return [...new Set(urls)];
+}
+
+export function rokuHentaiPublishedAtFromDocument(doc: Document): string {
+  for (const tag of rokuHentaiTagsFromDocument(doc)) {
+    if (!isGalleryDateCategory(tag.category)) continue;
+    const value = cleanGalleryDateValue(tag.value);
+    if (value) return value;
+  }
+  return "";
+}
+
+function rokuHentaiTagFromElement(element: HTMLElement): RokuHentaiTag | undefined {
+  const parsed = parseRokuHentaiDataTag(element.getAttribute("data-tag"));
+  if (!parsed) return undefined;
+  return {
+    ...parsed,
+    href: element.closest<HTMLAnchorElement>("a[href]")?.getAttribute("href") || "",
+  };
+}
+
+function parseRokuHentaiDataTag(value: unknown): Pick<RokuHentaiTag, "category" | "value"> | undefined {
+  const raw = String(value ?? "").trim();
+  const match = raw.match(/^([^:]+):"?(.+?)"?$/);
+  if (!match) return undefined;
+  const category = match[1].trim();
+  const tagValue = match[2].trim().replace(/^"|"$/g, "");
+  return category && tagValue ? { category, value: tagValue } : undefined;
+}
+
+function absoluteHttpUrl(value: unknown, baseUrl: string): string {
+  const raw = String(value ?? "").trim();
+  if (!raw || raw.startsWith("#") || /^javascript:/i.test(raw)) return "";
+  try {
+    const url = new URL(raw, baseUrl);
+    return ["http:", "https:"].includes(url.protocol) ? url.href : "";
+  } catch {
+    return "";
+  }
+}
+
 ADAPTER.addSetup({
   name: "rokuhentai",
   workURLs: [
