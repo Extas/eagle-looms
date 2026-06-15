@@ -31,6 +31,7 @@ type NHGalleryInfo = {
   id: number,
   media_id: string,
   num_pages: number,
+  upload_date?: string | number,
   tags: {
     id: number,
     type: string,
@@ -94,6 +95,7 @@ class NHMatcher extends BaseMatcher<Document> {
     if (resp instanceof Error) throw resp;
     const data = resp as NHGalleryInfo;
     this.createMeta(data);
+    const publishedAt = nhentaiPublishedAt(data);
     const digits = data.pages.length.toString().length;
     const ret = [];
     for (let i = 0; i < data.pages.length; i++) {
@@ -106,7 +108,9 @@ class NHMatcher extends BaseMatcher<Document> {
       const thumbCDN = this.thumbCDNUrls[i % this.thumbCDNUrls.length];
       const thumbnail = `${thumbCDN}/${node.thumbnail}`;
       const wh = { w: node.thumbnail_width, h: node.thumbnail_height };
-      ret.push(new ImageNode(thumbnail, href, title + "." + ext, undefined, originSrc, wh));
+      const imageNode = new ImageNode(thumbnail, href, title + "." + ext, undefined, originSrc, wh);
+      imageNode.setPublishedAt(publishedAt);
+      ret.push(imageNode);
     }
     return ret;
   }
@@ -118,6 +122,7 @@ class NHMatcher extends BaseMatcher<Document> {
 
 class NHxxxMatcher extends BaseMatcher<Document> {
   meta?: GalleryMeta;
+  publishedAt = "";
   galleryMeta(): GalleryMeta {
     return this.meta!;
   }
@@ -133,6 +138,7 @@ class NHxxxMatcher extends BaseMatcher<Document> {
       meta.tags[cat] = tags;
     });
     meta.authorUrls = nhentaiAuthorUrlsFromDocument(document, window.location.href);
+    this.publishedAt = nhentaiPublishedAtFromDocument(document);
     this.meta = meta;
   }
   async *fetchPagesSource(): AsyncGenerator<Result<Document>> {
@@ -162,7 +168,9 @@ class NHxxxMatcher extends BaseMatcher<Document> {
       if (splits.length === 3) {
         wh = { w: parseInt(splits[1].trim()), h: parseInt(splits[2].trim()) };
       }
-      ret.push(new ImageNode(thumbSrc, href + "/" + (i + 1), title + "." + nhParseExt(file[1]), undefined, originSrc, wh));
+      const imageNode = new ImageNode(thumbSrc, href + "/" + (i + 1), title + "." + nhParseExt(file[1]), undefined, originSrc, wh);
+      imageNode.setPublishedAt(this.publishedAt);
+      ret.push(imageNode);
     }
     return ret;
   }
@@ -179,6 +187,29 @@ class NHxxxMatcher extends BaseMatcher<Document> {
   async fetchOriginMeta(node: ImageNode): Promise<OriginMeta> {
     return { url: node.originSrc! };
   }
+}
+
+export function nhentaiPublishedAt(info: Pick<NHGalleryInfo, "upload_date">): string {
+  return cleanNhentaiValue(info.upload_date);
+}
+
+export function nhentaiPublishedAtFromDocument(doc: Document): string {
+  const structured = doc.querySelector<HTMLTimeElement>("time[datetime]")?.getAttribute("datetime")
+    || doc.querySelector<HTMLMetaElement>("meta[property='article:published_time'], meta[name='date'], meta[name='pubdate']")?.getAttribute("content");
+  if (structured) return cleanNhentaiValue(structured);
+
+  const text = doc.body?.textContent || "";
+  const match = text.match(/\b(?:uploaded|posted|published)\s*:?\s*(\d{4}[-/.]\d{1,2}[-/.]\d{1,2}(?:\s+\d{1,2}:\d{2}(?::\d{2})?)?)/i);
+  return cleanNhentaiValue(match?.[1]);
+}
+
+function cleanNhentaiValue(value: unknown): string {
+  if (typeof value !== "string" && typeof value !== "number") return "";
+  return String(value)
+    .replace(/[\n\r\t]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 120);
 }
 
 ADAPTER.addSetup({

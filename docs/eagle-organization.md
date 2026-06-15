@@ -117,6 +117,9 @@ anime-pictures
 E-Hentai / ExHentai
   map gallery namespaces: parody -> copyright, character -> character, artist/group/circle -> author
 
+nhentai / nhentai.xxx
+  map gallery tag types through source metadata; author URLs point to author-like tag pages; image publish date comes from API upload_date or page upload metadata
+
 Hitomi
   map galleryinfo parodys -> copyright, characters -> character, artists/groups -> author; image publish date comes from galleryinfo date metadata
 
