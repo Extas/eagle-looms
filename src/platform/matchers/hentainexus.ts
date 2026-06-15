@@ -17,10 +17,12 @@ class HentaiNexusMatcher extends BaseMatcher<Document> {
   meta?: GalleryMeta;
   baseURL?: string;
   readerData?: HNImageInfo[];
+  publishedAt = "";
   // readDirection?: string;
 
   async *fetchPagesSource(): AsyncGenerator<Result<Document>> {
     this.meta = this.pasrseGalleryMeta(document);
+    this.publishedAt = hentaiNexusPublishedAtFromDocument(document);
     yield Result.ok(document);
   }
 
@@ -33,7 +35,9 @@ class HentaiNexusMatcher extends BaseMatcher<Document> {
       const num = li.href.split("/").pop() || i.toString();
       const ext = img.src.split(".").pop();
       const title = num + "." + ext;
-      result.push(new ImageNode(img.src, li.href, title));
+      const node = new ImageNode(img.src, li.href, title);
+      node.setPublishedAt(this.publishedAt);
+      result.push(node);
     });
     return result;
   }
@@ -142,6 +146,49 @@ class HentaiNexusMatcher extends BaseMatcher<Document> {
     this.readerData = JSON.parse(raw) as HNImageInfo[];
   }
 }
+
+export function hentaiNexusPublishedAtFromDocument(doc: Document): string {
+  for (const row of doc.querySelectorAll(".view-page-details tr")) {
+    const category = cleanHentaiNexusValue(row.querySelector(".viewcolumn")?.textContent).toLowerCase();
+    if (!isHentaiNexusDateCategory(category)) continue;
+    const value = cleanHentaiNexusValue(row.querySelector(".viewcolumn + td")?.textContent);
+    if (value) return value;
+  }
+  return "";
+}
+
+function isHentaiNexusDateCategory(value: string): boolean {
+  const category = value
+    .replace(/[:：]\s*$/, "")
+    .replace(/[_-]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  return [
+    "date",
+    "upload date",
+    "uploaded",
+    "posted",
+    "posted date",
+    "published",
+    "published date",
+    "released",
+    "released date",
+    "created",
+    "created date",
+    "added",
+    "added date",
+  ].includes(category);
+}
+
+function cleanHentaiNexusValue(value: unknown): string {
+  if (typeof value !== "string" && typeof value !== "number") return "";
+  return String(value)
+    .replace(/[\n\r\t]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 120);
+}
+
 ADAPTER.addSetup({
   name: "hentainexus",
   workURLs: [
