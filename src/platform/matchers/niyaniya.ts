@@ -1,6 +1,7 @@
 import { GalleryMeta } from "../../download/gallery-meta";
 import ImageNode from "../../img-node";
 import { Chapter } from "../../page-fetcher";
+import { niyaniyaPublishedAt, niyaniyaTagsFromDetail } from "../../eagle/adapters/niyaniya";
 import { ADAPTER } from "../adapt";
 import { BaseMatcher, OriginMeta, Result } from "../platform";
 
@@ -38,18 +39,6 @@ type BookDetail = {
   tags: BookTag[],
   // updated_at: number,
 }
-
-const NAMESPACE_MAP: Record<number, string> = {
-  0: "misc",
-  1: "artist",
-  2: "circle",
-  3: "parody",
-  7: "uploader",
-  8: "male",
-  9: "female",
-  10: "mixed",
-  11: "language",
-};
 
 class NiyaniyaMatcher extends BaseMatcher<string> {
   meta?: GalleryMeta;
@@ -120,28 +109,6 @@ class NiyaniyaMatcher extends BaseMatcher<string> {
     }
   }
 
-}
-
-export function niyaniyaPublishedAt(value: Pick<BookDetail, "created_at">): string {
-  return cleanNiyaniyaValue(value.created_at);
-}
-
-export function niyaniyaTagsFromDetail(value: Pick<BookDetail, "tags">): Record<string, string[]> {
-  return value.tags.reduce<Record<string, string[]>>((map, tag) => {
-    const category = NAMESPACE_MAP[tag.namespace || 0] || "misc";
-    if (!map[category]) map[category] = [];
-    map[category].push(tag.name);
-    return map;
-  }, {});
-}
-
-function cleanNiyaniyaValue(value: unknown): string {
-  if (typeof value !== "string" && typeof value !== "number") return "";
-  return String(value)
-    .replace(/[\n\r\t]+/g, " ")
-    .replace(/\s+/g, " ")
-    .trim()
-    .slice(0, 120);
 }
 
 ADAPTER.addSetup({

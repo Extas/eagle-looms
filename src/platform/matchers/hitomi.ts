@@ -2,6 +2,7 @@ import { GalleryMeta } from "../../download/gallery-meta";
 import ImageNode from "../../img-node";
 import { Chapter } from "../../page-fetcher";
 import { evLog } from "../../utils/ev-log";
+import { hitomiPublishedAt } from "../../eagle/adapters/hitomi";
 import { ADAPTER } from "../adapt";
 import { BaseMatcher, OriginMeta, Result } from "../platform";
 
@@ -193,23 +194,6 @@ class HitomiMather extends BaseMatcher<GalleryInfo> {
     }
   }
 
-}
-
-export function hitomiPublishedAt(info: Partial<Record<string, unknown>>): string {
-  for (const key of ["date", "published_at", "publishedAt", "upload_date", "uploaded_at", "created_at", "created"]) {
-    const value = cleanHitomiValue(info[key]);
-    if (value) return value;
-  }
-  return "";
-}
-
-function cleanHitomiValue(value: unknown): string {
-  if (typeof value !== "string" && typeof value !== "number") return "";
-  return String(value)
-    .replace(/[\n\r\t]+/g, " ")
-    .replace(/\s+/g, " ")
-    .trim()
-    .slice(0, 120);
 }
 
 ADAPTER.addSetup({

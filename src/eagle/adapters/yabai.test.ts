@@ -1,15 +1,7 @@
-import { describe, expect, it, vi } from "vitest";
-import { yabaiPublishedAt } from "./matchers/yabai";
+import { describe, expect, it } from "vitest";
+import { yabaiPublishedAt } from "./yabai";
 
-vi.mock("$", () => ({
-  GM: {
-    xmlHttpRequest: () => undefined,
-  },
-  GM_getValue: () => null,
-  GM_setValue: () => undefined,
-}));
-
-describe("Yabai matcher metadata", () => {
+describe("Yabai Eagle metadata adapter", () => {
   it("derives published timestamps from gallery date metadata", () => {
     expect(yabaiPublishedAt({
       date: {

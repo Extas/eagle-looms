@@ -1,6 +1,7 @@
 import { GalleryMeta } from "../../download/gallery-meta";
 import ImageNode from "../../img-node";
 import { transactionId } from "../../utils/random";
+import { yabaiPublishedAt } from "../../eagle/adapters/yabai";
 import { ADAPTER } from "../adapt";
 import { BaseMatcher, Result, OriginMeta } from "../platform";
 
@@ -96,20 +97,6 @@ class YabaiMatcher extends BaseMatcher<YabaiList> {
     return await res.json();
   }
 
-}
-
-export function yabaiPublishedAt(value: Pick<YabaiMeta, "date">): string {
-  const raw = value.date?.default || value.date?.human || "";
-  return cleanYabaiValue(raw);
-}
-
-function cleanYabaiValue(value: unknown): string {
-  if (typeof value !== "string" && typeof value !== "number") return "";
-  return String(value)
-    .replace(/[\n\r\t]+/g, " ")
-    .replace(/\s+/g, " ")
-    .trim()
-    .slice(0, 120);
 }
 
 type YabaiList = {

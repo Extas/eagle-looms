@@ -1,5 +1,6 @@
 import ImageNode from "../../img-node";
 import { Chapter } from "../../page-fetcher";
+import { kuaiKanPublishedAt } from "../../eagle/adapters/kuaikanmanhua";
 import { ADAPTER } from "../adapt";
 import { BaseMatcher, OriginMeta, Result } from "../platform";
 
@@ -89,22 +90,6 @@ class KuaiKanMatcher extends BaseMatcher<string> {
     return { url: node.originSrc! };
   }
 
-}
-
-export function kuaiKanPublishedAt(value: Pick<KuaiKanComic, "created_at">): string {
-  const raw = cleanKuaiKanValue(value.created_at);
-  const short = raw.match(/^(\d{2})-(\d{2})-(\d{2})$/);
-  if (short) return `20${short[1]}-${short[2]}-${short[3]}`;
-  return raw;
-}
-
-function cleanKuaiKanValue(value: unknown): string {
-  if (typeof value !== "string" && typeof value !== "number") return "";
-  return String(value)
-    .replace(/[\n\r\t]+/g, " ")
-    .replace(/\s+/g, " ")
-    .trim()
-    .slice(0, 120);
 }
 
 ADAPTER.addSetup({

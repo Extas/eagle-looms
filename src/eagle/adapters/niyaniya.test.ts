@@ -1,17 +1,9 @@
-import { describe, expect, it, vi } from "vitest";
-import { GalleryMeta } from "../download/gallery-meta";
-import { sourceTagsFromGalleryMeta } from "../eagle/tags";
-import { niyaniyaPublishedAt, niyaniyaTagsFromDetail } from "./matchers/niyaniya";
+import { describe, expect, it } from "vitest";
+import { GalleryMeta } from "../../download/gallery-meta";
+import { sourceTagsFromGalleryMeta } from "../tags";
+import { niyaniyaPublishedAt, niyaniyaTagsFromDetail } from "./niyaniya";
 
-vi.mock("$", () => ({
-  GM: {
-    xmlHttpRequest: () => undefined,
-  },
-  GM_getValue: () => null,
-  GM_setValue: () => undefined,
-}));
-
-describe("Niyaniya matcher metadata", () => {
+describe("Niyaniya Eagle metadata adapter", () => {
   it("derives published timestamps from gallery creation time", () => {
     expect(niyaniyaPublishedAt({ created_at: 1718323200 })).toBe("1718323200");
   });

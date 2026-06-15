@@ -1,15 +1,7 @@
-import { describe, expect, it, vi } from "vitest";
-import { hitomiPublishedAt } from "./matchers/hitomi";
+import { describe, expect, it } from "vitest";
+import { hitomiPublishedAt } from "./hitomi";
 
-vi.mock("$", () => ({
-  GM: {
-    xmlHttpRequest: () => undefined,
-  },
-  GM_getValue: () => null,
-  GM_setValue: () => undefined,
-}));
-
-describe("Hitomi matcher metadata", () => {
+describe("Hitomi Eagle metadata adapter", () => {
   it("derives published timestamps from galleryinfo date fields", () => {
     expect(hitomiPublishedAt({
       date: "2026-06-14 08:00:00",
