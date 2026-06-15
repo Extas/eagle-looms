@@ -140,6 +140,9 @@ Kemono
 
 Jandan
   author comes from comment author metadata; publish date comes from comment date fields when available
+
+Komiic
+  comic authors map to author tags through gallery metadata; comic categories stay raw; image publish date comes from chapter date metadata
 ```
 
 ## Item Names

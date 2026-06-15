@@ -53,11 +53,13 @@ type KomiicComicInfo = {
 class KomiicMatcher extends BaseMatcher<KomiicImage[]> {
 
   chapterType: Record<string, { display: string, sort: number }>;
+  chapterDates: Record<string, string>;
   meta?: GalleryMeta;
 
   constructor() {
     super()
     this.chapterType = { chapter: { display: "话", sort: 1 }, book: { display: "卷", sort: 0 } };
+    this.chapterDates = {};
   }
 
   galleryMeta(_chapter: Chapter): GalleryMeta {
@@ -101,6 +103,11 @@ class KomiicMatcher extends BaseMatcher<KomiicImage[]> {
 
     let chapters = data.data.chaptersByComicId as KomiicChapter[];
     chapters = chapters.sort((a, b) => this.chapterType[a.type].sort - this.chapterType[b.type].sort);
+    this.chapterDates = chapters.reduce<Record<string, string>>((dates, chapter) => {
+      const publishedAt = komiicPublishedAt(chapter);
+      if (publishedAt) dates[chapter.id] = publishedAt;
+      return dates;
+    }, {});
     yield chapters.map(c => new Chapter(parseInt(c.id), c.serial + this.chapterType[c.type].display, id + "/" + c.id))
   }
 
@@ -129,7 +136,9 @@ class KomiicMatcher extends BaseMatcher<KomiicImage[]> {
       const url = `${window.location.origin}/api/image/${img.kid}`;
       const name = (i + 1).toString().padStart(digits, "0");
       const href = `${window.location.origin}/comic/${img.comicId}/chapter/${img.chapterId}/page/1`;
-      return new ImageNode("", href, name + ".webp", undefined, url, { w: img.width, h: img.height });
+      const node = new ImageNode("", href, name + ".webp", undefined, url, { w: img.width, h: img.height });
+      node.setPublishedAt(this.chapterDates[img.chapterId]);
+      return node;
     })
   }
 
@@ -144,6 +153,19 @@ class KomiicMatcher extends BaseMatcher<KomiicImage[]> {
     return { url: node.originSrc! };
   }
 
+}
+
+export function komiicPublishedAt(value: Pick<KomiicChapter, "dateCreated" | "dateUpdated">): string {
+  return cleanKomiicValue(value.dateCreated || value.dateUpdated || "");
+}
+
+function cleanKomiicValue(value: unknown): string {
+  if (typeof value !== "string" && typeof value !== "number") return "";
+  return String(value)
+    .replace(/[\n\r\t]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 120);
 }
 
 ADAPTER.addSetup({
