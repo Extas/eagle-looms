@@ -1,16 +1,8 @@
-import { describe, expect, it, vi } from "vitest";
-import { sourceTagsFromGalleryMeta } from "../eagle/tags";
-import { komiicGalleryMeta, komiicPublishedAt } from "./matchers/komiic";
+import { describe, expect, it } from "vitest";
+import { sourceTagsFromGalleryMeta } from "../tags";
+import { komiicGalleryMeta, komiicPublishedAt } from "./komiic";
 
-vi.mock("$", () => ({
-  GM: {
-    xmlHttpRequest: () => undefined,
-  },
-  GM_getValue: () => null,
-  GM_setValue: () => undefined,
-}));
-
-describe("Komiic matcher metadata", () => {
+describe("Komiic Eagle metadata adapter", () => {
   it("derives published timestamps from chapter metadata", () => {
     expect(komiicPublishedAt({
       dateCreated: "2021-10-28T00:56:05Z",

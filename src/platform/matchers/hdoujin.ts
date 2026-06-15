@@ -2,6 +2,7 @@ import { GalleryMeta } from "../../download/gallery-meta";
 import { IMGFetcher } from "../../img-fetcher";
 import ImageNode from "../../img-node";
 import { Chapter } from "../../page-fetcher";
+import { hdoujinGalleryMeta, hdoujinPublishedAt } from "../../eagle/adapters/hdoujin";
 import { ADAPTER } from "../adapt";
 import { BaseMatcher, OriginMeta, Result } from "../platform";
 
@@ -146,46 +147,6 @@ class HDoujinMatcher extends BaseMatcher<HDoujinImg[]> {
     return { url: node.originSrc! };
   }
 
-}
-
-export function hdoujinPublishedAt(value: Pick<HDoujinGallery, "created_at"> | Pick<HDoujinImg, "publishedAt">): string {
-  const timestamp = (value as { publishedAt?: unknown }).publishedAt ?? (value as { created_at?: unknown }).created_at;
-  return cleanHDoujinValue(timestamp);
-}
-
-export function hdoujinGalleryMeta(gallery: Pick<HDoujinGallery, "title" | "subtitle" | "tags">, href: string): GalleryMeta {
-  const meta = new GalleryMeta(href, gallery.title);
-  meta.originTitle = gallery.subtitle;
-  for (const tag of gallery.tags) {
-    const tagName = hdoujinTagNamespace(tag.namespace);
-    if (!meta.tags[tagName]) {
-      meta.tags[tagName] = [];
-    }
-    meta.tags[tagName].push(tag.name);
-  }
-  return meta;
-}
-
-function hdoujinTagNamespace(namespace: number): string {
-  const map: Record<number, string> = {
-    1: "artist",
-    2: "circle",
-    3: "parody",
-    7: "uploader",
-    8: "male_tags",
-    9: "female_tags",
-    11: "languages",
-  };
-  return map[namespace] ?? namespace.toString();
-}
-
-function cleanHDoujinValue(value: unknown): string {
-  if (typeof value !== "string" && typeof value !== "number") return "";
-  return String(value)
-    .replace(/[\n\r\t]+/g, " ")
-    .replace(/\s+/g, " ")
-    .trim()
-    .slice(0, 120);
 }
 
 ADAPTER.addSetup({

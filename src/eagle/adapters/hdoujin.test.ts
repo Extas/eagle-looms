@@ -1,16 +1,8 @@
-import { describe, expect, it, vi } from "vitest";
-import { sourceTagsFromGalleryMeta } from "../eagle/tags";
-import { hdoujinGalleryMeta, hdoujinPublishedAt } from "./matchers/hdoujin";
+import { describe, expect, it } from "vitest";
+import { sourceTagsFromGalleryMeta } from "../tags";
+import { hdoujinGalleryMeta, hdoujinPublishedAt } from "./hdoujin";
 
-vi.mock("$", () => ({
-  GM: {
-    xmlHttpRequest: () => undefined,
-  },
-  GM_getValue: () => null,
-  GM_setValue: () => undefined,
-}));
-
-describe("HDoujin matcher metadata", () => {
+describe("HDoujin Eagle metadata adapter", () => {
   it("derives published timestamps from gallery creation time", () => {
     expect(hdoujinPublishedAt({ created_at: 1718323200 })).toBe("1718323200");
     expect(hdoujinPublishedAt({ publishedAt: 1718409600 })).toBe("1718409600");

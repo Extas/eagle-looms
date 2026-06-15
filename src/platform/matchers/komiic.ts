@@ -2,6 +2,7 @@ import { GalleryMeta } from "../../download/gallery-meta";
 import ImageNode from "../../img-node";
 import { Chapter } from "../../page-fetcher";
 import { evLog } from "../../utils/ev-log";
+import { komiicGalleryMeta, komiicPublishedAt } from "../../eagle/adapters/komiic";
 import { ADAPTER } from "../adapt";
 import { BaseMatcher, OriginMeta, Result } from "../platform";
 
@@ -151,26 +152,6 @@ class KomiicMatcher extends BaseMatcher<KomiicImage[]> {
     return { url: node.originSrc! };
   }
 
-}
-
-export function komiicPublishedAt(value: Pick<KomiicChapter, "dateCreated" | "dateUpdated">): string {
-  return cleanKomiicValue(value.dateCreated || value.dateUpdated || "");
-}
-
-export function komiicGalleryMeta(info: Pick<KomiicComicInfo, "title" | "authors" | "categories">, href: string): GalleryMeta {
-  const meta = new GalleryMeta(href, cleanKomiicValue(info.title) || "komiic");
-  meta.tags.authors = info.authors.map(author => cleanKomiicValue(author.name)).filter(Boolean);
-  meta.tags.categories = info.categories.map(category => cleanKomiicValue(category.name)).filter(Boolean);
-  return meta;
-}
-
-function cleanKomiicValue(value: unknown): string {
-  if (typeof value !== "string" && typeof value !== "number") return "";
-  return String(value)
-    .replace(/[\n\r\t]+/g, " ")
-    .replace(/\s+/g, " ")
-    .trim()
-    .slice(0, 120);
 }
 
 ADAPTER.addSetup({
