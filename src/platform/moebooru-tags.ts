@@ -1,6 +1,20 @@
 const POST_REGISTER_TAGS_RE = /Post\.register_tags\(\s*(\{[\s\S]*?\})\s*\)/g;
+const POST_REGISTER_RE = /Post\.register\(\s*(\{[\s\S]*?\})\s*\)/g;
 
 export type MoebooruTagTypes = Record<string, unknown>;
+export type MoebooruPostInfo = {
+  id: number | string,
+  md5?: string,
+  file_ext?: string,
+  file_url: string,
+  preview_url: string,
+  sample_url: string,
+  jpeg_url?: string,
+  width?: number,
+  height?: number,
+  tags?: string,
+  created_at?: string | number,
+};
 
 export function parseMoebooruTagTypes(document: Document): MoebooruTagTypes {
   const tagTypes: MoebooruTagTypes = {};
@@ -15,6 +29,21 @@ export function parseMoebooruTagTypes(document: Document): MoebooruTagTypes {
     }
   });
   return tagTypes;
+}
+
+export function parseMoebooruPostInfos(document: Document): MoebooruPostInfo[] {
+  const infos: MoebooruPostInfo[] = [];
+  document.querySelectorAll<HTMLScriptElement>("script").forEach((script) => {
+    const text = script.textContent || "";
+    for (const match of text.matchAll(POST_REGISTER_RE)) {
+      try {
+        infos.push(JSON.parse(match[1]) as MoebooruPostInfo);
+      } catch {
+        // Ignore malformed inline post data; callers can still report no posts.
+      }
+    }
+  });
+  return infos;
 }
 
 export function normalizeMoebooruSourceTags(rawTags: string | undefined, tagTypes: MoebooruTagTypes): string[] {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { moebooruAuthorUrlsFromTags, normalizeMoebooruSourceTags, parseMoebooruTagTypes } from "./moebooru-tags";
+import { moebooruAuthorUrlsFromTags, normalizeMoebooruSourceTags, parseMoebooruPostInfos, parseMoebooruTagTypes } from "./moebooru-tags";
 
 describe("moebooru source tags", () => {
   it("normalizes Post.register_tags categories and keeps unknown tags raw", () => {
@@ -101,5 +101,27 @@ describe("moebooru source tags", () => {
       "https://yande.re/post?tags=circle_name",
       "https://yande.re/post?tags=illustrator_name",
     ]);
+  });
+
+  it("parses multiline and repeated Post.register post payloads", () => {
+    document.body.innerHTML = `
+      <script>
+        Post.register({
+          "id": 100,
+          "file_url": "https://files.yande.re/image.jpg",
+          "sample_url": "https://files.yande.re/sample.jpg",
+          "preview_url": "https://files.yande.re/preview.jpg",
+          "tags": "artist_name project_sekai"
+        });
+        Post.register({
+          "id": 101,
+          "file_url": "https://files.yande.re/other.png",
+          "sample_url": "https://files.yande.re/other-sample.png",
+          "preview_url": "https://files.yande.re/other-preview.png"
+        });
+      </script>
+    `;
+
+    expect(parseMoebooruPostInfos(document).map(info => info.id)).toEqual([100, 101]);
   });
 });

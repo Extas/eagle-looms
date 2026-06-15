@@ -3,27 +3,12 @@ import ImageNode from "../../img-node";
 import { evLog } from "../../utils/ev-log";
 import { ADAPTER } from "../adapt";
 import { searchGalleryTitle } from "../gallery-title";
-import { MoebooruTagTypes, moebooruAuthorUrlsFromTags, normalizeMoebooruSourceTags, parseMoebooruTagTypes } from "../moebooru-tags";
+import { MoebooruPostInfo, MoebooruTagTypes, moebooruAuthorUrlsFromTags, normalizeMoebooruSourceTags, parseMoebooruPostInfos, parseMoebooruTagTypes } from "../moebooru-tags";
 import { BaseMatcher, OriginMeta, Result } from "../platform";
 
-const POST_INFO_REGEX = /Post\.register\((.*)\)/g;
-
-type YandereKonachanPostInfo = {
-  id: number,
-  md5: string,
-  file_ext?: string,
-  file_url: string,
-  preview_url: string,
-  sample_url: string,
-  jpeg_url: string,
-  width: number,
-  height: number,
-  tags?: string,
-  created_at?: string | number,
-}
 export class KonachanMatcher extends BaseMatcher<Document> {
 
-  infos: Record<string, YandereKonachanPostInfo> = {};
+  infos: Record<string, MoebooruPostInfo> = {};
   tagTypes: MoebooruTagTypes = {};
   count: number = 0;
 
@@ -47,19 +32,17 @@ export class KonachanMatcher extends BaseMatcher<Document> {
     }
   }
   async parseImgNodes(doc: Document): Promise<ImageNode[]> {
-    const raw = doc.querySelector("body > script + script")?.textContent;
-    if (!raw) throw new Error("cannot find post list from script");
     this.tagTypes = parseMoebooruTagTypes(doc);
-    const matches = raw.matchAll(POST_INFO_REGEX);
+    const postId = moebooruPostIdFromUrl(window.location.href);
+    const infos = parseMoebooruPostInfos(doc).filter(info => !postId || String(info.id) === postId);
+    if (infos.length === 0) throw new Error("cannot find post list from script");
     const ret = [];
-    for (const match of matches) {
-      if (!match || match.length < 2) continue;
+    for (const info of infos) {
       try {
-        const info = JSON.parse(match[1]) as YandereKonachanPostInfo;
         this.infos[info.id.toString()] = info;
         this.count++;
-        const ext = info.file_ext || info.file_url.split(".").pop();
-        const node = new ImageNode(info.preview_url, `${window.location.origin}/post/show/${info.id}`, `${info.id}.${ext}`);
+        const ext = info.file_ext || extensionFromUrl(info.file_url) || "jpg";
+        const node = new ImageNode(info.preview_url, `${window.location.origin}/post/show/${info.id}`, `${info.id}.${ext}`, undefined, undefined, imageSizeFromInfo(info));
         node.setTags(...normalizeMoebooruSourceTags(info.tags, this.tagTypes));
         node.setAuthorUrls(...moebooruAuthorUrlsFromTags(info.tags, this.tagTypes, window.location.href));
         node.setPublishedAt(info.created_at);
@@ -92,7 +75,9 @@ export class KonachanMatcher extends BaseMatcher<Document> {
   galleryMeta(): GalleryMeta {
     const url = new URL(window.location.href);
     const tags = url.searchParams.get("tags")?.trim();
-    const meta = new GalleryMeta(window.location.href, searchGalleryTitle("konachan", tags));
+    const postId = moebooruPostIdFromUrl(window.location.href);
+    const title = postId ? `konachan-post-${postId}` : searchGalleryTitle("konachan", tags);
+    const meta = new GalleryMeta(window.location.href, title);
     (meta as any)["infos"] = this.infos;
     return meta;
   }
@@ -101,8 +86,27 @@ export class KonachanMatcher extends BaseMatcher<Document> {
 ADAPTER.addSetup({
   name: "konachan",
   workURLs: [
-    /konachan.com\/post(?!\/show\/.*)/
+    /konachan.com\/post(?:$|[?#]|\/show\/)/
   ],
   match: ["https://konachan.com/*"],
   constructor: () => new KonachanMatcher(),
 });
+
+function moebooruPostIdFromUrl(href: string): string {
+  return href.match(/\/post\/show\/(\d+)/)?.[1] || "";
+}
+
+function imageSizeFromInfo(info: Pick<MoebooruPostInfo, "width" | "height">): { w: number, h: number } | undefined {
+  const w = Number(info.width);
+  const h = Number(info.height);
+  return Number.isFinite(w) && Number.isFinite(h) && w > 0 && h > 0 ? { w, h } : undefined;
+}
+
+function extensionFromUrl(value: string | undefined): string {
+  if (!value) return "";
+  try {
+    return new URL(value, window.location.href).pathname.match(/\.([a-z0-9]+)$/i)?.[1]?.toLowerCase() || "";
+  } catch {
+    return "";
+  }
+}
