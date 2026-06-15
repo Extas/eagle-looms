@@ -64,30 +64,8 @@ class HDoujinMatcher extends BaseMatcher<HDoujinImg[]> {
     return this.meta!;
   }
 
-  tagNamespace(namespace: number): string {
-    const map: Record<number, string> = {
-      1: "artist",
-      2: "circle",
-      3: "parody",
-      7: "uploader",
-      8: "male_tags",
-      9: "female_tags",
-      11: "languages",
-    };
-    return map[namespace] ?? namespace.toString();
-  }
-
   createMeta(gallery: HDoujinGallery): GalleryMeta {
-    const meta = new GalleryMeta(window.location.href, gallery.title);
-    meta.originTitle = gallery.subtitle;
-    for (const tag of gallery.tags) {
-      const tagName = this.tagNamespace(tag.namespace);
-      if (!meta.tags[tagName]) {
-        meta.tags[tagName] = [];
-      }
-      meta.tags[tagName].push(tag.name)
-    }
-    return meta;
+    return hdoujinGalleryMeta(gallery, window.location.href);
   }
 
   async *fetchPagesSource(source: Chapter): AsyncGenerator<Result<HDoujinImg[]>> {
@@ -173,6 +151,32 @@ class HDoujinMatcher extends BaseMatcher<HDoujinImg[]> {
 export function hdoujinPublishedAt(value: Pick<HDoujinGallery, "created_at"> | Pick<HDoujinImg, "publishedAt">): string {
   const timestamp = (value as { publishedAt?: unknown }).publishedAt ?? (value as { created_at?: unknown }).created_at;
   return cleanHDoujinValue(timestamp);
+}
+
+export function hdoujinGalleryMeta(gallery: Pick<HDoujinGallery, "title" | "subtitle" | "tags">, href: string): GalleryMeta {
+  const meta = new GalleryMeta(href, gallery.title);
+  meta.originTitle = gallery.subtitle;
+  for (const tag of gallery.tags) {
+    const tagName = hdoujinTagNamespace(tag.namespace);
+    if (!meta.tags[tagName]) {
+      meta.tags[tagName] = [];
+    }
+    meta.tags[tagName].push(tag.name);
+  }
+  return meta;
+}
+
+function hdoujinTagNamespace(namespace: number): string {
+  const map: Record<number, string> = {
+    1: "artist",
+    2: "circle",
+    3: "parody",
+    7: "uploader",
+    8: "male_tags",
+    9: "female_tags",
+    11: "languages",
+  };
+  return map[namespace] ?? namespace.toString();
 }
 
 function cleanHDoujinValue(value: unknown): string {
