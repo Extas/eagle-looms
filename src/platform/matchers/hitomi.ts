@@ -144,6 +144,7 @@ class HitomiMather extends BaseMatcher<GalleryInfo> {
   async parseImgNodes(info: GalleryInfo): Promise<ImageNode[]> {
     const files = info.files;
     const list: ImageNode[] = [];
+    const publishedAt = hitomiPublishedAt(info);
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
       let ext = this.formats.slice(this.formatIndex).find(format => ((file as any)["has" + format] === 1));
@@ -154,7 +155,9 @@ class HitomiMather extends BaseMatcher<GalleryInfo> {
       const title = file.name.replace(/\.\w+$/, "");
       const src = this.gg!.originURL(file.hash, ext);
       const { width, height } = file;
-      list.push(new ImageNode(this.gg!.thumbURL(files[i].hash), src, title + "." + ext, undefined, src, (width && height) ? { w: width, h: height } : undefined));
+      const node = new ImageNode(this.gg!.thumbURL(files[i].hash), src, title + "." + ext, undefined, src, (width && height) ? { w: width, h: height } : undefined);
+      node.setPublishedAt(publishedAt);
+      list.push(node);
     }
     return list;
   }
@@ -191,6 +194,24 @@ class HitomiMather extends BaseMatcher<GalleryInfo> {
   }
 
 }
+
+export function hitomiPublishedAt(info: Partial<Record<string, unknown>>): string {
+  for (const key of ["date", "published_at", "publishedAt", "upload_date", "uploaded_at", "created_at", "created"]) {
+    const value = cleanHitomiValue(info[key]);
+    if (value) return value;
+  }
+  return "";
+}
+
+function cleanHitomiValue(value: unknown): string {
+  if (typeof value !== "string" && typeof value !== "number") return "";
+  return String(value)
+    .replace(/[\n\r\t]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 120);
+}
+
 ADAPTER.addSetup({
   name: "hitomi",
   workURLs: [
