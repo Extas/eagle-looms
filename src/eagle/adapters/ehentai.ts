@@ -1,34 +1,9 @@
-const AUTHOR_TAG_CATEGORIES = new Set([
-  "artist",
-  "artists",
-  "author",
-  "authors",
-  "creator",
-  "creators",
-  "illustrator",
-  "illustrators",
-  "writer",
-  "writers",
-  "translator",
-  "translators",
-  "editor",
-  "editors",
-  "colorist",
-  "colorists",
-  "letterer",
-  "letterers",
-  "mangaka",
-  "circle",
-  "circles",
-  "group",
-  "groups",
-]);
+import { isEagleAuthorCategory } from "./source-tags";
 
 export function extractEhentaiAuthorUrls(document: Document, baseUrl = window.location.href): string[] {
   const urls: string[] = [];
   document.querySelectorAll("#taglist tr").forEach((row) => {
-    const category = cleanCategory(row.querySelector("td")?.textContent || "");
-    if (!AUTHOR_TAG_CATEGORIES.has(category)) return;
+    if (!isEagleAuthorCategory(row.querySelector("td")?.textContent)) return;
 
     row.querySelectorAll<HTMLAnchorElement>("a[href]").forEach((anchor) => {
       const url = absoluteHttpUrl(anchor.getAttribute("href"), baseUrl);
@@ -36,17 +11,6 @@ export function extractEhentaiAuthorUrls(document: Document, baseUrl = window.lo
     });
   });
   return [...new Set(urls)];
-}
-
-function cleanCategory(value: string): string {
-  return value
-    .replace(/[:：]\s*$/, "")
-    .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
-    .replace(/[_-]+/g, " ")
-    .replace(/\(\s*s\s*\)/gi, "")
-    .replace(/\s+/g, " ")
-    .trim()
-    .toLowerCase();
 }
 
 function absoluteHttpUrl(value: string | null, baseUrl: string): string {

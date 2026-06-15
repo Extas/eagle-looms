@@ -11,6 +11,10 @@ export function eagleAuthorSourceTags(author: unknown, sourceTags: unknown[] = [
   return [...tags];
 }
 
+export function isEagleAuthorCategory(category: unknown): boolean {
+  return sourceMetadataTag(String(category ?? ""), "author").startsWith("author:");
+}
+
 export function cleanSourceTag(value: unknown): string {
   if (typeof value !== "string" && typeof value !== "number") return "";
   return String(value)

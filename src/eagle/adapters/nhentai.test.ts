@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { nhentaiAuthorUrlsFromDocument, nhentaiAuthorUrlsFromTags } from "./nhentai-tags";
+import { nhentaiAuthorUrlsFromDocument, nhentaiAuthorUrlsFromTags } from "./nhentai";
 
 describe("nhentai source metadata", () => {
   it("extracts author URLs from API tag payloads", () => {

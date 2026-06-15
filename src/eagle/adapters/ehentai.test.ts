@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { extractEhentaiAuthorUrls } from "./ehentai-tags";
+import { extractEhentaiAuthorUrls } from "./ehentai";
 
 describe("E-Hentai source metadata", () => {
   it("extracts author tag links from artist-like gallery tag rows", () => {

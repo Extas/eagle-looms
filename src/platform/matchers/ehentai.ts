@@ -7,7 +7,7 @@ import { simpleFetch } from "../../utils/query";
 import { parseImagePositions, splitImagesFromUrl } from "../../utils/sprite-split";
 import { replaceHost } from "../../utils/url";
 import { ADAPTER } from "../adapt";
-import { extractEhentaiAuthorUrls } from "../ehentai-tags";
+import { extractEhentaiAuthorUrls } from "../../eagle/adapters/ehentai";
 import { BaseMatcher, OriginMeta, Result, } from "../platform";
 
 // EHMatcher

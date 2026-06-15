@@ -2,7 +2,7 @@ import { GalleryMeta } from "../../download/gallery-meta";
 import ImageNode from "../../img-node";
 import { sleep } from "../../utils/sleep";
 import { ADAPTER } from "../adapt";
-import { nhentaiAuthorUrlsFromDocument, nhentaiAuthorUrlsFromTags } from "../nhentai-tags";
+import { nhentaiAuthorUrlsFromDocument, nhentaiAuthorUrlsFromTags } from "../../eagle/adapters/nhentai";
 import { BaseMatcher, OriginMeta, Result } from "../platform";
 
 function nhParseExt(str: string): string {
