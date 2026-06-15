@@ -4,7 +4,7 @@ import { Chapter } from "../../page-fetcher";
 import { evLog } from "../../utils/ev-log";
 import { ADAPTER } from "../adapt";
 import { isGalleryAuthorCategory } from "../../eagle/adapters/gallery-author-urls";
-import { cleanGalleryDateValue, isGalleryDateCategory } from "../gallery-published-at";
+import { cleanGalleryDateValue, isGalleryDateCategory } from "../../eagle/adapters/gallery-published-at";
 import { BaseMatcher, Result, OriginMeta } from "../platform";
 
 // TODO: don't reference the md5 on the page, to avoid errors when the script is not loaded

@@ -3,7 +3,7 @@ import ImageNode from "../../img-node";
 import { Chapter } from "../../page-fetcher";
 import { ADAPTER } from "../adapt";
 import { extractGalleryAuthorUrls } from "../../eagle/adapters/gallery-author-urls";
-import { extractGalleryPublishedAt } from "../gallery-published-at";
+import { extractGalleryPublishedAt } from "../../eagle/adapters/gallery-published-at";
 import { BaseMatcher, OriginMeta, Result } from "../platform";
 
 type HNImageInfo = {

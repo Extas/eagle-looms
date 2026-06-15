@@ -3,7 +3,7 @@ import ImageNode from "../../img-node";
 import { ImagePosition, splitImagesFromUrl } from "../../utils/sprite-split";
 import { ADAPTER } from "../adapt";
 import { isGalleryAuthorCategory } from "../../eagle/adapters/gallery-author-urls";
-import { cleanGalleryDateValue, isGalleryDateCategory } from "../gallery-published-at";
+import { cleanGalleryDateValue, isGalleryDateCategory } from "../../eagle/adapters/gallery-published-at";
 import { BaseMatcher, OriginMeta, Result } from "../platform";
 
 export class RokuHentaiMatcher extends BaseMatcher<[number, number]> {

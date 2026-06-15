@@ -2,7 +2,7 @@ import { GalleryMeta } from "../../download/gallery-meta";
 import ImageNode from "../../img-node";
 import { ADAPTER } from "../adapt";
 import { isGalleryAuthorCategory } from "../../eagle/adapters/gallery-author-urls";
-import { cleanGalleryDateValue, isGalleryDateCategory } from "../gallery-published-at";
+import { cleanGalleryDateValue, isGalleryDateCategory } from "../../eagle/adapters/gallery-published-at";
 import { BaseMatcher, OriginMeta, Result } from "../platform";
 
 class Hentai3Matcher extends BaseMatcher<Document> {
