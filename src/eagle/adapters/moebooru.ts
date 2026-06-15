@@ -1,3 +1,5 @@
+import { GalleryMeta } from "../../download/gallery-meta";
+import { searchGalleryTitle } from "../../platform/gallery-title";
 import { sourceMetadataTag } from "../tags";
 
 const POST_REGISTER_TAGS_RE = /Post\.register_tags\(\s*(\{[\s\S]*?\})\s*\)/g;
@@ -63,6 +65,31 @@ export function moebooruAuthorUrlsFromTags(rawTags: string | undefined, tagTypes
     .map(rawTag => moebooruTagSearchUrl(rawTag, baseUrl))
     .filter(Boolean);
   return [...new Set(urls)];
+}
+
+export function moebooruGalleryMetaFromState(site: string, href: string, infos: Record<string, MoebooruPostInfo>, tagTypes: MoebooruTagTypes): GalleryMeta {
+  const postId = moebooruPostIdFromUrl(href);
+  const title = postId ? `${site}-post-${postId}` : searchGalleryTitle(site, searchTagsFromUrl(href));
+  const meta = new GalleryMeta(href, title);
+  meta.tags = Object.fromEntries(
+    Object.values(infos)
+      .filter(info => info.id !== undefined && info.id !== null)
+      .map(info => [String(info.id), normalizeMoebooruSourceTags(info.tags, tagTypes)])
+      .filter(([, tags]) => tags.length > 0)
+  );
+  return meta;
+}
+
+export function moebooruPostIdFromUrl(href: string): string {
+  return href.match(/\/post\/show\/(\d+)/)?.[1] || "";
+}
+
+function searchTagsFromUrl(href: string): string | undefined {
+  try {
+    return new URL(href, window.location.href).searchParams.get("tags")?.trim() || undefined;
+  } catch {
+    return undefined;
+  }
 }
 
 function splitTags(value: string | undefined): string[] {

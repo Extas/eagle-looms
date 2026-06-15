@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { booruPublishedAtFromDocument, extractBooruAuthorUrls, extractBooruSourceTags, normalizeBooruSourceTags } from "./booru";
+import { sourceTagsFromGalleryMeta } from "../tags";
+import { booruGalleryMetaFromState, booruPublishedAtFromDocument, extractBooruAuthorUrls, extractBooruSourceTags, normalizeBooruSourceTags } from "./booru";
 
 describe("booru source tags", () => {
   it("normalizes known booru categories and keeps other tags raw", () => {
@@ -186,6 +187,40 @@ describe("booru source tags", () => {
       "https://danbooru.donmai.us/artists?search[name]=source_mangaka",
       "https://gelbooru.com/index.php?page=post&s=list&tags=artist_name",
       "https://danbooru.donmai.us/index.php?page=post&s=list&tags=source_editor",
+    ]);
+  });
+
+  it("builds gallery metadata with per-post source tag buckets", () => {
+    const meta = booruGalleryMetaFromState(
+      "gelbooru",
+      "https://gelbooru.com/index.php?page=post&s=list&tags=project_sekai",
+      undefined,
+      {
+        "100": ["copyright:project_sekai", "character:kusanagi_nene", "author:soha_blan", "blue_eyes"],
+        "101": ["wrong_post"],
+      },
+    );
+
+    expect(meta.title).toBe("gelbooru-search-project_sekai");
+    expect(sourceTagsFromGalleryMeta(meta, "https://gelbooru.com/index.php?page=post&s=view&id=100")).toEqual([
+      "copyright:project_sekai",
+      "character:kusanagi_nene",
+      "author:soha_blan",
+      "blue_eyes",
+    ]);
+  });
+
+  it("uses a stable single-post booru gallery title", () => {
+    const meta = booruGalleryMetaFromState(
+      "Danbooru",
+      "https://danbooru.donmai.us/posts/100",
+      "100",
+      { "100": ["copyright:project_sekai"] },
+    );
+
+    expect(meta.title).toBe("danbooru-post-100");
+    expect(sourceTagsFromGalleryMeta(meta, "https://danbooru.donmai.us/posts/100")).toEqual([
+      "copyright:project_sekai",
     ]);
   });
 });

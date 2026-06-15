@@ -1,11 +1,10 @@
 import { transient } from "../../config";
-import { GalleryMeta } from "../../download/gallery-meta";
+import type { GalleryMeta } from "../../download/gallery-meta";
 import EBUS from "../../event-bus";
 import ImageNode, { NodeAction } from "../../img-node";
 import { evLog } from "../../utils/ev-log";
 import { ADAPTER } from "../adapt";
-import { booruPublishedAtFromDocument, extractBooruAuthorUrls, extractBooruSourceTags, normalizeBooruSourceTags } from "../../eagle/adapters/booru";
-import { searchGalleryTitle } from "../gallery-title";
+import { booruGalleryMetaFromState, booruPublishedAtFromDocument, extractBooruAuthorUrls, extractBooruSourceTags, normalizeBooruSourceTags } from "../../eagle/adapters/booru";
 import { BaseMatcher, OriginMeta, Result } from "../platform";
 
 
@@ -90,7 +89,7 @@ abstract class DanbooruMatcher extends BaseMatcher<Document> {
         if (this.blacklistTags.findIndex(t => tagList.includes(t)) >= 0) return;
         const sourceTags = normalizeBooruSourceTags(booruMetadataRoot(ele), tagList);
         imgNode.setTags(...sourceTags);
-        this.tags[imgNode.title.split(".")[0]] = sourceTags;
+        this.tags[this.extractIDFromHref(imgNode.href) || imgNode.title.split(".")[0]] = sourceTags;
       }
       list.push(imgNode);
     });
@@ -121,14 +120,8 @@ abstract class DanbooruMatcher extends BaseMatcher<Document> {
   abstract site(): string;
 
   galleryMeta(): GalleryMeta {
-    const url = new URL(window.location.href);
-    const tags = url.searchParams.get("tags")?.trim();
     const postId = this.extractIDFromHref(window.location.href);
-    const site = this.site().toLowerCase().replace(/\s+/g, "-");
-    const title = postId ? `${site}-post-${postId}` : searchGalleryTitle(site, tags);
-    const meta = new GalleryMeta(window.location.href, title);
-    meta.tags = this.tags;
-    return meta;
+    return booruGalleryMetaFromState(this.site(), window.location.href, postId, this.tags);
   }
 }
 

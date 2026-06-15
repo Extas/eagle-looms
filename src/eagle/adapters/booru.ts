@@ -1,3 +1,5 @@
+import { GalleryMeta } from "../../download/gallery-meta";
+import { searchGalleryTitle } from "../../platform/gallery-title";
 import { sourceMetadataTag } from "../tags";
 
 const CATEGORY_ATTRS = {
@@ -262,6 +264,23 @@ export function booruPublishedAtFromDocument(doc: Document): string | undefined 
     || doc.querySelector<HTMLTimeElement>("time[datetime]")?.getAttribute("datetime")
     || doc.querySelector<HTMLMetaElement>("meta[property='article:published_time'], meta[name='date']")?.getAttribute("content")
     || undefined;
+}
+
+export function booruGalleryMetaFromState(site: string, href: string, postId: string | undefined, sourceTagsById: Record<string, string[]>): GalleryMeta {
+  const normalizedSite = site.toLowerCase().replace(/\s+/g, "-");
+  const searchTags = searchTagsFromUrl(href);
+  const title = postId ? `${normalizedSite}-post-${postId}` : searchGalleryTitle(normalizedSite, searchTags);
+  const meta = new GalleryMeta(href, title);
+  meta.tags = sourceTagsById;
+  return meta;
+}
+
+function searchTagsFromUrl(href: string): string | undefined {
+  try {
+    return new URL(href, window.location.href).searchParams.get("tags")?.trim() || undefined;
+  } catch {
+    return undefined;
+  }
 }
 
 function elementsWithAnyAttribute(root: ParentNode, attrs: readonly string[]): Element[] {

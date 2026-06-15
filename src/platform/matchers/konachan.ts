@@ -1,9 +1,8 @@
-import { GalleryMeta } from "../../download/gallery-meta";
+import type { GalleryMeta } from "../../download/gallery-meta";
 import ImageNode from "../../img-node";
 import { evLog } from "../../utils/ev-log";
 import { ADAPTER } from "../adapt";
-import { searchGalleryTitle } from "../gallery-title";
-import { MoebooruPostInfo, MoebooruTagTypes, moebooruAuthorUrlsFromTags, normalizeMoebooruSourceTags, parseMoebooruPostInfos, parseMoebooruTagTypes } from "../../eagle/adapters/moebooru";
+import { MoebooruPostInfo, MoebooruTagTypes, moebooruAuthorUrlsFromTags, moebooruGalleryMetaFromState, moebooruPostIdFromUrl, normalizeMoebooruSourceTags, parseMoebooruPostInfos, parseMoebooruTagTypes } from "../../eagle/adapters/moebooru";
 import { BaseMatcher, OriginMeta, Result } from "../platform";
 
 export class KonachanMatcher extends BaseMatcher<Document> {
@@ -73,13 +72,7 @@ export class KonachanMatcher extends BaseMatcher<Document> {
   }
 
   galleryMeta(): GalleryMeta {
-    const url = new URL(window.location.href);
-    const tags = url.searchParams.get("tags")?.trim();
-    const postId = moebooruPostIdFromUrl(window.location.href);
-    const title = postId ? `konachan-post-${postId}` : searchGalleryTitle("konachan", tags);
-    const meta = new GalleryMeta(window.location.href, title);
-    (meta as any)["infos"] = this.infos;
-    return meta;
+    return moebooruGalleryMetaFromState("konachan", window.location.href, this.infos, this.tagTypes);
   }
 }
 
@@ -91,10 +84,6 @@ ADAPTER.addSetup({
   match: ["https://konachan.com/*"],
   constructor: () => new KonachanMatcher(),
 });
-
-function moebooruPostIdFromUrl(href: string): string {
-  return href.match(/\/post\/show\/(\d+)/)?.[1] || "";
-}
 
 function imageSizeFromInfo(info: Pick<MoebooruPostInfo, "width" | "height">): { w: number, h: number } | undefined {
   const w = Number(info.width);

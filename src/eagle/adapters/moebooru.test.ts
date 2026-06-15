@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { moebooruAuthorUrlsFromTags, normalizeMoebooruSourceTags, parseMoebooruPostInfos, parseMoebooruTagTypes } from "./moebooru";
+import { sourceTagsFromGalleryMeta } from "../tags";
+import { moebooruAuthorUrlsFromTags, moebooruGalleryMetaFromState, normalizeMoebooruSourceTags, parseMoebooruPostInfos, parseMoebooruTagTypes } from "./moebooru";
 
 describe("moebooru source tags", () => {
   it("normalizes Post.register_tags categories and keeps unknown tags raw", () => {
@@ -123,5 +124,56 @@ describe("moebooru source tags", () => {
     `;
 
     expect(parseMoebooruPostInfos(document).map(info => info.id)).toEqual([100, 101]);
+  });
+
+  it("builds gallery metadata with normalized per-post tag buckets", () => {
+    const meta = moebooruGalleryMetaFromState(
+      "yande.re",
+      "https://yande.re/post?tags=project_sekai",
+      {
+        "100": {
+          id: 100,
+          file_url: "https://files.yande.re/image.jpg",
+          sample_url: "https://files.yande.re/sample.jpg",
+          preview_url: "https://files.yande.re/preview.jpg",
+          tags: "artist_name project_sekai kusanagi_nene blue_eyes",
+        },
+      },
+      {
+        artist_name: "artist",
+        project_sekai: "copyright",
+        kusanagi_nene: "character",
+      },
+    );
+
+    expect(meta.title).toBe("yande.re-search-project_sekai");
+    expect(sourceTagsFromGalleryMeta(meta, "https://yande.re/post/show/100")).toEqual([
+      "author:artist_name",
+      "copyright:project_sekai",
+      "character:kusanagi_nene",
+      "blue_eyes",
+    ]);
+  });
+
+  it("uses a stable single-post moebooru gallery title", () => {
+    const meta = moebooruGalleryMetaFromState(
+      "konachan",
+      "https://konachan.com/post/show/100",
+      {
+        "100": {
+          id: 100,
+          file_url: "https://konachan.com/file.jpg",
+          sample_url: "https://konachan.com/sample.jpg",
+          preview_url: "https://konachan.com/preview.jpg",
+          tags: "project_sekai",
+        },
+      },
+      { project_sekai: "copyright" },
+    );
+
+    expect(meta.title).toBe("konachan-post-100");
+    expect(sourceTagsFromGalleryMeta(meta, "https://konachan.com/post/show/100")).toEqual([
+      "copyright:project_sekai",
+    ]);
   });
 });
