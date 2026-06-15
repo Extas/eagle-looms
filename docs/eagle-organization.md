@@ -197,6 +197,9 @@ KuaiKan
 
 Bilibili
   author comes from opus author metadata; author URL points to the Bilibili space profile; image publish date comes from opus publish time metadata
+
+Steam Screenshots
+  author comes from the Steam profile path; author URL points to the source profile; gallery title uses appid when present
 ```
 
 ## Item Names

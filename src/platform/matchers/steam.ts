@@ -71,17 +71,54 @@ class SteamMatcher extends BaseMatcher<string> {
     }
   }
 
-  parseGalleryMeta(): GalleryMeta {
-    const url = new URL(window.location.href);
-    const appid = url.searchParams.get("appid");
-    return new GalleryMeta(window.location.href, "steam-" + appid || "all");
+  galleryMeta(): GalleryMeta {
+    return steamGalleryMetaFromUrl(window.location.href, document.title);
   }
 
 }
+
+export function steamGalleryMetaFromUrl(href: string, fallbackTitle = "steam"): GalleryMeta {
+  const meta = new GalleryMeta(href, steamGalleryTitleFromUrl(href, fallbackTitle));
+  const author = steamProfileIdentityFromUrl(href);
+  if (author) {
+    meta.tags.author = [author];
+    meta.authorUrls = [steamAuthorUrlFromUrl(href)];
+  }
+  return meta;
+}
+
+export function steamGalleryTitleFromUrl(href: string, fallbackTitle = "steam"): string {
+  const url = new URL(href, "https://steamcommunity.com");
+  const appid = cleanSteamValue(url.searchParams.get("appid"));
+  if (appid) return `steam-${appid}`;
+  return `steam-${cleanSteamValue(fallbackTitle) || "screenshots"}`;
+}
+
+export function steamProfileIdentityFromUrl(href: string): string {
+  const url = new URL(href, "https://steamcommunity.com");
+  const match = url.pathname.match(/^\/(?:id|profiles)\/([^/]+)/i);
+  return cleanSteamValue(match?.[1]);
+}
+
+export function steamAuthorUrlFromUrl(href: string): string {
+  const url = new URL(href, "https://steamcommunity.com");
+  const match = url.pathname.match(/^(\/(?:id|profiles)\/[^/]+)/i);
+  return match ? `${url.origin}${match[1]}` : "";
+}
+
+function cleanSteamValue(value: unknown): string {
+  if (typeof value !== "string" && typeof value !== "number") return "";
+  return String(value)
+    .replace(/[\n\r\t]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 120);
+}
+
 ADAPTER.addSetup({
   name: "Steam Screenshots",
   workURLs: [
-    /steamcommunity.com\/id\/[^/]+\/screenshots.*/
+    /steamcommunity.com\/(?:id|profiles)\/[^/]+\/screenshots.*/
   ],
   match: ["https://steamcommunity.com/*"],
   constructor: () => new SteamMatcher(),
