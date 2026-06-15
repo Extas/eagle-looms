@@ -1,3 +1,5 @@
+import { GalleryMeta } from "../../download/gallery-meta";
+import { searchGalleryTitle } from "../../platform/gallery-title";
 import { sourceMetadataTag } from "../tags";
 
 export type AnimePicturesCategory = "copyright" | "character" | "author" | "raw" | "";
@@ -29,6 +31,21 @@ export function animePicturesSourceTag(category: AnimePicturesCategory, name: st
 export function animePicturesApiSourceTag(category: unknown, name: string): string {
   const normalized = animePicturesNamespace(String(category || ""));
   return normalized ? sourceMetadataTag(normalized, name) : name;
+}
+
+export function animePicturesGalleryMetaFromUrl(href = window.location.href): GalleryMeta {
+  const url = new URL(href, window.location.href);
+  const searchTag = decodeAnimePicturesSearchTag(url.searchParams.get("search_tag") || "");
+  const pageLabel = animePicturesGalleryLabel(url, searchTag);
+  const title = searchGalleryTitle("anime-pictures", pageLabel === "posts" || pageLabel === "stars" ? "" : searchTag, pageLabel);
+  const meta = new GalleryMeta(href, title);
+  meta.downloader = "https://github.com/Extas/eagle-looms";
+  meta.tags = {
+    search_tag: searchTag ? [searchTag] : [],
+    page: [pageLabel],
+    site: ["anime-pictures.net"],
+  };
+  return meta;
 }
 
 function animePicturesNamespace(value: string): "copyright" | "character" | "author" | "" {
@@ -84,6 +101,16 @@ function animePicturesNamespace(value: string): "copyright" | "character" | "aut
     default:
       return "";
   }
+}
+
+function animePicturesGalleryLabel(url: URL, searchTag: string): string {
+  if (url.pathname.match(/\/(?:posts|pictures\/view_post)\/\d+/)) return "posts";
+  if (url.pathname.includes("/stars")) return "stars";
+  return searchTag || "posts";
+}
+
+function decodeAnimePicturesSearchTag(value: string): string {
+  return decodeURIComponent(value.replace(/\+/g, " ")).trim();
 }
 
 function normalizeAnimePicturesCategory(value: string): string {

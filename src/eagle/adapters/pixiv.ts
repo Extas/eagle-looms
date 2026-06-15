@@ -1,3 +1,5 @@
+import { GalleryMeta } from "../../download/gallery-meta";
+import { datedGalleryTitle, galleryTitle } from "../../platform/gallery-title";
 import { pixivAuthorLabel, pixivAuthorUrl } from "../../platform/pixiv-tags";
 import { sourceMetadataTag } from "../tags";
 
@@ -28,4 +30,15 @@ export function pixivEagleArtworkMetadataBuckets(works: Record<string, PixivEagl
     tags[pid] = pixivEagleSourceTags(work);
     return tags;
   }, {});
+}
+
+export function pixivEagleGalleryMetaFromState(href: string, sourceTitle: string, works: Record<string, PixivEagleWorkMetadata>, date = new Date()): GalleryMeta {
+  const meta = new GalleryMeta(
+    href,
+    sourceTitle === "home"
+      ? datedGalleryTitle(["pixiv", "home"], date)
+      : galleryTitle(["pixiv", "user", sourceTitle]),
+  );
+  meta.tags = pixivEagleArtworkMetadataBuckets(works);
+  return meta;
 }

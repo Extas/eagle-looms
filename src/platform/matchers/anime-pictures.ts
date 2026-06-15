@@ -1,8 +1,8 @@
-import { GalleryMeta } from "../../download/gallery-meta";
+import type { GalleryMeta } from "../../download/gallery-meta";
 import ImageNode from "../../img-node";
 import { ADAPTER } from "../adapt";
-import { searchGalleryTitle } from "../gallery-title";
 import { BaseMatcher, OriginMeta, Result } from "../platform";
+import { animePicturesGalleryMetaFromUrl } from "../../eagle/adapters/anime-pictures";
 import { AnimePicturesImageCandidate, animePicturesApiDetailUrl, diagnoseAnimePicturesDocument, collectAnimePicturesImageCandidates, extractAnimePicturesSourceMetadata, isAnimePicturesChallengeHtml, parseAnimePicturesApiDetail, parseAnimePicturesPostEntries, selectAnimePicturesImageCandidate } from "../anime-pictures";
 
 const POST_RE = /\/(?:posts|pictures\/view_post)\/(\d+)/;
@@ -120,18 +120,7 @@ class AnimePicturesMatcher extends BaseMatcher<Document> {
   }
 
   galleryMeta(): GalleryMeta {
-    const url = new URL(window.location.href);
-    const searchTag = decodeSearchTag(url.searchParams.get("search_tag") || "");
-    const pageLabel = galleryLabel(url, searchTag);
-    const title = searchGalleryTitle("anime-pictures", pageLabel === "posts" || pageLabel === "stars" ? "" : searchTag, pageLabel);
-    const meta = new GalleryMeta(window.location.href, title);
-    meta.downloader = "https://github.com/Extas/eagle-looms";
-    meta.tags = {
-      search_tag: searchTag ? [searchTag] : [],
-      page: [pageLabel],
-      site: ["anime-pictures.net"],
-    };
-    return meta;
+    return animePicturesGalleryMetaFromUrl(window.location.href);
   }
 
   private failedCandidatesFor(node: ImageNode): Set<string> {
@@ -188,12 +177,6 @@ function isSinglePostPage(url: string): boolean {
   }
 }
 
-function galleryLabel(url: URL, searchTag: string): string {
-  if (url.pathname.match(POST_RE)) return "posts";
-  if (url.pathname.includes("/stars")) return "stars";
-  return searchTag || "posts";
-}
-
 function withLang(url: string): string {
   const parsed = new URL(url);
   parsed.searchParams.set("lang", "en");
@@ -219,8 +202,4 @@ function extensionFromUrl(url: string): string {
   } catch {
     return "";
   }
-}
-
-function decodeSearchTag(value: string): string {
-  return decodeURIComponent(value.replace(/\+/g, " ")).trim();
 }

@@ -5,6 +5,7 @@ import {
   pixivEagleArtworkMetadataBuckets,
   pixivEagleAuthorTag,
   pixivEagleAuthorUrl,
+  pixivEagleGalleryMetaFromState,
   pixivEagleSourceTags,
 } from "./pixiv";
 
@@ -36,5 +37,37 @@ describe("Pixiv Eagle metadata adapter", () => {
       "bang dream",
       "mygo",
     ]);
+  });
+
+  it("builds user gallery metadata with per-artwork buckets", () => {
+    const meta = pixivEagleGalleryMetaFromState(
+      "https://www.pixiv.net/users/42",
+      "42",
+      {
+        "100": {
+          tags: ["bang dream", "mygo"],
+          userId: "42",
+          userName: "artist",
+        },
+      },
+    );
+
+    expect(meta.title).toBe("pixiv-user-42");
+    expect(sourceTagsFromGalleryMeta(meta, "https://www.pixiv.net/artworks/100")).toEqual([
+      "author:artist",
+      "bang dream",
+      "mygo",
+    ]);
+  });
+
+  it("builds dated home gallery metadata", () => {
+    const meta = pixivEagleGalleryMetaFromState(
+      "https://www.pixiv.net/",
+      "home",
+      {},
+      new Date(2026, 5, 16),
+    );
+
+    expect(meta.title).toBe("pixiv-home-2026-06-16");
   });
 });

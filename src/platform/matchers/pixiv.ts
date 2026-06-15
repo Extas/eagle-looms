@@ -1,4 +1,4 @@
-import { GalleryMeta } from "../../download/gallery-meta";
+import type { GalleryMeta } from "../../download/gallery-meta";
 import { evLog } from "../../utils/ev-log";
 import { BaseMatcher, OriginMeta, Result, SubData } from "../platform";
 import { FFmpegConvertor } from "../../utils/ffmpeg";
@@ -11,8 +11,7 @@ import { ADAPTER } from "../adapt";
 import { i18n } from "../../utils/i18n";
 import { HTMLUgoiraElement } from "../../utils/ugoira";
 import { replaceHost } from "../../utils/url";
-import { datedGalleryTitle, galleryTitle } from "../gallery-title";
-import { pixivEagleArtworkMetadataBuckets, pixivEagleAuthorUrl, pixivEagleSourceTags } from "../../eagle/adapters/pixiv";
+import { pixivEagleAuthorUrl, pixivEagleGalleryMetaFromState, pixivEagleSourceTags } from "../../eagle/adapters/pixiv";
 import { normalizePixivWorkTags } from "../pixiv-tags";
 
 type ArtistPIDs = {
@@ -226,7 +225,7 @@ const PID_EXTRACT = /\/(\d+)_([a-z]+)\d*\.\w*$/;
 type PageData = { error: boolean, message: string, body: Page[] };
 export class PixivMatcher extends BaseMatcher<ArtistPIDs[]> {
   api: PixivAPI;
-  meta: GalleryMeta;
+  meta?: GalleryMeta;
   pageCount: number = 0;
   works: Record<string, Work> = {};
   ugoiraMetas: Record<string, UgoiraMeta> = {};
@@ -236,7 +235,6 @@ export class PixivMatcher extends BaseMatcher<ArtistPIDs[]> {
 
   constructor() {
     super();
-    this.meta = new GalleryMeta(window.location.href, "UNTITLE");
     if (/pixiv.net(\/en\/?|\/illustration)?$/.test(window.location.href)) {
       this.api = new PixivHomeAPI();
     } else {
@@ -282,10 +280,7 @@ export class PixivMatcher extends BaseMatcher<ArtistPIDs[]> {
 
   galleryMeta(): GalleryMeta {
     const sourceTitle = this.api.title();
-    this.meta.title = sourceTitle === "home"
-      ? datedGalleryTitle(["pixiv", "home"])
-      : galleryTitle(["pixiv", "user", sourceTitle]);
-    this.meta.tags = pixivEagleArtworkMetadataBuckets(this.works);
+    this.meta = pixivEagleGalleryMetaFromState(window.location.href, sourceTitle, this.works);
     return this.meta;
   }
 
