@@ -149,6 +149,9 @@ Douban albums
 
 Komiic
   comic authors map to author tags through gallery metadata; comic categories stay raw; image publish date comes from chapter date metadata
+
+MangaCopy
+  image publish date comes from comic detail update date when available
 ```
 
 ## Item Names

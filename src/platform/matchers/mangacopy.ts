@@ -13,11 +13,7 @@ class MangaCopyMatcher extends BaseMatcher<string> {
   galleryMeta(): GalleryMeta {
     if (this.meta) return this.meta;
     let title = document.querySelector(".comicParticulars-title-right > ul > li > h6")?.textContent ?? document.title;
-    document.querySelectorAll(".comicParticulars-title-right > ul > li > span.comicParticulars-right-txt").forEach(ele => {
-      if (/^\d{4}-\d{2}-\d{2}$/.test(ele.textContent?.trim() || "")) {
-        this.update_date = ele.textContent?.trim();
-      }
-    });
+    this.update_date = mangaCopyPublishedAtFromDocument(document);
     title += "-c" + this.chapterCount + (this.update_date ? "-" + this.update_date : "")
     this.meta = new GalleryMeta(window.location.href, title);
     return this.meta;
@@ -36,8 +32,11 @@ class MangaCopyMatcher extends BaseMatcher<string> {
       const decryption = await decrypt(contentKey, jojoKey);
       const images = JSON.parse(decryption) as { url: string }[];
       const digits = images.length.toString().length;
+      const publishedAt = this.update_date || mangaCopyPublishedAtFromDocument(document);
       return images.map((img, i) => {
-        return new ImageNode("", source as string, (i + 1).toString().padStart(digits, "0") + ".webp", undefined, img.url);
+        const node = new ImageNode("", source as string, (i + 1).toString().padStart(digits, "0") + ".webp", undefined, img.url);
+        node.setPublishedAt(publishedAt);
+        return node;
       })
     } catch (error) {
       throw new Error("cannot decrypt contentKey: " + (error as any).toString() + "\n" + contentKey);
@@ -118,6 +117,21 @@ type MCChapterDetailGroup = {
 };
 
 const PATH_WORD_REGEX = /\/comic\/(\w*)/;
+
+export function mangaCopyPublishedAtFromDocument(doc: Document): string {
+  return Array.from(doc.querySelectorAll(".comicParticulars-title-right > ul > li > span.comicParticulars-right-txt"))
+    .map(ele => cleanMangaCopyValue(ele.textContent || ""))
+    .find(text => /^\d{4}-\d{2}-\d{2}$/.test(text)) || "";
+}
+
+function cleanMangaCopyValue(value: unknown): string {
+  if (typeof value !== "string" && typeof value !== "number") return "";
+  return String(value)
+    .replace(/[\n\r\t]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 120);
+}
 
 async function decrypt(raw: string, jojoKey: string): Promise<string> {
   const encoder = new TextEncoder();
