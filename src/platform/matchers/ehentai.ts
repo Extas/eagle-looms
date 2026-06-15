@@ -1,4 +1,4 @@
-import { GalleryMeta } from "../../download/gallery-meta";
+import type { GalleryMeta } from "../../download/gallery-meta";
 import { IMGFetcher } from "../../img-fetcher";
 import ImageNode from "../../img-node";
 import { Chapter } from "../../page-fetcher";
@@ -7,7 +7,7 @@ import { simpleFetch } from "../../utils/query";
 import { parseImagePositions, splitImagesFromUrl } from "../../utils/sprite-split";
 import { replaceHost } from "../../utils/url";
 import { ADAPTER } from "../adapt";
-import { extractEhentaiAuthorUrls } from "../../eagle/adapters/ehentai";
+import { ehentaiGalleryMetaFromDocument } from "../../eagle/adapters/ehentai";
 import { BaseMatcher, OriginMeta, Result, } from "../platform";
 
 // EHMatcher
@@ -65,52 +65,7 @@ class EHMatcher extends BaseMatcher<string> {
   galleryMeta(chapter: Chapter): GalleryMeta {
     if (chapter.meta) return chapter.meta;
     const doc = this.docMap[chapter.id];
-    const titleList = doc.querySelectorAll<HTMLElement>("#gd2 h1");
-    let title: string | undefined;
-    let originTitle: string | undefined;
-    if (titleList && titleList.length > 0) {
-      title = titleList[0].textContent || undefined;
-      if (titleList.length > 1) {
-        originTitle = titleList[1].textContent || undefined;
-      }
-    }
-    chapter.meta = new GalleryMeta(window.location.href, title || "UNTITLE");
-    chapter.meta.originTitle = originTitle;
-    const tagTrList = doc.querySelectorAll<HTMLElement>("#taglist tr");
-    const tags: Record<string, string[]> = {};
-
-    // gallery detail
-    const category = doc.querySelector("#gdc > div")?.textContent;
-    if (category) tags["category"] = [category];
-    const uploader = doc.querySelector("#gdn > a")?.textContent;
-    if (uploader) tags["uploader"] = [uploader];
-    // detail
-    Array.from(doc.querySelectorAll("#gdd > table:not([hidden]) tr")).forEach(tr => {
-      const cat = tr.querySelector(".gdt1")?.textContent?.replace(":", "")?.toLowerCase();
-      let value = tr.querySelector(".gdt2")?.textContent;
-      if (cat && value) {
-        if (cat === "parent" || cat === "父级") {
-          value = tr.querySelector<HTMLAnchorElement>(".gdt2 a")?.href ?? value;
-        }
-        if (cat === "language" || cat === "语言") return;
-        tags[cat] = [value];
-      }
-    });
-
-    // gallery tags
-    tagTrList.forEach((tr) => {
-      const tds = tr.childNodes;
-      const cat = tds[0].textContent;
-      if (cat && tds[1]) {
-        const list: string[] = [];
-        tds[1].childNodes.forEach((ele) => {
-          if (ele.textContent) list.push(ele.textContent);
-        });
-        tags[cat.replace(":", "")] = list;
-      }
-    });
-    chapter.meta.tags = tags;
-    chapter.meta.authorUrls = extractEhentaiAuthorUrls(doc, window.location.href);
+    chapter.meta = ehentaiGalleryMetaFromDocument(doc, window.location.href);
     return chapter.meta;
   }
 

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { nhentaiAuthorUrlsFromDocument, nhentaiAuthorUrlsFromTags, nhentaiPublishedAt, nhentaiPublishedAtFromDocument } from "./nhentai";
+import { sourceTagsFromGalleryMeta } from "../tags";
+import { nhentaiAuthorUrlsFromDocument, nhentaiAuthorUrlsFromTags, nhentaiGalleryMetaFromApi, nhentaiGalleryMetaFromDocument, nhentaiPublishedAt, nhentaiPublishedAtFromDocument } from "./nhentai";
 
 describe("nhentai source metadata", () => {
   it("derives published timestamps from API upload dates", () => {
@@ -48,6 +49,31 @@ describe("nhentai source metadata", () => {
     ]);
   });
 
+  it("builds gallery metadata from nhentai API payloads", () => {
+    const meta = nhentaiGalleryMetaFromApi({
+      title: {
+        english: "English Title",
+        japanese: "Japanese Title",
+      },
+      tags: [
+        { type: "parody", name: "project sekai", url: "/parody/project-sekai/" },
+        { type: "character", name: "kusanagi nene", url: "/character/kusanagi-nene/" },
+        { type: "artist", name: "soha blan", url: "/artist/soha-blan/" },
+        { type: "tag", name: "school uniform", url: "/tag/school-uniform/" },
+      ],
+    }, "https://nhentai.net/g/123/");
+
+    expect(meta.title).toBe("English Title");
+    expect(meta.originTitle).toBe("Japanese Title");
+    expect(meta.authorUrls).toEqual(["https://nhentai.net/artist/soha-blan/"]);
+    expect(sourceTagsFromGalleryMeta(meta, "https://nhentai.net/g/123/1/")).toEqual([
+      "copyright:project sekai",
+      "character:kusanagi nene",
+      "author:soha blan",
+      "school uniform",
+    ]);
+  });
+
   it("extracts author URLs from nhentai.xxx gallery tag rows", () => {
     document.body.innerHTML = `
       <div class="info">
@@ -86,6 +112,45 @@ describe("nhentai source metadata", () => {
       "https://nhentai.xxx/creator/source-creator/",
       "https://nhentai.xxx/letterer/lettering-name/",
       "https://nhentai.xxx/artist/decorated-artist/",
+    ]);
+  });
+
+  it("builds gallery metadata from nhentai.xxx document rows", () => {
+    const doc = new DOMParser().parseFromString(`
+      <div class="info">
+        <h1> Main Title </h1>
+        <h2> Original Title </h2>
+        <ul>
+          <li class="tags">
+            <span class="text">Artists:</span>
+            <a class="tag_btn" href="/artist/soha-blan/"><span class="tag_name">soha blan</span></a>
+          </li>
+          <li class="tags">
+            <span class="text">Characters:</span>
+            <a class="tag_btn" href="/character/kusanagi-nene/"><span class="tag_name">kusanagi nene</span></a>
+          </li>
+          <li class="tags">
+            <span class="text">Parodies:</span>
+            <a class="tag_btn" href="/parody/project-sekai/"><span class="tag_name">project sekai</span></a>
+          </li>
+          <li class="tags">
+            <span class="text">Tags:</span>
+            <a class="tag_btn" href="/tag/school-uniform/"><span class="tag_name">school uniform</span></a>
+          </li>
+        </ul>
+      </div>
+    `, "text/html");
+
+    const meta = nhentaiGalleryMetaFromDocument(doc, "https://nhentai.xxx/g/123/");
+
+    expect(meta.title).toBe("Main Title");
+    expect(meta.originTitle).toBe("Original Title");
+    expect(meta.authorUrls).toEqual(["https://nhentai.xxx/artist/soha-blan/"]);
+    expect(sourceTagsFromGalleryMeta(meta, "https://nhentai.xxx/g/123/1")).toEqual([
+      "author:soha blan",
+      "character:kusanagi nene",
+      "copyright:project sekai",
+      "school uniform",
     ]);
   });
 });

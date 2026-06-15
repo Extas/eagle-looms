@@ -1,8 +1,8 @@
-import { GalleryMeta } from "../../download/gallery-meta";
+import type { GalleryMeta } from "../../download/gallery-meta";
 import ImageNode from "../../img-node";
 import { sleep } from "../../utils/sleep";
 import { ADAPTER } from "../adapt";
-import { nhentaiAuthorUrlsFromDocument, nhentaiAuthorUrlsFromTags, nhentaiPublishedAt, nhentaiPublishedAtFromDocument } from "../../eagle/adapters/nhentai";
+import { nhentaiGalleryMetaFromApi, nhentaiGalleryMetaFromDocument, nhentaiPublishedAt, nhentaiPublishedAtFromDocument } from "../../eagle/adapters/nhentai";
 import { BaseMatcher, OriginMeta, Result } from "../platform";
 
 function nhParseExt(str: string): string {
@@ -55,19 +55,7 @@ class NHMatcher extends BaseMatcher<Document> {
     return this.meta!;
   }
   createMeta(info: NHGalleryInfo) {
-    const meta = new GalleryMeta(window.location.href, info.title?.english || document.title);
-    meta.originTitle = info.title?.japanese;
-    if (info.tags && info.tags.length > 0) {
-      meta.authorUrls = nhentaiAuthorUrlsFromTags(info.tags, window.location.href);
-      meta.tags = info.tags.reduce<Record<string, any[]>>((prev, curr) => {
-        if (!prev[curr.type]) {
-          prev[curr.type] = [];
-        }
-        prev[curr.type].push(curr.name);
-        return prev;
-      }, {});
-    }
-    this.meta = meta;
+    this.meta = nhentaiGalleryMetaFromApi(info, window.location.href, document.title);
   }
   async getImageServers() {
     const config = await window.fetch(`${window.origin}/api/v2/config`).then(res => res.json()).catch(Error);
@@ -127,17 +115,7 @@ class NHxxxMatcher extends BaseMatcher<Document> {
     return this.meta!;
   }
   parseMeta() {
-    const title = document.querySelector(".info h1")?.textContent;
-    const originTItle = document.querySelector(".info h2")?.textContent;
-    const meta = new GalleryMeta(window.location.href, title ?? document.title);
-    meta.originTitle = originTItle ?? undefined;
-    Array.from(document.querySelectorAll(".info > ul > li.tags")).forEach(ele => {
-      let cat = ele.querySelector("span.text")?.textContent ?? "misc";
-      cat = cat.trim().replace(":", "");
-      const tags = Array.from(ele.querySelectorAll("a.tag_btn > .tag_name")).map(t => t.textContent?.trim()).filter(Boolean) as string[];
-      meta.tags[cat] = tags;
-    });
-    meta.authorUrls = nhentaiAuthorUrlsFromDocument(document, window.location.href);
+    const meta = nhentaiGalleryMetaFromDocument(document, window.location.href);
     this.publishedAt = nhentaiPublishedAtFromDocument(document);
     this.meta = meta;
   }
