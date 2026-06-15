@@ -1,6 +1,7 @@
 import { GalleryMeta } from "../../download/gallery-meta";
 import ImageNode from "../../img-node";
 import { Chapter } from "../../page-fetcher";
+import { eahentaiGalleryMeta, eahentaiPublishedAt } from "../../eagle/adapters/eahentai";
 import { ADAPTER } from "../adapt";
 import { BaseMatcher, OriginMeta, Result } from "../platform";
 
@@ -67,36 +68,6 @@ class EahentaiMatcher extends BaseMatcher<EahentaiGalleryData> {
     return this.meta ?? super.galleryMeta(chapter);
   }
 
-}
-
-export function eahentaiPublishedAt(image: { addDt?: unknown }, gallery?: { addDt?: unknown }): string {
-  return cleanEahentaiValue(image.addDt) || cleanEahentaiValue(gallery?.addDt);
-}
-
-export function eahentaiGalleryMeta(data: Pick<EahentaiGalleryData, "title" | "tags" | "author" | "albumType" | "characters">, href: string): GalleryMeta {
-  const meta = new GalleryMeta(href, cleanEahentaiValue(data.title) || "eahentai");
-  meta.tags.tags = splitEahentaiTags(data.tags);
-  const author = cleanEahentaiValue(data.author);
-  if (author) meta.tags.author = [author];
-  meta.tags.albumType = splitEahentaiTags(data.albumType);
-  meta.tags.characters = splitEahentaiTags(data.characters);
-  return meta;
-}
-
-function splitEahentaiTags(value: unknown): string[] {
-  return cleanEahentaiValue(value)
-    .split("|")
-    .map(cleanEahentaiValue)
-    .filter(Boolean);
-}
-
-function cleanEahentaiValue(value: unknown): string {
-  if (typeof value !== "string" && typeof value !== "number") return "";
-  return String(value)
-    .replace(/[\n\r\t]+/g, " ")
-    .replace(/\s+/g, " ")
-    .trim()
-    .slice(0, 120);
 }
 
 ADAPTER.addSetup({

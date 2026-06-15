@@ -1,20 +1,12 @@
-import { describe, expect, it, vi } from "vitest";
-import { sourceTagsFromGalleryMeta } from "../eagle/tags";
-import { arcaChannelFromUrl, arcaGalleryMetaFromDocument, arcaPublishedAtFromDocument } from "./matchers/arca";
-
-vi.mock("$", () => ({
-  GM: {
-    xmlHttpRequest: () => undefined,
-  },
-  GM_getValue: () => null,
-  GM_setValue: () => undefined,
-}));
+import { describe, expect, it } from "vitest";
+import { sourceTagsFromGalleryMeta } from "../tags";
+import { arcaChannelFromUrl, arcaGalleryMetaFromDocument, arcaPublishedAtFromDocument } from "./arca";
 
 function parseDocument(html: string): Document {
   return new DOMParser().parseFromString(html, "text/html");
 }
 
-describe("Arcalive matcher metadata", () => {
+describe("Arcalive Eagle metadata adapter", () => {
   it("derives channel metadata from article URLs", () => {
     expect(arcaChannelFromUrl("https://arca.live/b/art/123")).toBe("art");
   });

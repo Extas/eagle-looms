@@ -1,16 +1,8 @@
-import { describe, expect, it, vi } from "vitest";
-import { sourceTagsFromGalleryMeta } from "../eagle/tags";
-import { eahentaiGalleryMeta, eahentaiPublishedAt } from "./matchers/eahentai";
+import { describe, expect, it } from "vitest";
+import { sourceTagsFromGalleryMeta } from "../tags";
+import { eahentaiGalleryMeta, eahentaiPublishedAt } from "./eahentai";
 
-vi.mock("$", () => ({
-  GM: {
-    xmlHttpRequest: () => undefined,
-  },
-  GM_getValue: () => null,
-  GM_setValue: () => undefined,
-}));
-
-describe("eahentai matcher metadata", () => {
+describe("eahentai Eagle metadata adapter", () => {
   it("prefers image addDt over gallery addDt", () => {
     expect(eahentaiPublishedAt(
       { addDt: "2026-06-14 08:00:00" },
