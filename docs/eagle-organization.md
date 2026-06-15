@@ -129,6 +129,9 @@ HentaiNexus
 HentaiZap / im-hentai
   map gallery detail tag rows through source metadata; author URLs point to author-like tag pages; image publish date comes from date-like detail rows
 
+AsmHentai
+  map gallery detail tag rows through source metadata; author URLs point to author-like tag pages; image publish date comes from date-like detail rows
+
 Hitomi
   map galleryinfo parodys -> copyright, characters -> character, artists/groups -> author; image publish date comes from galleryinfo date metadata
 

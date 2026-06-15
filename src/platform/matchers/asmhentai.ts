@@ -1,10 +1,15 @@
 import { GalleryMeta } from "../../download/gallery-meta";
 import ImageNode from "../../img-node";
 import { ADAPTER } from "../adapt";
+import { extractGalleryAuthorUrls } from "../gallery-author-urls";
+import { extractGalleryPublishedAt } from "../gallery-published-at";
 import { BaseMatcher, OriginMeta, Result } from "../platform";
 
 class AsmHentaiMatcher extends BaseMatcher<string> {
+  publishedAt = "";
+
   async *fetchPagesSource(): AsyncGenerator<Result<string>> {
+    this.publishedAt = asmHentaiPublishedAtFromDocument(document);
     const csrf = document.querySelector('meta[name="csrf-token"]')?.getAttribute("content");
     if (!csrf) throw new Error("cannot find csrf_token");
     const loadID = document.querySelector<HTMLInputElement>("#load_id")?.value;
@@ -29,7 +34,11 @@ class AsmHentaiMatcher extends BaseMatcher<string> {
   async parseImgNodes(raw: string): Promise<ImageNode[]> {
     const infos = Array.from(raw.matchAll(/<a href="(.*?)".*data-src="(.*?)"/g)).filter(m => m.length === 3).map(m => ([m[1], m[2]]));
     const digits = infos.length.toString().length;
-    return infos.map((info, i) => new ImageNode(info[1], window.location.origin + info[0], (i + 1).toString().padStart(digits, "0")));
+    return infos.map((info, i) => {
+      const node = new ImageNode(info[1], window.location.origin + info[0], (i + 1).toString().padStart(digits, "0"));
+      node.setPublishedAt(this.publishedAt);
+      return node;
+    });
   }
 
   async fetchOriginMeta(node: ImageNode): Promise<OriginMeta> {
@@ -59,11 +68,21 @@ class AsmHentaiMatcher extends BaseMatcher<string> {
         }
       }
     });
+    meta.authorUrls = asmHentaiAuthorUrlsFromDocument(document);
     this.meta = meta;
     return this.meta;
   }
 
 }
+
+export function asmHentaiAuthorUrlsFromDocument(doc: Document): string[] {
+  return extractGalleryAuthorUrls(doc, ".right > .info > ul > .tags", "h3", ".tag_list > a[href]");
+}
+
+export function asmHentaiPublishedAtFromDocument(doc: Document): string {
+  return extractGalleryPublishedAt(doc, ".right > .info > ul > .tags", "h3");
+}
+
 ADAPTER.addSetup({
   name: "AsmHentai",
   workURLs: [
