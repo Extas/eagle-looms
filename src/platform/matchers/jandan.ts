@@ -1,6 +1,6 @@
 import ImageNode, { NodeAction } from "../../img-node";
 import { Chapter } from "../../page-fetcher";
-import { eagleAuthorSourceTags, cleanSourceTag } from "../../eagle/adapters/source-tags";
+import { jandanPublishedAt, jandanSourceTags } from "../../eagle/adapters/jandan";
 import { sleep } from "../../utils/sleep";
 import { ADAPTER } from "../adapt";
 import { BaseMatcher, OriginMeta, Result } from "../platform";
@@ -167,19 +167,6 @@ class JandanMatcher extends BaseMatcher<JandanComment[]> {
       return [src, origin, ext, false];
     }
   }
-}
-
-export function jandanSourceTags(comment: Pick<JandanComment, "author">): string[] {
-  const author = cleanJandanValue(comment.author);
-  return eagleAuthorSourceTags(author);
-}
-
-export function jandanPublishedAt(comment: Pick<JandanComment, "date_gmt" | "date">): string {
-  return cleanJandanValue(comment.date_gmt || comment.date || "");
-}
-
-function cleanJandanValue(value: unknown): string {
-  return cleanSourceTag(value);
 }
 
 ADAPTER.addSetup({

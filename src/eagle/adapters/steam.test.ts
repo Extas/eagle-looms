@@ -1,16 +1,8 @@
-import { describe, expect, it, vi } from "vitest";
-import { sourceTagsFromGalleryMeta } from "../eagle/tags";
-import { steamAuthorUrlFromUrl, steamGalleryMetaFromUrl, steamGalleryTitleFromUrl, steamProfileIdentityFromUrl } from "./matchers/steam";
+import { describe, expect, it } from "vitest";
+import { sourceTagsFromGalleryMeta } from "../tags";
+import { steamAuthorUrlFromUrl, steamGalleryMetaFromUrl, steamGalleryTitleFromUrl, steamProfileIdentityFromUrl } from "./steam";
 
-vi.mock("$", () => ({
-  GM: {
-    xmlHttpRequest: () => undefined,
-  },
-  GM_getValue: () => null,
-  GM_setValue: () => undefined,
-}));
-
-describe("Steam matcher metadata", () => {
+describe("Steam Eagle metadata adapter", () => {
   it("uses app ids for gallery titles without producing steam-null", () => {
     expect(steamGalleryTitleFromUrl("https://steamcommunity.com/id/artist/screenshots/?appid=123")).toBe("steam-123");
     expect(steamGalleryTitleFromUrl("https://steamcommunity.com/id/artist/screenshots/", "Screenshots")).toBe("steam-Screenshots");

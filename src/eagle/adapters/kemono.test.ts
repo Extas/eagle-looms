@@ -1,15 +1,7 @@
-import { describe, expect, it, vi } from "vitest";
-import { kemonoAuthorUrls, kemonoPublishedAt, kemonoSourceTags } from "./matchers/kemono";
+import { describe, expect, it } from "vitest";
+import { kemonoAuthorUrls, kemonoPublishedAt, kemonoSourceTags } from "./kemono";
 
-vi.mock("$", () => ({
-  GM: {
-    xmlHttpRequest: () => undefined,
-  },
-  GM_getValue: () => null,
-  GM_setValue: () => undefined,
-}));
-
-describe("Kemono matcher metadata", () => {
+describe("Kemono Eagle metadata adapter", () => {
   it("derives author and post tags from API post metadata", () => {
     expect(kemonoSourceTags({
       service: "fanbox",

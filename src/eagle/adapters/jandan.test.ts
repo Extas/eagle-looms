@@ -1,15 +1,7 @@
-import { describe, expect, it, vi } from "vitest";
-import { jandanPublishedAt, jandanSourceTags } from "./matchers/jandan";
+import { describe, expect, it } from "vitest";
+import { jandanPublishedAt, jandanSourceTags } from "./jandan";
 
-vi.mock("$", () => ({
-  GM: {
-    xmlHttpRequest: () => undefined,
-  },
-  GM_getValue: () => null,
-  GM_setValue: () => undefined,
-}));
-
-describe("Jandan matcher metadata", () => {
+describe("Jandan Eagle metadata adapter", () => {
   it("derives author source tags from comment metadata", () => {
     expect(jandanSourceTags({ author: "  user\nname  " })).toEqual([
       "author:user name",
