@@ -1,4 +1,5 @@
 import ImageNode from "../../img-node";
+import { eagleAuthorSourceTags, cleanSourceTag } from "../../eagle/adapters/source-tags";
 import { ADAPTER } from "../adapt";
 import { BaseMatcher, OriginMeta, Result } from "../platform";
 
@@ -117,13 +118,8 @@ class InstagramMatcher extends BaseMatcher<EdgeNode[]> {
 }
 
 export function instagramSourceTags(username: unknown, captionText: unknown): string[] {
-  const tags = new Set<string>();
   const author = cleanInstagramValue(username);
-  if (author) tags.add(`author:${author}`);
-  for (const hashtag of instagramCaptionHashtags(captionText)) {
-    tags.add(hashtag);
-  }
-  return [...tags];
+  return eagleAuthorSourceTags(author, instagramCaptionHashtags(captionText));
 }
 
 export function instagramAuthorUrls(username: unknown): string[] {
@@ -148,12 +144,7 @@ function instagramCaptionHashtags(value: unknown): string[] {
 }
 
 function cleanInstagramValue(value: unknown): string {
-  return String(value ?? "")
-    .replace(/^[#@]+/, "")
-    .replace(/[\n\r\t]+/g, " ")
-    .replace(/\s+/g, " ")
-    .trim()
-    .slice(0, 120);
+  return cleanSourceTag(String(value ?? "").replace(/^[#@]+/, ""));
 }
 
 // body.append("__s", "g3804m%3Asucc9e%3Art7ums");

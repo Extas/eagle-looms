@@ -1,4 +1,5 @@
 import ImageNode from "../../img-node";
+import { eagleAuthorSourceTags, cleanSourceTag } from "../../eagle/adapters/source-tags";
 import { simpleFetch } from "../../utils/query";
 import { transactionId } from "../../utils/random";
 import { sleep } from "../../utils/sleep";
@@ -232,7 +233,7 @@ type BilibiliModuleAuthor = {
 
 export function bilibiliSourceTags(detail: unknown): string[] {
   const author = cleanBilibiliValue(bilibiliModuleAuthor(detail)?.name);
-  return author ? [`author:${author}`] : [];
+  return eagleAuthorSourceTags(author);
 }
 
 export function bilibiliAuthorUrls(detail: unknown): string[] {
@@ -255,12 +256,7 @@ function bilibiliModuleAuthor(detail: unknown): BilibiliModuleAuthor | undefined
 }
 
 function cleanBilibiliValue(value: unknown): string {
-  if (typeof value !== "string" && typeof value !== "number") return "";
-  return String(value)
-    .replace(/[\n\r\t]+/g, " ")
-    .replace(/\s+/g, " ")
-    .trim()
-    .slice(0, 120);
+  return cleanSourceTag(value);
 }
 
 // type BilibiliOPUSDetailResponse = {

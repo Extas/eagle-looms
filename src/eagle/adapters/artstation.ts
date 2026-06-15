@@ -1,3 +1,5 @@
+import { cleanSourceTag, eagleAuthorSourceTags } from "./source-tags";
+
 type ArtStationAuthor = {
   username?: unknown;
   full_name?: unknown;
@@ -11,7 +13,7 @@ export function normalizeArtStationTags(value: unknown): string[] {
 
 export function artStationAuthorTag(value: ArtStationAuthor): string {
   const author = cleanArtStationValue(value.username) || cleanArtStationValue(value.full_name);
-  return author ? `author:${author}` : "";
+  return eagleAuthorSourceTags(author)[0] || "";
 }
 
 export function artStationAuthorUrl(value: ArtStationAuthor): string {
@@ -32,10 +34,5 @@ function artStationTagValues(value: unknown): unknown[] {
 }
 
 function cleanArtStationValue(value: unknown): string {
-  if (typeof value !== "string" && typeof value !== "number") return "";
-  return String(value ?? "")
-    .replace(/[\n\r\t]+/g, " ")
-    .replace(/\s+/g, " ")
-    .trim()
-    .slice(0, 120);
+  return cleanSourceTag(value);
 }

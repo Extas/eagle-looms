@@ -1,4 +1,5 @@
 import { GalleryMeta } from "../../download/gallery-meta";
+import { eagleAuthorSourceTags, cleanSourceTag } from "../../eagle/adapters/source-tags";
 import ImageNode from "../../img-node";
 import { Chapter } from "../../page-fetcher";
 import { ADAPTER } from "../adapt";
@@ -157,7 +158,7 @@ class DoubanMatcher extends BaseMatcher<DoubanPageSource> {
 
 export function doubanSourceTags(album: Pick<DoubanAlbum, "owner_name">): string[] {
   const author = cleanDoubanValue(album.owner_name);
-  return author ? [`author:${author}`] : [];
+  return eagleAuthorSourceTags(author);
 }
 
 export function doubanAuthorUrls(album: Pick<DoubanAlbum, "owner_url">): string[] {
@@ -179,12 +180,7 @@ export function doubanPublishedAt(album: Pick<DoubanAlbum, "date">): string {
 }
 
 function cleanDoubanValue(value: unknown): string {
-  if (typeof value !== "string" && typeof value !== "number") return "";
-  return String(value)
-    .replace(/[\n\r\t]+/g, " ")
-    .replace(/\s+/g, " ")
-    .trim()
-    .slice(0, 120);
+  return cleanSourceTag(value);
 }
 
 function cleanDoubanUrl(value: unknown): string {

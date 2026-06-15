@@ -1,5 +1,6 @@
 import ImageNode, { NodeAction } from "../../img-node";
 import { Chapter } from "../../page-fetcher";
+import { eagleAuthorSourceTags, cleanSourceTag } from "../../eagle/adapters/source-tags";
 import { sleep } from "../../utils/sleep";
 import { ADAPTER } from "../adapt";
 import { BaseMatcher, OriginMeta, Result } from "../platform";
@@ -170,7 +171,7 @@ class JandanMatcher extends BaseMatcher<JandanComment[]> {
 
 export function jandanSourceTags(comment: Pick<JandanComment, "author">): string[] {
   const author = cleanJandanValue(comment.author);
-  return author ? [`author:${author}`] : [];
+  return eagleAuthorSourceTags(author);
 }
 
 export function jandanPublishedAt(comment: Pick<JandanComment, "date_gmt" | "date">): string {
@@ -178,12 +179,7 @@ export function jandanPublishedAt(comment: Pick<JandanComment, "date_gmt" | "dat
 }
 
 function cleanJandanValue(value: unknown): string {
-  if (typeof value !== "string" && typeof value !== "number") return "";
-  return String(value)
-    .replace(/[\n\r\t]+/g, " ")
-    .replace(/\s+/g, " ")
-    .trim()
-    .slice(0, 120);
+  return cleanSourceTag(value);
 }
 
 ADAPTER.addSetup({

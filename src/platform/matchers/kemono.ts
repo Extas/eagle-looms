@@ -1,4 +1,5 @@
 import ImageNode from "../../img-node";
+import { eagleAuthorSourceTags, cleanSourceTag } from "../../eagle/adapters/source-tags";
 import { isImage, isVideo } from "../../utils/media-helper";
 import { batchFetch } from "../../utils/query";
 import { ADAPTER } from "../adapt";
@@ -261,13 +262,8 @@ function kemonoInfoPathMap(list: any[]): Map<string, { name: string, server: str
 }
 
 export function kemonoSourceTags(post: Pick<KemonoResult, "service" | "user" | "tags" | "artist" | "creator">): string[] {
-  const tags = new Set<string>();
   const author = kemonoAuthorName(post);
-  if (author) tags.add(`author:${author}`);
-  for (const tag of kemonoTagValues(post.tags)) {
-    tags.add(tag);
-  }
-  return [...tags];
+  return eagleAuthorSourceTags(author, kemonoTagValues(post.tags));
 }
 
 export function kemonoAuthorUrls(post: Pick<KemonoResult, "service" | "user" | "artist" | "creator">, origin = "https://kemono.cr"): string[] {
@@ -308,11 +304,7 @@ function stringValue(value: unknown): string {
 }
 
 function cleanKemonoValue(value: string): string {
-  return value
-    .replace(/[\n\r\t]+/g, " ")
-    .replace(/\s+/g, " ")
-    .trim()
-    .slice(0, 120);
+  return cleanSourceTag(value);
 }
 
 ADAPTER.addSetup({

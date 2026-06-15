@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { artStationAuthorTag, artStationAuthorUrl, normalizeArtStationTags } from "./artstation-tags";
+import { artStationAuthorTag, artStationAuthorUrl, normalizeArtStationTags } from "./artstation";
 
 describe("ArtStation source tags", () => {
   it("normalizes and deduplicates project tags", () => {

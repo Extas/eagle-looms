@@ -4,7 +4,7 @@ import ImageNode from "../../img-node";
 import { evLog } from "../../utils/ev-log";
 import { batchFetch } from "../../utils/query";
 import { ADAPTER } from "../adapt";
-import { artStationAuthorTag, artStationAuthorUrl, normalizeArtStationTags } from "../artstation-tags";
+import { artStationAuthorTag, artStationAuthorUrl, normalizeArtStationTags } from "../../eagle/adapters/artstation";
 import { galleryTitle } from "../gallery-title";
 import { BaseMatcher, OriginMeta, Result } from "../platform";
 
