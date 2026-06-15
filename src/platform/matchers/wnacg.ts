@@ -2,6 +2,7 @@ import { GalleryMeta } from "../../download/gallery-meta";
 import ImageNode from "../../img-node";
 import { Chapter } from "../../page-fetcher";
 import { ADAPTER } from "../adapt";
+import { wnacgGalleryMetaFromDocument } from "../../eagle/adapters/wnacg";
 import { BaseMatcher, OriginMeta, Result } from "../platform";
 
 class WnacgMatcher extends BaseMatcher<GalleryImage[]> {
@@ -119,28 +120,6 @@ class WnacgMatcher extends BaseMatcher<GalleryImage[]> {
 type GalleryImage = {
   url: string;
   caption: string;
-}
-
-export function wnacgGalleryMetaFromDocument(doc: Document, href: string): GalleryMeta {
-  const title = cleanWnacgText(doc.querySelector<HTMLTitleElement>("#bodywrap > h2")?.textContent) || "unknown";
-  const meta = new GalleryMeta(href, title);
-  const tags = uniqueWnacgValues(Array.from(doc.querySelectorAll(".asTB .tagshow")).map(ele => ele.textContent));
-  const description = uniqueWnacgValues(Array.from(doc.querySelector(".asTB > .asTBcell.uwconn > p")?.childNodes || []).map(e => e.textContent));
-  meta.tags = { tags, description };
-  return meta;
-}
-
-function uniqueWnacgValues(values: unknown[]): string[] {
-  return [...new Set(values.map(cleanWnacgText).filter(Boolean))];
-}
-
-function cleanWnacgText(value: unknown): string {
-  if (typeof value !== "string" && typeof value !== "number") return "";
-  return String(value)
-    .replace(/[\n\r\t]+/g, " ")
-    .replace(/\s+/g, " ")
-    .trim()
-    .slice(0, 120);
 }
 
 ADAPTER.addSetup({

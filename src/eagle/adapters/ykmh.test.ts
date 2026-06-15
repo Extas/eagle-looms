@@ -1,20 +1,12 @@
-import { describe, expect, it, vi } from "vitest";
-import { sourceTagsFromGalleryMeta } from "../eagle/tags";
-import { ykmhGalleryMetaFromDocument } from "./matchers/ykmh";
-
-vi.mock("$", () => ({
-  GM: {
-    xmlHttpRequest: () => undefined,
-  },
-  GM_getValue: () => null,
-  GM_setValue: () => undefined,
-}));
+import { describe, expect, it } from "vitest";
+import { sourceTagsFromGalleryMeta } from "../tags";
+import { ykmhGalleryMetaFromDocument } from "./ykmh";
 
 function parseDocument(html: string): Document {
   return new DOMParser().parseFromString(html, "text/html");
 }
 
-describe("YKMH matcher metadata", () => {
+describe("YKMH Eagle metadata adapter", () => {
   it("maps comic_deCon detail rows into gallery metadata", () => {
     const doc = parseDocument(`
       <div class="comic_deCon">

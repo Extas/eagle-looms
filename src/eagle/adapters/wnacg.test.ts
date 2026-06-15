@@ -1,20 +1,12 @@
-import { describe, expect, it, vi } from "vitest";
-import { sourceTagsFromGalleryMeta } from "../eagle/tags";
-import { wnacgGalleryMetaFromDocument } from "./matchers/wnacg";
-
-vi.mock("$", () => ({
-  GM: {
-    xmlHttpRequest: () => undefined,
-  },
-  GM_getValue: () => null,
-  GM_setValue: () => undefined,
-}));
+import { describe, expect, it } from "vitest";
+import { sourceTagsFromGalleryMeta } from "../tags";
+import { wnacgGalleryMetaFromDocument } from "./wnacg";
 
 function parseDocument(html: string): Document {
   return new DOMParser().parseFromString(html, "text/html");
 }
 
-describe("WNACG matcher metadata", () => {
+describe("WNACG Eagle metadata adapter", () => {
   it("cleans gallery tags while keeping descriptions out of visible source tags", () => {
     const doc = parseDocument(`
       <div id="bodywrap">

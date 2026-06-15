@@ -1,20 +1,12 @@
-import { describe, expect, it, vi } from "vitest";
-import { sourceTagsFromGalleryMeta } from "../eagle/tags";
-import { mh160GalleryMetaFromDocument } from "./matchers/mh160";
-
-vi.mock("$", () => ({
-  GM: {
-    xmlHttpRequest: () => undefined,
-  },
-  GM_getValue: () => null,
-  GM_setValue: () => undefined,
-}));
+import { describe, expect, it } from "vitest";
+import { sourceTagsFromGalleryMeta } from "../tags";
+import { mh160GalleryMetaFromDocument } from "./mh160";
 
 function parseDocument(html: string): Document {
   return new DOMParser().parseFromString(html, "text/html");
 }
 
-describe("MH160 matcher metadata", () => {
+describe("MH160 Eagle metadata adapter", () => {
   it("maps Introduct detail rows into gallery metadata", () => {
     const doc = parseDocument(`
       <div class="Introduct">
