@@ -144,6 +144,9 @@ Kemono
 Jandan
   author comes from comment author metadata; publish date comes from comment date fields when available
 
+Douban albums
+  author comes from album owner metadata; author URL points to the owner profile; image publish date comes from album date metadata
+
 Komiic
   comic authors map to author tags through gallery metadata; comic categories stay raw; image publish date comes from chapter date metadata
 ```
