@@ -129,6 +129,9 @@ HentaiNexus
 HentaiZap / im-hentai
   map gallery detail tag rows through source metadata; author URLs point to author-like tag pages; image publish date comes from date-like detail rows
 
+Akuma.moe
+  map info-list metadata rows through source metadata; author URLs point to author-like metadata links; image publish date comes from date-like metadata rows
+
 AsmHentai
   map gallery detail tag rows through source metadata; author URLs point to author-like tag pages; image publish date comes from date-like detail rows
 

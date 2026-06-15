@@ -1,12 +1,15 @@
 import { GalleryMeta } from "../../download/gallery-meta";
 import ImageNode from "../../img-node";
 import { ADAPTER } from "../adapt";
+import { extractGalleryAuthorUrls } from "../gallery-author-urls";
+import { extractGalleryPublishedAt } from "../gallery-published-at";
 import { BaseMatcher, Result, OriginMeta } from "../platform";
 
 class AkumaMatcher extends BaseMatcher<Document> {
   originImages?: string[];
   index: number = 0;
   meta?: GalleryMeta;
+  publishedAt = "";
   title(): string {
     return this.galleryMeta().title!;
   }
@@ -28,9 +31,12 @@ class AkumaMatcher extends BaseMatcher<Document> {
         }
         return prev;
       }, {});
+    meta.authorUrls = akumaAuthorUrlsFromDocument(doc);
+    this.publishedAt = akumaPublishedAtFromDocument(doc);
     return meta;
   }
   async *fetchPagesSource(): AsyncGenerator<Result<Document>> {
+    this.galleryMeta();
     // fetch origin images;
     const csrf = document.querySelector<HTMLMetaElement>("meta[name='csrf-token'][content]")?.content;
     if (!csrf) throw new Error("cannot get csrf token form this page");
@@ -74,7 +80,9 @@ class AkumaMatcher extends BaseMatcher<Document> {
       const ext = origin.split(".").pop() ?? "jpg";
       const originSrc = thumb.slice(0, thumb.indexOf("tbn")) + origin;
       const title = (this.index + 1).toString().padStart(digits, "0");
-      ret.push(new ImageNode(thumb, href, `${title}.${ext}`, undefined, originSrc));
+      const node = new ImageNode(thumb, href, `${title}.${ext}`, undefined, originSrc);
+      node.setPublishedAt(this.publishedAt);
+      ret.push(node);
       this.index++;
     }
     return ret;
@@ -83,6 +91,15 @@ class AkumaMatcher extends BaseMatcher<Document> {
     return { url: node.originSrc! };
   }
 }
+
+export function akumaAuthorUrlsFromDocument(doc: Document, baseUrl = window.location.href): string[] {
+  return extractGalleryAuthorUrls(doc, "ul.info-list > li.meta-data", "span.data", "a[href]", baseUrl);
+}
+
+export function akumaPublishedAtFromDocument(doc: Document): string {
+  return extractGalleryPublishedAt(doc, "ul.info-list > li.meta-data", "span.data", "span.value");
+}
+
 ADAPTER.addSetup({
   name: "Akuma.moe",
   workURLs: [
