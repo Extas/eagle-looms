@@ -22,6 +22,16 @@ const AUTHOR_CATEGORIES = new Set([
   "circles",
   "group",
   "groups",
+  "作者",
+  "作家",
+  "艺术家",
+  "藝術家",
+  "画师",
+  "畫師",
+  "社团",
+  "社團",
+  "团体",
+  "團體",
 ]);
 
 export function extractGalleryAuthorUrls(

@@ -85,4 +85,38 @@ describe("gallery author URL extraction", () => {
       "https://example.test/illustrator/i/",
     ]);
   });
+
+  it("matches Chinese author category aliases", () => {
+    document.body.innerHTML = `
+      <ul class="details">
+        <li>
+          <span class="label">作者：</span>
+          <a class="tag" href="/author/a/">Author A</a>
+        </li>
+        <li>
+          <span class="label">藝術家</span>
+          <a class="tag" href="/artist/b/">Artist B</a>
+        </li>
+        <li>
+          <span class="label">画师</span>
+          <a class="tag" href="/artist/c/">Artist C</a>
+        </li>
+        <li>
+          <span class="label">社團</span>
+          <a class="tag" href="/circle/d/">Circle D</a>
+        </li>
+        <li>
+          <span class="label">角色</span>
+          <a class="tag" href="/character/e/">Character E</a>
+        </li>
+      </ul>
+    `;
+
+    expect(extractGalleryAuthorUrls(document, ".details > li", ".label", "a.tag[href]", "https://example.test/gallery/1")).toEqual([
+      "https://example.test/author/a/",
+      "https://example.test/artist/b/",
+      "https://example.test/artist/c/",
+      "https://example.test/circle/d/",
+    ]);
+  });
 });
