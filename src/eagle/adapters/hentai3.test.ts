@@ -1,19 +1,11 @@
-import { describe, expect, it, vi } from "vitest";
-import { hentai3AuthorUrlsFromDocument, hentai3PublishedAtFromDocument } from "./matchers/3hentai";
-
-vi.mock("$", () => ({
-  GM: {
-    xmlHttpRequest: () => undefined,
-  },
-  GM_getValue: () => null,
-  GM_setValue: () => undefined,
-}));
+import { describe, expect, it } from "vitest";
+import { hentai3AuthorUrlsFromDocument, hentai3PublishedAtFromDocument } from "./hentai3";
 
 function parseDocument(html: string): Document {
   return new DOMParser().parseFromString(html, "text/html");
 }
 
-describe("3Hentai matcher metadata", () => {
+describe("3Hentai Eagle metadata adapter", () => {
   it("extracts author URLs from direct-text tag rows", () => {
     const doc = parseDocument(`
       <section id="main-info">
