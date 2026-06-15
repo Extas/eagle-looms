@@ -9,7 +9,8 @@ type JandanComment = {
   post_id: number,
   author: string,
   // author_type: number,
-  // date_gmt: string,
+  date_gmt?: string,
+  date?: string,
   // user_id: number,
   // content: "<img src=\"https://img.toto.im/mw600/00745YaMgy1iaof1252izj30go0lc47b.jpg\" />",
   content: string,
@@ -128,6 +129,8 @@ class JandanMatcher extends BaseMatcher<JandanComment[]> {
         const img = images[i];
         const [thumb, origin, ext, isGIF] = this.parseURL(img);
         const node = new ImageNode(thumb, href, `${comment.id}-${i + 1}.${ext}`, undefined, origin);
+        node.setTags(...jandanSourceTags(comment));
+        node.setPublishedAt(jandanPublishedAt(comment));
         node.actions.push(ooAction);
         node.actions.push(xxAction);
         if (isGIF) {
@@ -163,6 +166,24 @@ class JandanMatcher extends BaseMatcher<JandanComment[]> {
       return [src, origin, ext, false];
     }
   }
+}
+
+export function jandanSourceTags(comment: Pick<JandanComment, "author">): string[] {
+  const author = cleanJandanValue(comment.author);
+  return author ? [`author:${author}`] : [];
+}
+
+export function jandanPublishedAt(comment: Pick<JandanComment, "date_gmt" | "date">): string {
+  return cleanJandanValue(comment.date_gmt || comment.date || "");
+}
+
+function cleanJandanValue(value: unknown): string {
+  if (typeof value !== "string" && typeof value !== "number") return "";
+  return String(value)
+    .replace(/[\n\r\t]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 120);
 }
 
 ADAPTER.addSetup({

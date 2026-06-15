@@ -137,6 +137,9 @@ Instagram
 
 Kemono
   author comes from API artist/creator identity when available, otherwise stable service/user identity; post tags stay raw; author URL points to the source creator page
+
+Jandan
+  author comes from comment author metadata; publish date comes from comment date fields when available
 ```
 
 ## Item Names
