@@ -1,19 +1,11 @@
-import { describe, expect, it, vi } from "vitest";
-import { hanime1AuthorUrlsFromDocument, hanime1PublishedAtFromDocument } from "./matchers/hanime1";
-
-vi.mock("$", () => ({
-  GM: {
-    xmlHttpRequest: () => undefined,
-  },
-  GM_getValue: () => null,
-  GM_setValue: () => undefined,
-}));
+import { describe, expect, it } from "vitest";
+import { hanime1AuthorUrlsFromDocument, hanime1PublishedAtFromDocument } from "./hanime1";
 
 function parseDocument(html: string): Document {
   return new DOMParser().parseFromString(html, "text/html");
 }
 
-describe("Hanime1 matcher metadata", () => {
+describe("Hanime1 Eagle metadata adapter", () => {
   it("extracts author URLs from author-like metadata rows", () => {
     const doc = parseDocument(`
       <section class="comics-panel-margin">

@@ -1,19 +1,11 @@
-import { describe, expect, it, vi } from "vitest";
-import { akumaAuthorUrlsFromDocument, akumaPublishedAtFromDocument } from "./matchers/akuma";
-
-vi.mock("$", () => ({
-  GM: {
-    xmlHttpRequest: () => undefined,
-  },
-  GM_getValue: () => null,
-  GM_setValue: () => undefined,
-}));
+import { describe, expect, it } from "vitest";
+import { akumaAuthorUrlsFromDocument, akumaPublishedAtFromDocument } from "./akuma";
 
 function parseDocument(html: string): Document {
   return new DOMParser().parseFromString(html, "text/html");
 }
 
-describe("Akuma matcher metadata", () => {
+describe("Akuma Eagle metadata adapter", () => {
   it("extracts author URLs and published dates from info rows", () => {
     const doc = parseDocument(`
       <ul class="info-list">

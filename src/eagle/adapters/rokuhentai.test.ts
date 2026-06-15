@@ -1,19 +1,11 @@
-import { describe, expect, it, vi } from "vitest";
-import { rokuHentaiAuthorUrlsFromDocument, rokuHentaiPublishedAtFromDocument, rokuHentaiTagsFromDocument } from "./matchers/rokuhentai";
-
-vi.mock("$", () => ({
-  GM: {
-    xmlHttpRequest: () => undefined,
-  },
-  GM_getValue: () => null,
-  GM_setValue: () => undefined,
-}));
+import { describe, expect, it } from "vitest";
+import { rokuHentaiAuthorUrlsFromDocument, rokuHentaiPublishedAtFromDocument, rokuHentaiTagsFromDocument } from "./rokuhentai";
 
 function parseDocument(html: string): Document {
   return new DOMParser().parseFromString(html, "text/html");
 }
 
-describe("RokuHentai matcher metadata", () => {
+describe("RokuHentai Eagle metadata adapter", () => {
   it("parses categorized data-tag metadata", () => {
     const doc = parseDocument(`
       <a href="/tag/artist/soha"><div class="mdc-chip"><span class="site-tag-count" data-tag='artist:"soha blan"'></span></div></a>

@@ -1,19 +1,11 @@
-import { describe, expect, it, vi } from "vitest";
-import { asmHentaiAuthorUrlsFromDocument, asmHentaiPublishedAtFromDocument } from "./matchers/asmhentai";
-
-vi.mock("$", () => ({
-  GM: {
-    xmlHttpRequest: () => undefined,
-  },
-  GM_getValue: () => null,
-  GM_setValue: () => undefined,
-}));
+import { describe, expect, it } from "vitest";
+import { asmHentaiAuthorUrlsFromDocument, asmHentaiPublishedAtFromDocument } from "./asmhentai";
 
 function parseDocument(html: string): Document {
   return new DOMParser().parseFromString(html, "text/html");
 }
 
-describe("AsmHentai matcher metadata", () => {
+describe("AsmHentai Eagle metadata adapter", () => {
   it("extracts author URLs from author-like detail tags", () => {
     const doc = parseDocument(`
       <section class="right">

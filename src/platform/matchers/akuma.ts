@@ -1,8 +1,7 @@
 import { GalleryMeta } from "../../download/gallery-meta";
 import ImageNode from "../../img-node";
 import { ADAPTER } from "../adapt";
-import { extractGalleryAuthorUrls } from "../../eagle/adapters/gallery-author-urls";
-import { extractGalleryPublishedAt } from "../../eagle/adapters/gallery-published-at";
+import { akumaAuthorUrlsFromDocument, akumaPublishedAtFromDocument } from "../../eagle/adapters/akuma";
 import { BaseMatcher, Result, OriginMeta } from "../platform";
 
 class AkumaMatcher extends BaseMatcher<Document> {
@@ -90,14 +89,6 @@ class AkumaMatcher extends BaseMatcher<Document> {
   async fetchOriginMeta(node: ImageNode): Promise<OriginMeta> {
     return { url: node.originSrc! };
   }
-}
-
-export function akumaAuthorUrlsFromDocument(doc: Document, baseUrl = window.location.href): string[] {
-  return extractGalleryAuthorUrls(doc, "ul.info-list > li.meta-data", "span.data", "a[href]", baseUrl);
-}
-
-export function akumaPublishedAtFromDocument(doc: Document): string {
-  return extractGalleryPublishedAt(doc, "ul.info-list > li.meta-data", "span.data", "span.value");
 }
 
 ADAPTER.addSetup({

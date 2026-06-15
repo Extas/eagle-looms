@@ -1,8 +1,7 @@
 import { GalleryMeta } from "../../download/gallery-meta";
 import ImageNode from "../../img-node";
 import { ADAPTER } from "../adapt";
-import { extractGalleryAuthorUrls } from "../../eagle/adapters/gallery-author-urls";
-import { extractGalleryPublishedAt } from "../../eagle/adapters/gallery-published-at";
+import { asmHentaiAuthorUrlsFromDocument, asmHentaiPublishedAtFromDocument } from "../../eagle/adapters/asmhentai";
 import { BaseMatcher, OriginMeta, Result } from "../platform";
 
 class AsmHentaiMatcher extends BaseMatcher<string> {
@@ -73,14 +72,6 @@ class AsmHentaiMatcher extends BaseMatcher<string> {
     return this.meta;
   }
 
-}
-
-export function asmHentaiAuthorUrlsFromDocument(doc: Document): string[] {
-  return extractGalleryAuthorUrls(doc, ".right > .info > ul > .tags", "h3", ".tag_list > a[href]");
-}
-
-export function asmHentaiPublishedAtFromDocument(doc: Document): string {
-  return extractGalleryPublishedAt(doc, ".right > .info > ul > .tags", "h3");
 }
 
 ADAPTER.addSetup({
