@@ -88,7 +88,7 @@ abstract class DanbooruMatcher extends BaseMatcher<Document> {
       if (tags !== "") {
         const tagList = tags.trim().replaceAll(": ", ":").split(" ").map(v => v.trim()).filter(v => v !== "");
         if (this.blacklistTags.findIndex(t => tagList.includes(t)) >= 0) return;
-        const sourceTags = normalizeBooruSourceTags(ele, tagList);
+        const sourceTags = normalizeBooruSourceTags(booruMetadataRoot(ele), tagList);
         imgNode.setTags(...sourceTags);
         this.tags[imgNode.title.split(".")[0]] = sourceTags;
       }
@@ -250,7 +250,7 @@ class Rule34Matcher extends DanbooruMatcher {
   }
 }
 
-class GelBooruMatcher extends DanbooruMatcher {
+export class GelBooruMatcher extends DanbooruMatcher {
   site(): string {
     return "gelbooru";
   }
@@ -276,8 +276,11 @@ class GelBooruMatcher extends DanbooruMatcher {
       evLog("error", "warn: cannot find href", ele);
       return [null, ""];
     }
-    const node = new ImageNode(img.src, href, `${ele.id}.jpg`);
-    const id = href.match(/id=(\d+)/)?.[1];
+    const root = booruMetadataRoot(ele);
+    const id = root.getAttribute("data-id") || root.id.match(/\d+/)?.[0] || this.extractIDFromHref(href);
+    const ext = extensionFromUrl(root.getAttribute("data-file-url") || img.src) || "jpg";
+    const node = new ImageNode(img.src, href, `${id || ele.id || "post"}.${ext}`, undefined, undefined, imageSizeFromElement(root, img));
+    node.setPublishedAt(root.getAttribute("data-created-at") || root.querySelector<HTMLTimeElement>("time[datetime]")?.getAttribute("datetime"));
     if (id) {
       const addFav = new NodeAction("♥", "Add to favorites", async () => {
         fetch(`${window.location.origin}/index.php?page=post&s=vote&id=${id}&type=up`);
@@ -429,5 +432,15 @@ function imageSizeFromDocument(doc: Document): { w: number, h: number } | undefi
   const article = doc.querySelector<HTMLElement>("article[data-width][data-height]");
   const w = Number(image?.getAttribute("width") || image?.getAttribute("data-width") || article?.getAttribute("data-width"));
   const h = Number(image?.getAttribute("height") || image?.getAttribute("data-height") || article?.getAttribute("data-height"));
+  return Number.isFinite(w) && Number.isFinite(h) && w > 0 && h > 0 ? { w, h } : undefined;
+}
+
+function booruMetadataRoot(ele: HTMLElement): HTMLElement {
+  return ele.closest<HTMLElement>("article, .thumbnail-preview, .post-preview") || ele;
+}
+
+function imageSizeFromElement(root: HTMLElement, image?: HTMLImageElement | null): { w: number, h: number } | undefined {
+  const w = Number(root.getAttribute("data-width") || image?.getAttribute("width") || image?.getAttribute("data-width"));
+  const h = Number(root.getAttribute("data-height") || image?.getAttribute("height") || image?.getAttribute("data-height"));
   return Number.isFinite(w) && Number.isFinite(h) && w > 0 && h > 0 ? { w, h } : undefined;
 }
