@@ -3,7 +3,7 @@ import ImageNode from "../../img-node";
 import { Chapter } from "../../page-fetcher";
 import { ADAPTER } from "../adapt";
 import { extractGalleryAuthorUrls } from "../../eagle/adapters/gallery-author-urls";
-import { extractGalleryPublishedAt } from "../../eagle/adapters/gallery-published-at";
+import { hentaiNexusPublishedAtFromDocument } from "../../eagle/adapters/hentainexus";
 import { BaseMatcher, OriginMeta, Result } from "../platform";
 
 type HNImageInfo = {
@@ -146,10 +146,6 @@ class HentaiNexusMatcher extends BaseMatcher<Document> {
     }
     this.readerData = JSON.parse(raw) as HNImageInfo[];
   }
-}
-
-export function hentaiNexusPublishedAtFromDocument(doc: Document): string {
-  return extractGalleryPublishedAt(doc, ".view-page-details tr", ".viewcolumn", ".viewcolumn + td");
 }
 
 ADAPTER.addSetup({

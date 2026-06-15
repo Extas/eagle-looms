@@ -2,7 +2,7 @@ import { GalleryMeta } from "../../download/gallery-meta";
 import ImageNode from "../../img-node";
 import { ADAPTER } from "../adapt";
 import { extractGalleryAuthorUrls } from "../../eagle/adapters/gallery-author-urls";
-import { extractGalleryPublishedAt } from "../../eagle/adapters/gallery-published-at";
+import { hentaizapPublishedAtFromDocument } from "../../eagle/adapters/hentaizap";
 import { BaseMatcher, OriginMeta, Result } from "../platform";
 
 type HentaiZapGalleryInfo = {
@@ -87,10 +87,6 @@ class HentaiZapMatcher extends BaseMatcher<HentaiZapGalleryInfo> {
     return { url: node.originSrc! };
   }
 
-}
-
-export function hentaizapPublishedAtFromDocument(doc: Document): string {
-  return extractGalleryPublishedAt(doc, ".gp_top_right_info > ul", "span.info_txt");
 }
 
 ADAPTER.addSetup({

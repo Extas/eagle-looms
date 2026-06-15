@@ -1,19 +1,11 @@
-import { describe, expect, it, vi } from "vitest";
-import { hentaiNexusPublishedAtFromDocument } from "./matchers/hentainexus";
-
-vi.mock("$", () => ({
-  GM: {
-    xmlHttpRequest: () => undefined,
-  },
-  GM_getValue: () => null,
-  GM_setValue: () => undefined,
-}));
+import { describe, expect, it } from "vitest";
+import { hentaiNexusPublishedAtFromDocument } from "./hentainexus";
 
 function parseDocument(html: string): Document {
   return new DOMParser().parseFromString(html, "text/html");
 }
 
-describe("HentaiNexus matcher metadata", () => {
+describe("HentaiNexus Eagle metadata adapter", () => {
   it("derives published timestamps from detail table dates", () => {
     const doc = parseDocument(`
       <table class="view-page-details">

@@ -3,7 +3,7 @@ import ImageNode from "../../img-node";
 import q from "../../utils/query-element";
 import { ADAPTER } from "../adapt";
 import { extractGalleryAuthorUrls } from "../../eagle/adapters/gallery-author-urls";
-import { extractGalleryPublishedAt } from "../../eagle/adapters/gallery-published-at";
+import { imHentaiPublishedAtFromDocument } from "../../eagle/adapters/im-hentai";
 import { BaseMatcher, OriginMeta, Result } from "../platform";
 
 class IMHentaiMatcher extends BaseMatcher<null> {
@@ -87,10 +87,6 @@ class IMHentaiMatcher extends BaseMatcher<null> {
     return this.meta;
   }
 
-}
-
-export function imHentaiPublishedAtFromDocument(doc: Document): string {
-  return extractGalleryPublishedAt(doc, ".galleries_info > li", ".tags_text");
 }
 
 function imParseExt(str: string): string {
