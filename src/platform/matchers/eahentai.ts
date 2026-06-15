@@ -42,13 +42,7 @@ class EahentaiMatcher extends BaseMatcher<EahentaiGalleryData> {
     if (!data || data.length === 0) throw new Error("cannot fetch album data from: " + api);
     const data1 = data[0];
 
-    // gallery meta
-    const meta = new GalleryMeta(window.location.href, data1.title);
-    meta.tags["tags"] = data1.tags.split("|");
-    meta.tags["author"] = [data1.author];
-    meta.tags["albumType"] = data1.albumType.split("|");
-    meta.tags["characters"] = data1.characters?.split("|") ?? [];
-    this.meta = meta;
+    this.meta = eahentaiGalleryMeta(data1, window.location.href);
 
     yield Result.ok(data[0]);
   }
@@ -77,6 +71,23 @@ class EahentaiMatcher extends BaseMatcher<EahentaiGalleryData> {
 
 export function eahentaiPublishedAt(image: { addDt?: unknown }, gallery?: { addDt?: unknown }): string {
   return cleanEahentaiValue(image.addDt) || cleanEahentaiValue(gallery?.addDt);
+}
+
+export function eahentaiGalleryMeta(data: Pick<EahentaiGalleryData, "title" | "tags" | "author" | "albumType" | "characters">, href: string): GalleryMeta {
+  const meta = new GalleryMeta(href, cleanEahentaiValue(data.title) || "eahentai");
+  meta.tags.tags = splitEahentaiTags(data.tags);
+  const author = cleanEahentaiValue(data.author);
+  if (author) meta.tags.author = [author];
+  meta.tags.albumType = splitEahentaiTags(data.albumType);
+  meta.tags.characters = splitEahentaiTags(data.characters);
+  return meta;
+}
+
+function splitEahentaiTags(value: unknown): string[] {
+  return cleanEahentaiValue(value)
+    .split("|")
+    .map(cleanEahentaiValue)
+    .filter(Boolean);
 }
 
 function cleanEahentaiValue(value: unknown): string {

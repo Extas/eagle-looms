@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
-import { eahentaiPublishedAt } from "./matchers/eahentai";
+import { sourceTagsFromGalleryMeta } from "../eagle/tags";
+import { eahentaiGalleryMeta, eahentaiPublishedAt } from "./matchers/eahentai";
 
 vi.mock("$", () => ({
   GM: {
@@ -26,5 +27,24 @@ describe("eahentai matcher metadata", () => {
 
   it("returns empty when no publish date is available", () => {
     expect(eahentaiPublishedAt({}, {})).toBe("");
+  });
+
+  it("cleans API metadata and maps it into unified source tags", () => {
+    const meta = eahentaiGalleryMeta({
+      title: " gallery title ",
+      tags: " school uniform | | blue eyes ",
+      author: " soha blan ",
+      albumType: " Image Set | ",
+      characters: " kusanagi nene | ",
+    }, "https://eahentai.com/a/1");
+
+    expect(meta.title).toBe("gallery title");
+    expect(sourceTagsFromGalleryMeta(meta, "https://eahentai.com/a/1/0")).toEqual([
+      "school uniform",
+      "blue eyes",
+      "author:soha blan",
+      "Image Set",
+      "character:kusanagi nene",
+    ]);
   });
 });
