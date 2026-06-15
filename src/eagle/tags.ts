@@ -1,4 +1,5 @@
 import type { GalleryMeta } from "../download/gallery-meta";
+import { sourceDatePrefix } from "./naming";
 
 export function normalizeEagleTags(required: string[], source: string[], maxSourceTags: number): string[] {
   const tags = new Set<string>();
@@ -54,6 +55,11 @@ export function sourceTagsFromGalleryMeta(meta: GalleryMeta, sourceUrl: string):
   }
 
   return [...new Set(tags)];
+}
+
+export function sourcePublishedAtTags(value: unknown): string[] {
+  const date = sourceDatePrefix(value);
+  return date ? [`source:published:${date}`] : [];
 }
 
 export function normalizeSourceMetadataTag(value: string): string {

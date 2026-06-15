@@ -12,10 +12,10 @@ import { ensureFolderPath } from "./folders";
 import { arrayBufferToBase64 } from "./transport";
 import { EAGLE_FOLDER_PRESET_TEMPLATES, EagleFolderTokens, normalizeEagleBaseUrl, normalizeEagleFolderTemplate, normalizeEagleImportLimit, resolveEagleFolderPaths } from "./options";
 import { duplicateQueries, hasPlannedAssetKey, isDuplicateItem, isSessionImported, markPlannedAssetKey, markSessionImported } from "./duplicates";
-import { normalizeEagleItemTags, normalizeEagleTags, semanticSourceTags, sourceTagsFromGalleryMeta } from "./tags";
+import { normalizeEagleItemTags, normalizeEagleTags, semanticSourceTags, sourcePublishedAtTags, sourceTagsFromGalleryMeta } from "./tags";
 import { isReadyForEagleImport } from "./import-readiness";
 import { eaglePlanCompactParts, eaglePlanCompactSummary, eaglePlanHeadline, eaglePlanSummaryParts, eagleSummaryParts, eagleToastSummary, EagleImportSummaryStats, shouldConfirmImportPlan } from "./import-summary";
-import { createEagleItemName, normalizeEagleItemNameWithDatePrefix, sourceDatePrefix } from "./naming";
+import { createEagleItemName, normalizeEagleItemNameWithDatePrefix } from "./naming";
 import { i18n } from "../utils/i18n";
 import { eagleAnnotationForAsset } from "./annotation";
 
@@ -120,6 +120,7 @@ export class EagleDownloader extends Downloader {
       this.panel.flushUI("packaging");
       const singleChapter = chapters.length === 1;
       const folderTemplate = normalizeEagleFolderTemplate(ADAPTER.conf.eagleFolderPath);
+      const importDate = localDatePrefix();
       const selectedJobs: EagleImportJob[] = [];
 
       for (let i = 0; i < chapters.length; i++) {
@@ -129,7 +130,7 @@ export class EagleDownloader extends Downloader {
         const chapterTitle = safeTitle(titleToString(chapter.title));
         const picked = this.cherryPicks[chapterIndex] || this.cherryPicks[i] || new CherryPick();
         const meta = this.meta(chapter);
-        const assets = this.assetsForChapter(chapter, picked, singleChapter ? "" : chapterTitle, meta);
+        const assets = this.assetsForChapter(chapter, picked, singleChapter ? "" : chapterTitle, meta, importDate);
         selectedJobs.push(...assets.map(asset => this.jobForAsset(folderTemplate, asset)));
       }
 
@@ -249,9 +250,10 @@ export class EagleDownloader extends Downloader {
       const chapterTitle = safeTitle(titleToString(chapter.title));
       const singleChapter = this.pageFetcher.chapters.length === 1;
       const folderTemplate = normalizeEagleFolderTemplate(ADAPTER.conf.eagleFolderPath);
+      const importDate = localDatePrefix();
       const folderIds = new Map<string, string>();
       const folderNames = new Map<string, Set<string>>();
-      const assets = this.assetsForChapter(chapter, { picked: current => current === index }, singleChapter ? "" : chapterTitle, this.meta(chapter));
+      const assets = this.assetsForChapter(chapter, { picked: current => current === index }, singleChapter ? "" : chapterTitle, this.meta(chapter), importDate);
       stats.planned = assets.length;
       if (assets.length === 0) throw new Error(i18n.eagleImportCurrentNotReady.get());
       const jobs = assets.map(asset => this.jobForAsset(folderTemplate, asset));
@@ -309,7 +311,7 @@ export class EagleDownloader extends Downloader {
     }
   }
 
-  private assetsForChapter(chapter: Chapter, picked: { picked(index: number): boolean }, directory: string, meta: GalleryMeta): EagleImportAsset[] {
+  private assetsForChapter(chapter: Chapter, picked: { picked(index: number): boolean }, directory: string, meta: GalleryMeta, importDate = localDatePrefix()): EagleImportAsset[] {
     if (!chapter || chapter.filteredQueue.length === 0) return [];
     const assets: EagleImportAsset[] = [];
 
@@ -325,7 +327,7 @@ export class EagleDownloader extends Downloader {
         originUrl: imf.node.originSrc,
         tags,
         website: imf.node.href,
-        folderTokens: eagleFolderTokens([...tags, ...folderTags], meta, chapter, directory, imf.node.publishedAt),
+        folderTokens: eagleFolderTokens([...tags, ...folderTags], meta, chapter, directory, importDate),
         sourceTags,
         chapter,
         chapterDirectory: directory,
@@ -548,17 +550,18 @@ function prepareWritableJobNames(jobs: EagleImportJob[]): void {
 function eagleSourceTags(imf: IMGFetcher, meta: GalleryMeta): string[] {
   return [
     ...[...imf.node.tags].map(tag => tag.toString()),
+    ...sourcePublishedAtTags(imf.node.publishedAt),
     ...sourceTagsFromGalleryMeta(meta, imf.node.href),
   ];
 }
 
-function eagleFolderTokens(tags: string[], meta: GalleryMeta, chapter: Chapter, chapterDirectory: string, publishedAt?: unknown): EagleFolderTokens {
+function eagleFolderTokens(tags: string[], meta: GalleryMeta, chapter: Chapter, chapterDirectory: string, importDate: string): EagleFolderTokens {
   const copyrights = tagValues(tags, "copyright");
   const characters = collapseCharacterValues(tagValues(tags, "character"));
   const authors = tagValues(tags, "author");
   return {
     site: ADAPTER.matcher?.name || location.hostname,
-    date: sourceDatePrefix(publishedAt) || localDatePrefix(),
+    date: importDate || localDatePrefix(),
     gallery: safeTitle(meta.title || ""),
     chapter: chapterDirectory,
     copyright: shortestTagValue(copyrights),

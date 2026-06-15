@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 import { defaultConf } from '../config';
+import { GalleryMeta } from '../download/gallery-meta';
 import { ADAPTER } from '../platform/adapt';
 import { i18n } from '../utils/i18n';
 import { clearSessionImportedAssets, duplicateQueries, hasPlannedAssetKey, isDuplicateItem, isSessionImported, markPlannedAssetKey, markSessionImported, stableKeyForAsset } from './duplicates';
@@ -162,6 +163,39 @@ describe('Eagle downloader duplicate checks', () => {
       authorUrls: ['https://www.pixiv.net/users/42', 'https://exhentai.org/tag/artist:soha_blan'],
     });
     expect(input.folders).toEqual(['folder-id']);
+  });
+
+  it('uses import date for folders and keeps source published date as an item tag', () => {
+    const chapter = {
+      title: 'Chapter',
+      filteredQueue: [{
+        stage: EAGLE_IMPORT_DONE_STAGE,
+        data: new Uint8Array([1]),
+        contentType: 'image/jpeg',
+        node: {
+          title: 'source-image.jpg',
+          href: 'https://example.test/posts/1',
+          originSrc: 'https://img.example.test/source-image.jpg',
+          tags: new Set<string>(['copyright:project sekai']),
+          authorUrls: [],
+          publishedAt: '1999-01-02T00:00:00Z',
+        },
+      }],
+    };
+    const downloader = Object.create(EagleDownloader.prototype) as EagleDownloader;
+    ADAPTER.conf = defaultConf();
+
+    const assets = (downloader as any).assetsForChapter(
+      chapter,
+      { picked: () => true },
+      '',
+      new GalleryMeta('https://example.test/posts', 'Example posts'),
+      '2026-06-16',
+    );
+
+    expect(assets).toHaveLength(1);
+    expect(assets[0].folderTokens.date).toBe('2026-06-16');
+    expect(assets[0].tags).toContain('source:published:1999-01-02');
   });
 
   it('keeps normal Eagle item payloads annotation-free when no extra identity is needed', () => {

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { GalleryMeta } from '../download/gallery-meta';
-import { eagleExtensionTag, normalizeEagleItemTags, normalizeEagleTags, normalizeSourceMetadataTag, semanticSourceTags, sourceMetadataTag, sourceTagsFromGalleryMeta } from './tags';
+import { eagleExtensionTag, normalizeEagleItemTags, normalizeEagleTags, normalizeSourceMetadataTag, semanticSourceTags, sourceMetadataTag, sourcePublishedAtTags, sourceTagsFromGalleryMeta } from './tags';
 
 describe('Eagle tags', () => {
   it('keeps required tags and caps source tags', () => {
@@ -46,6 +46,13 @@ describe('Eagle tags', () => {
       'author:soha blan',
       'blue eyes',
     ]);
+  });
+
+  it('keeps source published date as a visible source metadata tag', () => {
+    expect(sourcePublishedAtTags('2025-07-08T12:34:56Z')).toEqual(['source:published:2025-07-08']);
+    expect(sourcePublishedAtTags('not a date')).toEqual([]);
+    expect(semanticSourceTags(['site:example.test', 'source:published:2025-07-08'])).toEqual(['source:published:2025-07-08']);
+    expect(normalizeEagleItemTags(['source:published:2025-07-08'], 10)).toEqual(['source:published:2025-07-08']);
   });
 
   it('deduplicates, trims, and keeps unnamespaced source tags', () => {
