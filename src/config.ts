@@ -226,7 +226,7 @@ export function defaultConf(): Config {
 }
 
 const CONF_VERSION = "4.4.0";
-const CURRENT_CONFIG_PATCH_VERSION = 20;
+const CURRENT_CONFIG_PATCH_VERSION = 21;
 const LEGACY_BUILT_IN_EAGLE_FOLDER_TEMPLATES = [
   "Eagle Looms/{site}/{copyright}",
   EAGLE_FOLDER_PRESET_TEMPLATES.gallery,
@@ -452,6 +452,11 @@ function patchConfig(cf: Config): Config | null {
   if (cf.configPatchVersion < 20) {
     changed = migrateLegacyEagleFolderTemplate(cf) || changed;
     cf.configPatchVersion = 20;
+    changed = true;
+  }
+  if (cf.configPatchVersion < 21) {
+    changed = migrateLegacyEagleFolderTemplate(cf) || changed;
+    cf.configPatchVersion = 21;
     changed = true;
   }
   return changed ? cf : null;
