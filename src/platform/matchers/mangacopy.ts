@@ -3,6 +3,7 @@ import ImageNode from "../../img-node";
 import { Chapter } from "../../page-fetcher";
 import { simpleFetch } from "../../utils/query";
 import { ADAPTER } from "../adapt";
+import { isGalleryAuthorCategory } from "../gallery-author-urls";
 import { BaseMatcher, OriginMeta, Result } from "../platform";
 
 class MangaCopyMatcher extends BaseMatcher<string> {
@@ -12,10 +13,8 @@ class MangaCopyMatcher extends BaseMatcher<string> {
   jojoKey?: string;
   galleryMeta(): GalleryMeta {
     if (this.meta) return this.meta;
-    let title = document.querySelector(".comicParticulars-title-right > ul > li > h6")?.textContent ?? document.title;
     this.update_date = mangaCopyPublishedAtFromDocument(document);
-    title += "-c" + this.chapterCount + (this.update_date ? "-" + this.update_date : "")
-    this.meta = new GalleryMeta(window.location.href, title);
+    this.meta = mangaCopyGalleryMetaFromDocument(document, window.location.href);
     return this.meta;
   }
   async *fetchPagesSource(source: Chapter): AsyncGenerator<Result<string>> {
@@ -122,6 +121,54 @@ export function mangaCopyPublishedAtFromDocument(doc: Document): string {
   return Array.from(doc.querySelectorAll(".comicParticulars-title-right > ul > li > span.comicParticulars-right-txt"))
     .map(ele => cleanMangaCopyValue(ele.textContent || ""))
     .find(text => /^\d{4}-\d{2}-\d{2}$/.test(text)) || "";
+}
+
+export function mangaCopyGalleryMetaFromDocument(doc: Document, href: string): GalleryMeta {
+  const title = cleanMangaCopyValue(doc.querySelector(".comicParticulars-title-right > ul > li > h6")?.textContent) || cleanMangaCopyValue(doc.title);
+  const meta = new GalleryMeta(href, title);
+  for (const row of doc.querySelectorAll(".comicParticulars-title-right > ul > li")) {
+    const category = mangaCopyRowCategory(row);
+    const values = mangaCopyRowValues(row);
+    if (!category || values.length === 0) continue;
+    meta.tags[category] = values;
+    if (isGalleryAuthorCategory(category)) {
+      meta.authorUrls.push(...mangaCopyRowUrls(row, href));
+    }
+  }
+  meta.authorUrls = [...new Set(meta.authorUrls)];
+  return meta;
+}
+
+function mangaCopyRowCategory(row: Element): string {
+  const clone = row.cloneNode(true) as Element;
+  clone.querySelector("h6")?.remove();
+  clone.querySelectorAll(".comicParticulars-right-txt, a").forEach(element => element.remove());
+  return cleanMangaCopyValue(clone.textContent || "").replace(/[:：]\s*$/, "");
+}
+
+function mangaCopyRowValues(row: Element): string[] {
+  const values = Array.from(row.querySelectorAll(".comicParticulars-right-txt, a"))
+    .map(element => cleanMangaCopyValue(element.textContent || ""))
+    .flatMap(value => value.split(/[、,，/|]/g))
+    .map(cleanMangaCopyValue)
+    .filter(Boolean);
+  return [...new Set(values)];
+}
+
+function mangaCopyRowUrls(row: Element, href: string): string[] {
+  const urls = Array.from(row.querySelectorAll<HTMLAnchorElement>("a[href]"))
+    .map(anchor => {
+      const raw = anchor.getAttribute("href") || "";
+      if (!raw || raw.startsWith("#") || /^javascript:/i.test(raw)) return "";
+      try {
+        const url = new URL(raw, href);
+        return ["http:", "https:"].includes(url.protocol) ? url.href : "";
+      } catch {
+        return "";
+      }
+    })
+    .filter(Boolean);
+  return [...new Set(urls)];
 }
 
 function cleanMangaCopyValue(value: unknown): string {

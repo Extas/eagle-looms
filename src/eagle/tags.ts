@@ -300,14 +300,19 @@ function isRawSourceTagCategory(category: string): boolean {
     case "genres":
     case "category":
     case "categories":
+    case "subject":
+    case "subjects":
     case "album type":
     case "albumtype":
     case "type":
     case "types":
+    case "status":
     case "language":
     case "languages":
     case "标签":
     case "標籤":
+    case "题材":
+    case "題材":
     case "分类":
     case "分類":
     case "类别":
@@ -316,6 +321,8 @@ function isRawSourceTagCategory(category: string): boolean {
     case "語言":
     case "类型":
     case "類型":
+    case "状态":
+    case "狀態":
     case "其他":
     case "其它":
     case "杂项":

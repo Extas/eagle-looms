@@ -184,7 +184,7 @@ Komiic
   comic authors map to author tags through gallery metadata; comic categories stay raw; image publish date comes from chapter date metadata
 
 MangaCopy
-  image publish date comes from comic detail update date when available
+  map comic detail rows through source metadata; author URLs point to author-like detail links; image publish date comes from comic detail update date when available
 
 MangaGui
   image publish date comes from comic detail status date when available
