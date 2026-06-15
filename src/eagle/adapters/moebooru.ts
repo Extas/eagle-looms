@@ -1,3 +1,5 @@
+import { sourceMetadataTag } from "../tags";
+
 const POST_REGISTER_TAGS_RE = /Post\.register_tags\(\s*(\{[\s\S]*?\})\s*\)/g;
 const POST_REGISTER_RE = /Post\.register\(\s*(\{[\s\S]*?\})\s*\)/g;
 
@@ -50,7 +52,7 @@ export function normalizeMoebooruSourceTags(rawTags: string | undefined, tagType
   const tags: string[] = [];
   for (const rawTag of splitTags(rawTags)) {
     const namespace = normalizeMoebooruTagType(tagTypes[rawTag]);
-    tags.push(namespace ? `${namespace}:${rawTag}` : rawTag);
+    tags.push(namespace ? sourceMetadataTag(namespace, rawTag) : rawTag);
   }
   return [...new Set(tags)];
 }

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { moebooruAuthorUrlsFromTags, normalizeMoebooruSourceTags, parseMoebooruPostInfos, parseMoebooruTagTypes } from "./moebooru-tags";
+import { moebooruAuthorUrlsFromTags, normalizeMoebooruSourceTags, parseMoebooruPostInfos, parseMoebooruTagTypes } from "./moebooru";
 
 describe("moebooru source tags", () => {
   it("normalizes Post.register_tags categories and keeps unknown tags raw", () => {

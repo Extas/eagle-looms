@@ -39,6 +39,7 @@ src/eagle/
 
 src/eagle/adapters/
   Eagle-specific source metadata adapters called from narrow matcher integration points
+  booru/moebooru/pixiv source tags live here because they emit Eagle namespaces
 
 src/ui/
   upstream Comic Looms UI; Eagle settings are normal ConfigPanel entries

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { extractBooruAuthorUrls, extractBooruSourceTags, normalizeBooruSourceTags } from "./booru-tags";
+import { extractBooruAuthorUrls, extractBooruSourceTags, normalizeBooruSourceTags } from "./booru";
 
 describe("booru source tags", () => {
   it("normalizes known booru categories and keeps other tags raw", () => {

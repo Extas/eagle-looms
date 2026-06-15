@@ -4,7 +4,7 @@ import EBUS from "../../event-bus";
 import ImageNode, { NodeAction } from "../../img-node";
 import { evLog } from "../../utils/ev-log";
 import { ADAPTER } from "../adapt";
-import { extractBooruAuthorUrls, extractBooruSourceTags, normalizeBooruSourceTags } from "../booru-tags";
+import { extractBooruAuthorUrls, extractBooruSourceTags, normalizeBooruSourceTags } from "../../eagle/adapters/booru";
 import { searchGalleryTitle } from "../gallery-title";
 import { BaseMatcher, OriginMeta, Result } from "../platform";
 

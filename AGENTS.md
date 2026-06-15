@@ -31,6 +31,7 @@ src/eagle/
 
 src/eagle/adapters/
   Eagle-specific source metadata adapters; keep matcher changes to narrow calls into these files
+  Unified source tag namespaces such as author:/copyright:/character: belong here, not in upstream-derived matchers
 
 src/platform/
   site matchers and source metadata extraction; keep Comic Looms matcher contract

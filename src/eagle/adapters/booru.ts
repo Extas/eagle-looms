@@ -1,3 +1,5 @@
+import { sourceMetadataTag } from "../tags";
+
 const CATEGORY_ATTRS = {
   copyright: [
     "data-tag-string-copyright",
@@ -207,7 +209,7 @@ export function extractBooruSourceTags(root: ParentNode, fallbackTags: string[])
     for (const element of elementsWithAnyAttribute(root, attrs)) {
       for (const value of attrs.flatMap(attr => splitSourceTags(element.getAttribute(attr)))) {
         categorized.add(value);
-        tags.push(`${namespace}:${value}`);
+        tags.push(sourceMetadataTag(namespace, value));
       }
     }
   }
@@ -218,7 +220,7 @@ export function extractBooruSourceTags(root: ParentNode, fallbackTags: string[])
         const value = cleanSourceTag(anchor.textContent || "");
         if (!value) return;
         categorized.add(value);
-        tags.push(`${namespace}:${value}`);
+        tags.push(sourceMetadataTag(namespace, value));
       });
     }
   }

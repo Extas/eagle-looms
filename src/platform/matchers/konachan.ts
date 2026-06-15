@@ -3,7 +3,7 @@ import ImageNode from "../../img-node";
 import { evLog } from "../../utils/ev-log";
 import { ADAPTER } from "../adapt";
 import { searchGalleryTitle } from "../gallery-title";
-import { MoebooruPostInfo, MoebooruTagTypes, moebooruAuthorUrlsFromTags, normalizeMoebooruSourceTags, parseMoebooruPostInfos, parseMoebooruTagTypes } from "../moebooru-tags";
+import { MoebooruPostInfo, MoebooruTagTypes, moebooruAuthorUrlsFromTags, normalizeMoebooruSourceTags, parseMoebooruPostInfos, parseMoebooruTagTypes } from "../../eagle/adapters/moebooru";
 import { BaseMatcher, OriginMeta, Result } from "../platform";
 
 export class KonachanMatcher extends BaseMatcher<Document> {
