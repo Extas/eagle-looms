@@ -43,6 +43,7 @@ const NAMESPACE_MAP: Record<number, string> = {
   0: "misc",
   1: "artist",
   2: "circle",
+  3: "parody",
   7: "uploader",
   8: "male",
   9: "female",
@@ -62,14 +63,8 @@ class NiyaniyaMatcher extends BaseMatcher<string> {
   }
 
   createMeta(detail: BookDetail) {
-    const tags: Record<string, any[]> = detail.tags.reduce<Record<string, any[]>>((map, tag) => {
-      const category = NAMESPACE_MAP[tag.namespace || 0] || "misc";
-      if (!map[category]) map[category] = [];
-      map[category].push(tag.name);
-      return map;
-    }, {});
     this.meta = new GalleryMeta(window.location.href, detail.title);
-    this.meta.tags = tags;
+    this.meta.tags = niyaniyaTagsFromDetail(detail);
   }
 
   async parseImgNodes(source: string): Promise<ImageNode[]> {
@@ -129,6 +124,15 @@ class NiyaniyaMatcher extends BaseMatcher<string> {
 
 export function niyaniyaPublishedAt(value: Pick<BookDetail, "created_at">): string {
   return cleanNiyaniyaValue(value.created_at);
+}
+
+export function niyaniyaTagsFromDetail(value: Pick<BookDetail, "tags">): Record<string, string[]> {
+  return value.tags.reduce<Record<string, string[]>>((map, tag) => {
+    const category = NAMESPACE_MAP[tag.namespace || 0] || "misc";
+    if (!map[category]) map[category] = [];
+    map[category].push(tag.name);
+    return map;
+  }, {});
 }
 
 function cleanNiyaniyaValue(value: unknown): string {

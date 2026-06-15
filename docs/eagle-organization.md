@@ -148,7 +148,7 @@ Hitomi
   map galleryinfo parodys -> copyright, characters -> character, artists/groups -> author; image publish date comes from galleryinfo date metadata
 
 HDoujin / Niyaniya
-  map numeric API tag namespaces such as artist/circle/parody into global tags where applicable; image publish date comes from gallery creation time
+  map numeric API tag namespaces such as artist/circle -> author and parody -> copyright; image publish date comes from gallery creation time
 
 Yabai
   map gallery tags through source metadata; image publish date comes from gallery date metadata
