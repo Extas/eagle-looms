@@ -168,7 +168,11 @@ function normalizeSourceNamespace(category: string): "copyright" | "character" |
     case "letterers":
     case "mangaka":
     case "作者":
+    case "漫画作者":
+    case "漫畫作者":
     case "作家":
+    case "漫画家":
+    case "漫畫家":
     case "艺术家":
     case "藝術家":
     case "画师":
@@ -313,8 +317,12 @@ function isRawSourceTagCategory(category: string): boolean {
     case "標籤":
     case "题材":
     case "題材":
+    case "漫画题材":
+    case "漫畫題材":
     case "分类":
     case "分類":
+    case "漫画分类":
+    case "漫畫分類":
     case "类别":
     case "類別":
     case "语言":
@@ -323,6 +331,8 @@ function isRawSourceTagCategory(category: string): boolean {
     case "類型":
     case "状态":
     case "狀態":
+    case "漫画状态":
+    case "漫畫狀態":
     case "其他":
     case "其它":
     case "杂项":
