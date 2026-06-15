@@ -4,6 +4,7 @@ import { Chapter } from "../../page-fetcher";
 import { evLog } from "../../utils/ev-log";
 import { GM_XHR } from "../../utils/query";
 import { transactionId, uuid } from "../../utils/random";
+import { twitterEagleAuthorUrls, twitterEagleSourceTags } from "../../eagle/adapters/twitter";
 import { ADAPTER } from "../adapt";
 import { cleanGalleryTitlePart, datedGalleryTitle } from "../gallery-title";
 import { BaseMatcher, OriginMeta, Result } from "../platform";
@@ -483,25 +484,24 @@ function getUserID(): string | undefined {
 }
 
 export function twitterSourceTags(item: Item): string[] {
-  const tags = new Set<string>();
   const sourceCandidates = twitterMediaSourceCandidates(item);
   const user = twitterScreenNameFromCandidates(sourceCandidates) || twitterScreenName(item);
-  if (user) tags.add(`author:${user}`);
   const legacyCandidates = sourceCandidates.length
     ? sourceCandidates.map(candidate => candidate.legacy)
     : twitterLegacyCandidates(item);
+  const hashtags: string[] = [];
   for (const legacy of legacyCandidates) {
     legacy?.entities?.hashtags?.forEach(hashtag => {
       const tag = hashtag.text?.trim();
-      if (tag) tags.add(tag);
+      if (tag) hashtags.push(tag);
     });
   }
-  return [...tags];
+  return twitterEagleSourceTags({ screenName: user, hashtags });
 }
 
 export function twitterAuthorUrls(item: Item): string[] {
   const user = twitterScreenNameFromCandidates(twitterMediaSourceCandidates(item)) || twitterScreenName(item);
-  return user ? [`https://x.com/${user}`] : [];
+  return twitterEagleAuthorUrls(user);
 }
 
 export function twitterPublishedAt(item: Item): string {
