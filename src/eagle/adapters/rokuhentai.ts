@@ -1,5 +1,7 @@
+import { GalleryMeta } from "../../download/gallery-meta";
 import { isGalleryAuthorCategory } from "./gallery-author-urls";
 import { cleanGalleryDateValue, isGalleryDateCategory } from "./gallery-published-at";
+import { cleanSourceTag } from "./source-tags";
 
 export type RokuHentaiTag = {
   category: string;
@@ -11,6 +13,20 @@ export function rokuHentaiTagsFromDocument(doc: Document): RokuHentaiTag[] {
   return Array.from(doc.querySelectorAll<HTMLElement>("div.mdc-chip .site-tag-count[data-tag]"))
     .map(element => rokuHentaiTagFromElement(element))
     .filter((tag): tag is RokuHentaiTag => Boolean(tag));
+}
+
+export function rokuHentaiGalleryMetaFromDocument(doc: Document, href = window.location.href): GalleryMeta {
+  const title = cleanRokuHentaiValue(doc.querySelector(".site-manga-info__title-text")?.textContent) || "UNTITLE";
+  const meta = new GalleryMeta(href, title);
+  meta.originTitle = title;
+  const tags: Record<string, string[]> = {};
+  rokuHentaiTagsFromDocument(doc).forEach((tag) => {
+    if (tags[tag.category] === undefined) tags[tag.category] = [];
+    tags[tag.category].push(tag.value);
+  });
+  meta.tags = tags;
+  meta.authorUrls = rokuHentaiAuthorUrlsFromDocument(doc, href);
+  return meta;
 }
 
 export function rokuHentaiAuthorUrlsFromDocument(doc: Document, baseUrl = window.location.href): string[] {
@@ -43,8 +59,8 @@ function parseRokuHentaiDataTag(value: unknown): Pick<RokuHentaiTag, "category" 
   const raw = String(value ?? "").trim();
   const match = raw.match(/^([^:]+):"?(.+?)"?$/);
   if (!match) return undefined;
-  const category = match[1].trim();
-  const tagValue = match[2].trim().replace(/^"|"$/g, "");
+  const category = cleanRokuHentaiValue(match[1]);
+  const tagValue = cleanRokuHentaiValue(match[2]).replace(/^"|"$/g, "");
   return category && tagValue ? { category, value: tagValue } : undefined;
 }
 
@@ -57,4 +73,8 @@ function absoluteHttpUrl(value: unknown, baseUrl: string): string {
   } catch {
     return "";
   }
+}
+
+function cleanRokuHentaiValue(value: unknown): string {
+  return cleanSourceTag(value);
 }

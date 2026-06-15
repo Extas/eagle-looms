@@ -2,7 +2,7 @@ import { GalleryMeta } from "../../download/gallery-meta";
 import ImageNode from "../../img-node";
 import { ImagePosition, splitImagesFromUrl } from "../../utils/sprite-split";
 import { ADAPTER } from "../adapt";
-import { rokuHentaiAuthorUrlsFromDocument, rokuHentaiPublishedAtFromDocument, rokuHentaiTagsFromDocument } from "../../eagle/adapters/rokuhentai";
+import { rokuHentaiGalleryMetaFromDocument, rokuHentaiPublishedAtFromDocument } from "../../eagle/adapters/rokuhentai";
 import { BaseMatcher, OriginMeta, Result } from "../platform";
 
 export class RokuHentaiMatcher extends BaseMatcher<[number, number]> {
@@ -13,17 +13,7 @@ export class RokuHentaiMatcher extends BaseMatcher<[number, number]> {
   publishedAt = "";
 
   galleryMeta(): GalleryMeta {
-    const title = document.querySelector(".site-manga-info__title-text")?.textContent || "UNTITLE";
-    const meta = new GalleryMeta(window.location.href, title);
-    meta.originTitle = title;
-    const tags: Record<string, string[]> = {};
-    rokuHentaiTagsFromDocument(document).forEach((tag) => {
-      if (tags[tag.category] === undefined) tags[tag.category] = [];
-      tags[tag.category].push(tag.value);
-    });
-    meta.tags = tags;
-    meta.authorUrls = rokuHentaiAuthorUrlsFromDocument(document);
-    return meta;
+    return rokuHentaiGalleryMetaFromDocument(document);
   }
 
   async fetchOriginMeta(node: ImageNode): Promise<OriginMeta> {

@@ -1,5 +1,26 @@
+import { GalleryMeta } from "../../download/gallery-meta";
 import { isGalleryAuthorCategory } from "./gallery-author-urls";
 import { cleanGalleryDateValue, isGalleryDateCategory } from "./gallery-published-at";
+import { cleanSourceTag } from "./source-tags";
+
+export function comic18GalleryMetaFromDocument(doc: Document, href = window.location.href): GalleryMeta {
+  const title = cleanComic18Value(doc.querySelector(".panel-heading h2")?.textContent) || cleanComic18Value(doc.title) || "UNTITLE";
+  const meta = new GalleryMeta(href, title);
+  meta.originTitle = title;
+  const tags: Record<string, string[]> = {};
+  comic18TagRows(doc).forEach((row) => {
+    const cat = cleanComic18Value(row.getAttribute("data-type"));
+    if (cat) {
+      const values = Array.from(row.querySelectorAll("a")).map(a => cleanComic18Value(a.textContent)).filter(Boolean);
+      if (values.length > 0) {
+        tags[cat] = values;
+      }
+    }
+  });
+  meta.tags = tags;
+  meta.authorUrls = comic18AuthorUrlsFromDocument(doc, href);
+  return meta;
+}
 
 export function comic18AuthorUrlsFromDocument(doc: Document, baseUrl = window.location.href): string[] {
   const urls: string[] = [];
@@ -35,4 +56,8 @@ function absoluteHttpUrl(value: unknown, baseUrl: string): string {
   } catch {
     return "";
   }
+}
+
+function cleanComic18Value(value: unknown): string {
+  return cleanSourceTag(value);
 }

@@ -3,7 +3,7 @@ import ImageNode from "../../img-node";
 import { Chapter } from "../../page-fetcher";
 import { evLog } from "../../utils/ev-log";
 import { ADAPTER } from "../adapt";
-import { comic18AuthorUrlsFromDocument, comic18PublishedAtFromDocument } from "../../eagle/adapters/comic18";
+import { comic18GalleryMetaFromDocument, comic18PublishedAtFromDocument } from "../../eagle/adapters/comic18";
 import { BaseMatcher, Result, OriginMeta } from "../platform";
 
 // TODO: don't reference the md5 on the page, to avoid errors when the script is not loaded
@@ -130,22 +130,7 @@ class Comic18Matcher extends BaseMatcher<string> {
 
   galleryMeta(): GalleryMeta {
     if (this.meta) return this.meta;
-    const title = document.querySelector(".panel-heading h2")?.textContent || document.title || "UNTITLE";
-    this.meta = new GalleryMeta(window.location.href, title);
-    this.meta.originTitle = title;
-    const tagTrList = document.querySelectorAll<HTMLElement>("div.tag-block > span");
-    const tags: Record<string, string[]> = {};
-    tagTrList.forEach((tr) => {
-      const cat = tr.getAttribute("data-type")?.trim();
-      if (cat) {
-        const values = Array.from(tr.querySelectorAll("a")).map(a => a.textContent!).filter(Boolean);
-        if (values.length > 0) {
-          tags[cat] = values;
-        }
-      }
-    });
-    this.meta.tags = tags;
-    this.meta.authorUrls = comic18AuthorUrlsFromDocument(document);
+    this.meta = comic18GalleryMetaFromDocument(document);
     return this.meta;
   }
 

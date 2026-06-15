@@ -1,8 +1,7 @@
 import { GalleryMeta } from "../../download/gallery-meta";
 import ImageNode from "../../img-node";
 import { ADAPTER } from "../adapt";
-import { extractGalleryAuthorUrls } from "../../eagle/adapters/gallery-author-urls";
-import { hentaizapPublishedAtFromDocument } from "../../eagle/adapters/hentaizap";
+import { hentaizapGalleryMetaFromDocument, hentaizapPublishedAtFromDocument } from "../../eagle/adapters/hentaizap";
 import { BaseMatcher, OriginMeta, Result } from "../platform";
 
 type HentaiZapGalleryInfo = {
@@ -28,15 +27,7 @@ class HentaiZapMatcher extends BaseMatcher<HentaiZapGalleryInfo> {
 
   galleryMeta(): GalleryMeta {
     if (this.meta) return this.meta;
-    const title = document.querySelector(".gp_top_right > h1")?.textContent ?? document.title;
-    this.meta = new GalleryMeta(window.location.href, title);
-    Array.from(document.querySelectorAll<HTMLElement>(".gp_top_right_info > ul")).forEach(ul => {
-      const category = ul.querySelector("span.info_txt")?.textContent?.replace(":", "")?.toLowerCase();
-      if (!category) return;
-      const tags = Array.from(ul.querySelectorAll<HTMLElement>("a.gp_btn_tag")).map(e => e.firstChild?.textContent).filter(Boolean) as string[];
-      this.meta!.tags[category] = tags;
-    });
-    this.meta.authorUrls = extractGalleryAuthorUrls(document, ".gp_top_right_info > ul", "span.info_txt", "a.gp_btn_tag[href]");
+    this.meta = hentaizapGalleryMetaFromDocument(document);
     return this.meta;
   }
 

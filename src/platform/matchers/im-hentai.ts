@@ -2,8 +2,7 @@ import { GalleryMeta } from "../../download/gallery-meta";
 import ImageNode from "../../img-node";
 import q from "../../utils/query-element";
 import { ADAPTER } from "../adapt";
-import { extractGalleryAuthorUrls } from "../../eagle/adapters/gallery-author-urls";
-import { imHentaiPublishedAtFromDocument } from "../../eagle/adapters/im-hentai";
+import { imHentaiGalleryMetaFromDocument, imHentaiPublishedAtFromDocument } from "../../eagle/adapters/im-hentai";
 import { BaseMatcher, OriginMeta, Result } from "../platform";
 
 class IMHentaiMatcher extends BaseMatcher<null> {
@@ -68,22 +67,7 @@ class IMHentaiMatcher extends BaseMatcher<null> {
 
   galleryMeta(): GalleryMeta {
     if (this.meta) return this.meta;
-    const title = document.querySelector(".right_details > h1")?.textContent || undefined;
-    const originTitle = document.querySelector(".right_details > p.subtitle")?.textContent || undefined;
-    const meta = new GalleryMeta(window.location.href, title || "UNTITLE");
-    meta.originTitle = originTitle;
-    meta.tags = {};
-    const list = Array.from(document.querySelectorAll<HTMLElement>(".galleries_info > li"));
-    for (const li of list) {
-      let cat = li.querySelector(".tags_text")?.textContent;
-      if (!cat) continue;
-      cat = cat.replace(":", "").trim();
-      if (!cat) continue;
-      const tags = Array.from(li.querySelectorAll("a.tag")).map(a => a.firstChild?.textContent?.trim()).filter(v => Boolean(v));
-      meta.tags[cat] = tags;
-    }
-    meta.authorUrls = extractGalleryAuthorUrls(document, ".galleries_info > li", ".tags_text", "a.tag[href]");
-    this.meta = meta;
+    this.meta = imHentaiGalleryMetaFromDocument(document);
     return this.meta;
   }
 
