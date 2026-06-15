@@ -3,7 +3,7 @@ import ImageNode from "../../img-node";
 import { Chapter } from "../../page-fetcher";
 import { simpleFetch } from "../../utils/query";
 import { ADAPTER } from "../adapt";
-import { isGalleryAuthorCategory } from "../gallery-author-urls";
+import { isGalleryAuthorCategory } from "../../eagle/adapters/gallery-author-urls";
 import { BaseMatcher, OriginMeta, Result } from "../platform";
 
 class MangaCopyMatcher extends BaseMatcher<string> {

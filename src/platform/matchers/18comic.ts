@@ -3,7 +3,7 @@ import ImageNode from "../../img-node";
 import { Chapter } from "../../page-fetcher";
 import { evLog } from "../../utils/ev-log";
 import { ADAPTER } from "../adapt";
-import { isGalleryAuthorCategory } from "../gallery-author-urls";
+import { isGalleryAuthorCategory } from "../../eagle/adapters/gallery-author-urls";
 import { cleanGalleryDateValue, isGalleryDateCategory } from "../gallery-published-at";
 import { BaseMatcher, Result, OriginMeta } from "../platform";
 

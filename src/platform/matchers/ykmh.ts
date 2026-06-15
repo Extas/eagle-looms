@@ -2,7 +2,7 @@ import { GalleryMeta } from "../../download/gallery-meta";
 import ImageNode from "../../img-node";
 import { Chapter } from "../../page-fetcher";
 import { ADAPTER } from "../adapt";
-import { isGalleryAuthorCategory } from "../gallery-author-urls";
+import { isGalleryAuthorCategory } from "../../eagle/adapters/gallery-author-urls";
 import { BaseMatcher, OriginMeta, Result } from "../platform";
 
 class YKMHMatcher extends BaseMatcher<string> {

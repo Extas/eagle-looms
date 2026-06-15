@@ -1,7 +1,7 @@
 import { GalleryMeta } from "../../download/gallery-meta";
 import ImageNode from "../../img-node";
 import { ADAPTER } from "../adapt";
-import { isGalleryAuthorCategory } from "../gallery-author-urls";
+import { isGalleryAuthorCategory } from "../../eagle/adapters/gallery-author-urls";
 import { cleanGalleryDateValue, isGalleryDateCategory } from "../gallery-published-at";
 import { BaseMatcher, OriginMeta, Result } from "../platform";
 
