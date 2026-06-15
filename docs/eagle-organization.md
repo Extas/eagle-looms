@@ -158,6 +158,9 @@ MangaCopy
 
 KuaiKan
   image publish date comes from chapter creation date metadata
+
+Bilibili
+  author comes from opus author metadata; author URL points to the Bilibili space profile; image publish date comes from opus publish time metadata
 ```
 
 ## Item Names
