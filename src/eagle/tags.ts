@@ -313,6 +313,10 @@ function isRawSourceTagCategory(category: string): boolean {
     case "genres":
     case "category":
     case "categories":
+    case "channel":
+    case "channels":
+    case "board":
+    case "boards":
     case "subject":
     case "subjects":
     case "album type":

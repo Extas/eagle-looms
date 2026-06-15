@@ -206,6 +206,9 @@ Bilibili
 
 Steam Screenshots
   author comes from the Steam profile path; author URL points to the source profile; gallery title uses appid when present
+
+Arcalive
+  channel comes from the /b/{channel}/ article URL as a raw source tag; author comes from article user metadata; image publish date comes from explicit time/meta fields when available
 ```
 
 ## Item Names
