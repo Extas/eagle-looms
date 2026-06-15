@@ -189,6 +189,9 @@ MangaCopy
 MangaGui
   map comic detail rows through source metadata; author URLs point to author-like detail links; image publish date comes from comic detail status date when available
 
+Manga160
+  map Introduct detail rows through source metadata; author URLs point to author-like detail links
+
 WNACG
   gallery tag chips stay raw source tags; gallery description is kept in source metadata but not imported as visible tags
 

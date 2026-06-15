@@ -171,6 +171,15 @@ function normalizeSourceNamespace(category: string): "copyright" | "character" |
     case "漫画作者":
     case "漫畫作者":
     case "作家":
+    case "原著":
+    case "编剧":
+    case "編劇":
+    case "主笔":
+    case "主筆":
+    case "绘画":
+    case "繪畫":
+    case "绘者":
+    case "繪者":
     case "漫画家":
     case "漫畫家":
     case "艺术家":
@@ -333,6 +342,8 @@ function isRawSourceTagCategory(category: string): boolean {
     case "狀態":
     case "漫画状态":
     case "漫畫狀態":
+    case "连载状态":
+    case "連載狀態":
     case "其他":
     case "其它":
     case "杂项":
