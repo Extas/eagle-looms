@@ -33,15 +33,27 @@ export function extractGalleryPublishedAt(
 ): string {
   for (const row of root.querySelectorAll(rowSelector)) {
     const categoryElement = row.querySelector(categorySelector);
-    const category = cleanCategory(categoryElement?.textContent);
-    if (!DATE_CATEGORIES.has(category)) continue;
+    if (!isGalleryDateCategory(categoryElement?.textContent)) continue;
 
-    const value = cleanDateValue(valueSelector
+    const value = cleanGalleryDateValue(valueSelector
       ? row.querySelector(valueSelector)?.textContent
       : rowTextWithoutCategory(row, categorySelector));
     if (value) return value;
   }
   return "";
+}
+
+export function isGalleryDateCategory(value: unknown): boolean {
+  return DATE_CATEGORIES.has(cleanCategory(value));
+}
+
+export function cleanGalleryDateValue(value: unknown): string {
+  if (typeof value !== "string" && typeof value !== "number") return "";
+  return String(value)
+    .replace(/[\n\r\t]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 120);
 }
 
 function rowTextWithoutCategory(row: Element, categorySelector: string): string {
@@ -59,13 +71,4 @@ function cleanCategory(value: unknown): string {
     .replace(/\s+/g, " ")
     .trim()
     .toLowerCase();
-}
-
-function cleanDateValue(value: unknown): string {
-  if (typeof value !== "string" && typeof value !== "number") return "";
-  return String(value)
-    .replace(/[\n\r\t]+/g, " ")
-    .replace(/\s+/g, " ")
-    .trim()
-    .slice(0, 120);
 }

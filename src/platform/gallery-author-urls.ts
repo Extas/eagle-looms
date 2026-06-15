@@ -43,8 +43,7 @@ export function extractGalleryAuthorUrls(
 ): string[] {
   const urls: string[] = [];
   root.querySelectorAll(rowSelector).forEach(row => {
-    const category = cleanCategory(row.querySelector(categorySelector)?.textContent);
-    if (!AUTHOR_CATEGORIES.has(category)) return;
+    if (!isGalleryAuthorCategory(row.querySelector(categorySelector)?.textContent)) return;
 
     row.querySelectorAll<HTMLAnchorElement>(linkSelector).forEach(anchor => {
       const url = absoluteHttpUrl(anchor.getAttribute("href"), baseUrl);
@@ -52,6 +51,10 @@ export function extractGalleryAuthorUrls(
     });
   });
   return [...new Set(urls)];
+}
+
+export function isGalleryAuthorCategory(value: unknown): boolean {
+  return AUTHOR_CATEGORIES.has(cleanCategory(value));
 }
 
 function cleanCategory(value: unknown): string {

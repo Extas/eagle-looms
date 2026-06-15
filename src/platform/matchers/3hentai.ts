@@ -1,11 +1,15 @@
 import { GalleryMeta } from "../../download/gallery-meta";
 import ImageNode from "../../img-node";
 import { ADAPTER } from "../adapt";
+import { isGalleryAuthorCategory } from "../gallery-author-urls";
+import { cleanGalleryDateValue, isGalleryDateCategory } from "../gallery-published-at";
 import { BaseMatcher, OriginMeta, Result } from "../platform";
 
 class Hentai3Matcher extends BaseMatcher<Document> {
+  publishedAt = "";
 
   async *fetchPagesSource(): AsyncGenerator<Result<Document>> {
+    this.publishedAt = hentai3PublishedAtFromDocument(document);
     yield Result.ok(document);
   }
 
@@ -20,6 +24,7 @@ class Hentai3Matcher extends BaseMatcher<Document> {
       const ext = thumb.split(".").pop() ?? "jpg";
       const title = (i + 1).toString().padStart(digits, "0") + "." + ext;
       const node = new ImageNode(thumb, href, title, undefined, undefined, { w: img.width, h: img.height });
+      node.setPublishedAt(this.publishedAt);
       return node;
     });
     if (nodes.length === 0) {
@@ -66,11 +71,61 @@ class Hentai3Matcher extends BaseMatcher<Document> {
         meta.tags[cate] = tags;
       }
     });
+    meta.authorUrls = hentai3AuthorUrlsFromDocument(document);
 
     this.meta = meta;
     return this.meta;
   }
 
+}
+
+export function hentai3AuthorUrlsFromDocument(doc: Document, baseUrl = window.location.href): string[] {
+  const urls: string[] = [];
+  hentai3TagRows(doc).forEach(row => {
+    if (!isGalleryAuthorCategory(hentai3Category(row))) return;
+    row.querySelectorAll<HTMLAnchorElement>("a[href]").forEach(anchor => {
+      const url = absoluteHttpUrl(anchor.getAttribute("href"), baseUrl);
+      if (url) urls.push(url);
+    });
+  });
+  return [...new Set(urls)];
+}
+
+export function hentai3PublishedAtFromDocument(doc: Document): string {
+  for (const row of hentai3TagRows(doc)) {
+    if (!isGalleryDateCategory(hentai3Category(row))) continue;
+    const value = cleanGalleryDateValue(hentai3RowValues(row).join(" "));
+    if (value) return value;
+  }
+  return "";
+}
+
+function hentai3TagRows(doc: Document): HTMLDivElement[] {
+  return Array.from(doc.querySelectorAll<HTMLDivElement>(".tag-container.field-name"));
+}
+
+function hentai3Category(row: HTMLElement): string {
+  return Array.from(row.childNodes)
+    .find(node => node.nodeType === 3 && node.textContent?.trim())
+    ?.textContent || "";
+}
+
+function hentai3RowValues(row: HTMLElement): string[] {
+  return Array.from(row.childNodes)
+    .slice(1)
+    .map(node => node.textContent?.trim() || "")
+    .filter(Boolean);
+}
+
+function absoluteHttpUrl(value: unknown, baseUrl: string): string {
+  const raw = String(value ?? "").trim();
+  if (!raw || raw.startsWith("#") || /^javascript:/i.test(raw)) return "";
+  try {
+    const url = new URL(raw, baseUrl);
+    return ["http:", "https:"].includes(url.protocol) ? url.href : "";
+  } catch {
+    return "";
+  }
 }
 
 type Hentai3ReaderPages = {
