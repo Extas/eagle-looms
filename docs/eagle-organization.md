@@ -152,6 +152,9 @@ Komiic
 
 MangaCopy
   image publish date comes from comic detail update date when available
+
+KuaiKan
+  image publish date comes from chapter creation date metadata
 ```
 
 ## Item Names
