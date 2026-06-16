@@ -103,25 +103,36 @@ describe("NovelAI Eagle bridge", () => {
     ]);
   });
 
-  it("imports into NovelAI through image file inputs before paste fallbacks", async () => {
+  it("imports into NovelAI through its React image input handler before paste fallbacks", async () => {
     document.body.innerHTML = `
       <textarea id="prompt"></textarea>
       <input id="image-upload" type="file" accept="image/*">
     `;
     const prompt = document.querySelector<HTMLTextAreaElement>("#prompt")!;
     const input = document.querySelector<HTMLInputElement>("#image-upload")!;
-    const changes: Event[] = [];
     const promptPastes: Event[] = [];
-    input.addEventListener("change", event => changes.push(event));
+    Object.defineProperty(input, "__reactProps$test", {
+      configurable: true,
+      value: {
+        onChange(event: Event & { target: HTMLInputElement }) {
+          "readAsArrayBuffer";
+          if (!event.target.files?.length) return;
+          const image = document.createElement("img");
+          image.src = "blob:https://novelai.net/source-image";
+          document.body.appendChild(image);
+        },
+      },
+    });
     prompt.addEventListener("paste", event => promptPastes.push(event));
     prompt.focus();
 
     const result = await pasteImageIntoNovelAi(new Blob(["image"], { type: "image/png" }), "source-name.png");
 
-    expect(result.fileInputs).toBe(1);
+    expect(result.confirmed).toBe(true);
+    expect(result.reactInputs).toBe(1);
+    expect(result.fileInputs).toBe(0);
     expect(result.pasteTargets).toBe(0);
     expect(result.dropTargets).toBe(0);
-    expect(changes).toHaveLength(1);
     expect(input.files?.[0]?.name).toBe("source-name.png");
     expect(prompt.value).toBe("");
     expect(promptPastes).toHaveLength(0);
@@ -142,10 +153,14 @@ describe("NovelAI Eagle bridge", () => {
     prompt.addEventListener("paste", () => pastedText.push("prompt"));
     prompt.focus();
 
-    const result = await pasteImageIntoNovelAi(new Blob(["image"], { type: "image/png" }), "should-not-enter-prompt.png");
+    let error: unknown;
+    try {
+      await pasteImageIntoNovelAi(new Blob(["image"], { type: "image/png" }), "should-not-enter-prompt.png");
+    } catch (caught) {
+      error = caught;
+    }
 
-    expect(result.fileInputs).toBe(0);
-    expect(result.pasteTargets).toBeGreaterThan(0);
+    expect(error).toBeInstanceOf(Error);
     expect(pastedText).not.toContain("should-not-enter-prompt.png");
     expect(pastedText).not.toContain("prompt");
     Object.defineProperty(navigator, "clipboard", {

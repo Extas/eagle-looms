@@ -4,9 +4,12 @@ import { normalizeEagleBaseUrl } from "./options";
 import { arrayBufferToBase64, requestArrayBuffer } from "./transport";
 import { buildStructuredEagleName, normalizeEagleItemName } from "./naming";
 
+declare const unsafeWindow: (Window & typeof globalThis) | undefined;
+
 const STORAGE_KEY = "eagle-looms:novelai-bridge";
 const DEFAULT_MONITOR_LIMIT = 2;
 const MAX_MONITOR_LIMIT = 20;
+const NAI_IMPORT_CONFIRM_TIMEOUT_MS = 2200;
 const PANEL_ID = "eagle-looms-novelai-bridge";
 const BRIDGE_SCHEMA = "eagle-looms/novelai-bridge/v1";
 const NOVELAI_TOOL_TAG = "tool:novelai";
@@ -38,7 +41,9 @@ interface BridgeElements {
 }
 
 interface PasteDispatchSummary {
+  confirmed: boolean;
   clipboard: boolean;
+  reactInputs: number;
   fileInputs: number;
   pasteTargets: number;
   dropTargets: number;
@@ -243,6 +248,7 @@ class NovelAiEagleBridge {
       const blob = await this.fetchEagleImageBlob(item);
       const clipboardBlob = await toClipboardImageBlob(blob);
       const fileName = sourceFileName(item, clipboardBlob.type);
+      this.setStatus("Importing image into NovelAI...");
       const paste = await pasteImageIntoNovelAi(clipboardBlob, fileName);
 
       this.sourceItem = item;
@@ -368,7 +374,7 @@ class NovelAiEagleBridge {
     const elements = this.elements;
     if (!elements) return;
     elements.importButton.disabled = busy;
-    elements.importButton.textContent = busy ? "Importing..." : "Import Eagle Image";
+    elements.importButton.textContent = busy ? "..." : "Import";
   }
 
   private setStatus(message: string, isError = false): void {
@@ -381,7 +387,7 @@ class NovelAiEagleBridge {
   private updateMonitorUi(): void {
     const elements = this.elements;
     if (!elements) return;
-    elements.monitorButton.textContent = this.config.monitorEnabled ? "Monitor: On" : "Monitor: Off";
+    elements.monitorButton.textContent = this.config.monitorEnabled ? "Watch On" : "Watch Off";
     elements.monitorButton.dataset.enabled = this.config.monitorEnabled ? "true" : "false";
     elements.monitorButton.title = this.monitorActive
       ? `Active, imported ${this.importedResultCount}/${this.config.monitorLimit}`
@@ -400,7 +406,7 @@ function createPanel(config: NovelAiBridgeConfig): BridgeElements {
         top: 10px;
         right: 10px;
         z-index: 2147483647;
-        width: 248px;
+        width: 228px;
         max-width: calc(100vw - 20px);
         box-sizing: border-box;
         padding: 7px;
@@ -422,7 +428,7 @@ function createPanel(config: NovelAiBridgeConfig): BridgeElements {
       #${PANEL_ID} strong { font-size: 12px; white-space: nowrap; }
       #${PANEL_ID} label {
         display: grid;
-        grid-template-columns: 72px minmax(0, 1fr);
+        grid-template-columns: 38px minmax(0, 1fr);
         gap: 5px;
         align-items: center;
         margin: 4px 0;
@@ -440,7 +446,7 @@ function createPanel(config: NovelAiBridgeConfig): BridgeElements {
       }
       #${PANEL_ID} .el-nai-row {
         display: grid;
-        grid-template-columns: 1fr auto 42px;
+        grid-template-columns: 1fr auto 36px;
         gap: 5px;
         align-items: center;
         margin-top: 6px;
@@ -468,7 +474,7 @@ function createPanel(config: NovelAiBridgeConfig): BridgeElements {
         margin-top: 6px;
         color: #333;
         overflow-wrap: anywhere;
-        max-height: 28px;
+        max-height: 26px;
         overflow: hidden;
       }
       #${PANEL_ID} .el-nai-status {
@@ -482,19 +488,19 @@ function createPanel(config: NovelAiBridgeConfig): BridgeElements {
       #${PANEL_ID} .el-nai-status[data-state="error"] { color: #a01818; }
     </style>
     <header>
-      <strong>Eagle -> NovelAI</strong>
+      <strong>Eagle -> NAI</strong>
     </header>
     <div class="el-nai-body">
       <label>
-        <span>Eagle API</span>
+        <span>API</span>
         <input data-el="api" type="url" autocomplete="off" spellcheck="false">
       </label>
       <label>
-        <span>Item link</span>
+        <span>Item</span>
         <input data-el="item" type="text" autocomplete="off" spellcheck="false" placeholder="http://localhost:41595/item?id=...">
       </label>
       <div class="el-nai-row">
-        <button data-el="import" type="button">Import Eagle Image</button>
+        <button data-el="import" type="button">Import</button>
         <button data-el="monitor" type="button">Monitor: On</button>
         <input data-el="limit" type="number" min="1" max="${MAX_MONITOR_LIMIT}" step="1" title="Auto-stop after this many NovelAI result imports">
       </div>
@@ -520,16 +526,28 @@ function createPanel(config: NovelAiBridgeConfig): BridgeElements {
 }
 
 export async function pasteImageIntoNovelAi(blob: Blob, fileName: string): Promise<PasteDispatchSummary> {
-  const file = new File([blob], fileName, { type: blob.type || "image/png" });
+  const file = pageFile(blob, fileName);
+  const baseline = snapshotNovelAiImageSources();
   const summary: PasteDispatchSummary = {
+    confirmed: false,
     clipboard: false,
+    reactInputs: 0,
     fileInputs: 0,
     pasteTargets: 0,
     dropTargets: 0,
   };
 
+  summary.reactInputs = dispatchToReactFileInputHandlers(file);
+  if (summary.reactInputs > 0 && await confirmNovelAiImport(baseline)) {
+    summary.confirmed = true;
+    return summary;
+  }
+
   summary.fileInputs = dispatchToFileInputs(file);
-  if (summary.fileInputs > 0) return summary;
+  if (summary.fileInputs > 0 && await confirmNovelAiImport(baseline)) {
+    summary.confirmed = true;
+    return summary;
+  }
 
   try {
     await writeImageToClipboard(blob);
@@ -540,11 +558,15 @@ export async function pasteImageIntoNovelAi(blob: Blob, fileName: string): Promi
 
   summary.pasteTargets = dispatchPasteEvents(file);
   summary.dropTargets = dispatchDropEvents(file);
-
-  if (!summary.clipboard && summary.fileInputs + summary.pasteTargets + summary.dropTargets === 0) {
-    throw new Error(`Cannot paste image into NovelAI. ${summary.clipboardError || ""}`.trim());
+  if (summary.pasteTargets + summary.dropTargets > 0 && await confirmNovelAiImport(baseline)) {
+    summary.confirmed = true;
+    return summary;
   }
-  return summary;
+
+  if (summary.clipboard) {
+    throw new Error("Image copied to clipboard, but NovelAI did not confirm automatic import. Click the NovelAI upload button or press Ctrl+V.");
+  }
+  throw new Error(`Cannot import image into NovelAI. ${summary.clipboardError || "No compatible NovelAI import target was found."}`.trim());
 }
 
 async function writeImageToClipboard(blob: Blob): Promise<void> {
@@ -556,21 +578,63 @@ async function writeImageToClipboard(blob: Blob): Promise<void> {
   ]);
 }
 
+function dispatchToReactFileInputHandlers(file: File): number {
+  const inputs = Array.from(document.querySelectorAll<HTMLInputElement>("input[type='file']"))
+    .filter((input) => acceptsImageFiles(input));
+  let count = 0;
+  for (const input of inputs) {
+    const handler = reactFileInputChangeHandler(input);
+    if (!handler) continue;
+    try {
+      withInputFiles(input, file, () => handler({
+        target: input,
+        currentTarget: input,
+        preventDefault: () => undefined,
+        stopPropagation: () => undefined,
+        nativeEvent: new Event("change"),
+      }));
+      count += 1;
+    } catch {
+      // Fall back to DOM events below.
+    }
+  }
+  return count;
+}
+
+function reactFileInputChangeHandler(input: HTMLInputElement): ((event: unknown) => unknown) | undefined {
+  for (const key of Object.getOwnPropertyNames(input)) {
+    if (!key.startsWith("__reactProps$")) continue;
+    const candidate = (input as unknown as Record<string, { onChange?: unknown }>)[key]?.onChange;
+    if (typeof candidate !== "function") continue;
+    const source = Function.prototype.toString.call(candidate);
+    if (/FileReader|readAsArrayBuffer/.test(source)) {
+      return candidate as (event: unknown) => unknown;
+    }
+  }
+  return undefined;
+}
+
 function dispatchToFileInputs(file: File): number {
-  if (typeof DataTransfer === "undefined") return 0;
+  if (!pageGlobal().DataTransfer && typeof DataTransfer === "undefined") return 0;
   const inputs = Array.from(document.querySelectorAll<HTMLInputElement>("input[type='file']"))
     .filter((input) => acceptsImageFiles(input))
     .slice(0, 3);
   let count = 0;
   for (const input of inputs) {
-    const data = new DataTransfer();
-    data.items.add(file);
-    Object.defineProperty(input, "files", { configurable: true, value: data.files });
-    input.dispatchEvent(new Event("input", { bubbles: true }));
-    input.dispatchEvent(new Event("change", { bubbles: true }));
+    withInputFiles(input, file, () => {
+      input.dispatchEvent(new Event("input", { bubbles: true, composed: true }));
+      input.dispatchEvent(new Event("change", { bubbles: true, composed: true }));
+    });
     count += 1;
   }
   return count;
+}
+
+function withInputFiles(input: HTMLInputElement, file: File, run: () => unknown): void {
+  const data = new (pageGlobal().DataTransfer || DataTransfer)();
+  data.items.add(file);
+  Object.defineProperty(input, "files", { configurable: true, value: data.files });
+  run();
 }
 
 function dispatchPasteEvents(file: File): number {
@@ -639,12 +703,21 @@ function acceptsImageFiles(input: HTMLInputElement): boolean {
 }
 
 function snapshotNovelAiImageSources(): Set<string> {
-  return new Set(Array.from(document.images).map((img) => img.currentSrc || img.src).filter(Boolean));
+  return new Set(Array.from(document.querySelectorAll<HTMLImageElement>("img")).map((img) => img.currentSrc || img.src).filter(Boolean));
+}
+
+async function confirmNovelAiImport(baseline: Set<string>): Promise<boolean> {
+  const started = Date.now();
+  while (Date.now() - started < NAI_IMPORT_CONFIRM_TIMEOUT_MS) {
+    if (resultImageSources().some(src => !baseline.has(src))) return true;
+    await delay(100);
+  }
+  return false;
 }
 
 function resultImageSources(): string[] {
   const sources: string[] = [];
-  for (const image of Array.from(document.images)) {
+  for (const image of Array.from(document.querySelectorAll<HTMLImageElement>("img"))) {
     if (image.closest(`#${PANEL_ID}`)) continue;
     const src = image.currentSrc || image.src;
     if (!src || sources.includes(src)) continue;
@@ -728,12 +801,13 @@ function utcCompactTimestamp(date: Date): string {
 
 function pasteStatus(summary: PasteDispatchSummary): string {
   const parts = [
+    summary.reactInputs ? `${summary.reactInputs} NovelAI handler` : "",
     summary.clipboard ? "clipboard" : "",
     summary.fileInputs ? `${summary.fileInputs} file input` : "",
     summary.pasteTargets ? `${summary.pasteTargets} paste target` : "",
     summary.dropTargets ? `${summary.dropTargets} drop target` : "",
   ].filter(Boolean);
-  return `Eagle image sent to NovelAI (${parts.join(", ") || "event dispatched"}). Run NovelAI manually; monitor will import results.`;
+  return `NovelAI source image imported (${parts.join(", ") || "event dispatched"}). Run NovelAI manually; monitor will import results.`;
 }
 
 function defaultConfig(): NovelAiBridgeConfig {
@@ -873,6 +947,15 @@ function isUsefulInheritedTag(tag: string): boolean {
   if (!normalized || normalized === NOVELAI_TOOL_TAG) return false;
   if (normalized === "eagle-looms") return false;
   return !NON_SEMANTIC_INHERITED_TAG_PREFIXES.some((prefix) => normalized.startsWith(prefix));
+}
+
+function pageFile(blob: Blob, fileName: string): File {
+  const page = pageGlobal();
+  return new page.File([blob], fileName, { type: blob.type || "image/png" });
+}
+
+function pageGlobal(): Window & typeof globalThis {
+  return typeof unsafeWindow === "undefined" ? window : unsafeWindow;
 }
 
 function uniqueElements(values: Array<HTMLElement | undefined>): HTMLElement[] {
