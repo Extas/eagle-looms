@@ -138,6 +138,41 @@ describe("NovelAI Eagle bridge", () => {
     expect(promptPastes).toHaveLength(0);
   });
 
+  it("drops into NovelAI's upload overlay when the file input path is unavailable", async () => {
+    document.body.innerHTML = `
+      <main id="surface"></main>
+      <div id="overlay"></div>
+      <textarea id="prompt"></textarea>
+    `;
+    const overlay = document.querySelector<HTMLElement>("#overlay")!;
+    const prompt = document.querySelector<HTMLTextAreaElement>("#prompt")!;
+    const promptPastes: Event[] = [];
+    Object.defineProperty(overlay, "__reactProps$test", {
+      configurable: true,
+      value: {
+        async onDrop(event: Event & { dataTransfer: DataTransfer }) {
+          "dataTransfer.files";
+          if (!event.dataTransfer.files.length) return;
+          const image = document.createElement("img");
+          image.src = "blob:https://novelai.net/overlay-source-image";
+          document.body.appendChild(image);
+        },
+      },
+    });
+    prompt.addEventListener("paste", event => promptPastes.push(event));
+    prompt.focus();
+
+    const result = await pasteImageIntoNovelAi(new Blob(["image"], { type: "image/png" }), "overlay-source.png");
+
+    expect(result.confirmed).toBe(true);
+    expect(result.reactInputs).toBe(0);
+    expect(result.fileInputs).toBe(0);
+    expect(result.dropTargets).toBe(1);
+    expect(result.pasteTargets).toBe(0);
+    expect(prompt.value).toBe("");
+    expect(promptPastes).toHaveLength(0);
+  });
+
   it("does not send file names as text when paste fallback is needed", async () => {
     document.body.innerHTML = `<main id="surface"></main><textarea id="prompt"></textarea>`;
     const prompt = document.querySelector<HTMLTextAreaElement>("#prompt")!;

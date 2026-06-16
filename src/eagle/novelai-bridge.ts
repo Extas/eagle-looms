@@ -549,6 +549,18 @@ export async function pasteImageIntoNovelAi(blob: Blob, fileName: string): Promi
     return summary;
   }
 
+  summary.dropTargets = await dispatchDropEvents(file);
+  if (summary.dropTargets > 0 && await confirmNovelAiImport(baseline)) {
+    summary.confirmed = true;
+    return summary;
+  }
+
+  summary.pasteTargets = dispatchPasteEvents(file);
+  if (summary.pasteTargets > 0 && await confirmNovelAiImport(baseline)) {
+    summary.confirmed = true;
+    return summary;
+  }
+
   try {
     await writeImageToClipboard(blob);
     summary.clipboard = true;
@@ -556,15 +568,12 @@ export async function pasteImageIntoNovelAi(blob: Blob, fileName: string): Promi
     summary.clipboardError = errorMessage(error);
   }
 
-  summary.pasteTargets = dispatchPasteEvents(file);
-  summary.dropTargets = dispatchDropEvents(file);
-  if (summary.pasteTargets + summary.dropTargets > 0 && await confirmNovelAiImport(baseline)) {
-    summary.confirmed = true;
-    return summary;
-  }
-
   if (summary.clipboard) {
     throw new Error("Image copied to clipboard, but NovelAI did not confirm automatic import. Click the NovelAI upload button or press Ctrl+V.");
+  }
+  if (summary.dropTargets > 0) {
+    const detail = summary.clipboardError ? ` Clipboard fallback is also unavailable: ${summary.clipboardError}` : "";
+    throw new Error(`NovelAI opened an image drop target, but did not accept the automatic drop.${detail}`.trim());
   }
   throw new Error(`Cannot import image into NovelAI. ${summary.clipboardError || "No compatible NovelAI import target was found."}`.trim());
 }
@@ -655,24 +664,117 @@ function dispatchPasteEvents(file: File): number {
   return count;
 }
 
-function dispatchDropEvents(file: File): number {
-  if (typeof DataTransfer === "undefined") return 0;
-  const targets = dropTargets();
+async function dispatchDropEvents(file: File): Promise<number> {
+  const initialTargets = dropTargets();
+  const data = dataTransferWithFile(file);
+  if (!data || initialTargets.length === 0) return 0;
+
+  for (const target of initialTargets) {
+    dispatchDragEvent(target, "dragenter", data);
+    dispatchDragEvent(target, "dragover", data);
+  }
+  await delay(120);
+
+  const activeTargets = novelAiDropTargets(initialTargets);
+  const reactDrops = await dispatchToReactDropHandlers(activeTargets, data);
+  if (reactDrops > 0) return reactDrops;
+
   let count = 0;
-  for (const target of targets) {
-    const data = new DataTransfer();
-    data.items.add(file);
-    target.dispatchEvent(new DragEvent("dragenter", { bubbles: true, cancelable: true, dataTransfer: data }));
-    target.dispatchEvent(new DragEvent("dragover", { bubbles: true, cancelable: true, dataTransfer: data }));
-    const event = new DragEvent("drop", {
-      bubbles: true,
-      cancelable: true,
-      dataTransfer: data,
-    });
-    target.dispatchEvent(event);
+  for (const target of activeTargets) {
+    dispatchDragEvent(target, "dragover", data);
+    dispatchDragEvent(target, "drop", data);
     count += 1;
   }
   return count;
+}
+
+function dataTransferWithFile(file: File): DataTransfer | undefined {
+  const DataTransferConstructor = pageGlobal().DataTransfer || (typeof DataTransfer === "undefined" ? undefined : DataTransfer);
+  if (!DataTransferConstructor) return undefined;
+  const data = new DataTransferConstructor();
+  data.items.add(file);
+  return data;
+}
+
+function dispatchDragEvent(target: HTMLElement, type: "dragenter" | "dragover" | "drop", data: DataTransfer): void {
+  const page = pageGlobal();
+  const DragEventConstructor = page.DragEvent || (typeof DragEvent === "undefined" ? undefined : DragEvent);
+  let event: Event;
+  if (DragEventConstructor) {
+    event = new DragEventConstructor(type, { bubbles: true, cancelable: true, dataTransfer: data });
+  } else {
+    event = new Event(type, { bubbles: true, cancelable: true });
+    Object.defineProperty(event, "dataTransfer", { configurable: true, value: data });
+  }
+  target.dispatchEvent(event);
+}
+
+function novelAiDropTargets(initialTargets: HTMLElement[]): HTMLElement[] {
+  const elements = Array.from(document.querySelectorAll<HTMLElement>("body *"))
+    .filter((element) => !element.closest(`#${PANEL_ID}`));
+  return uniqueElements([
+    ...elements.filter((element) => Boolean(reactDropHandler(element))),
+    ...elements.filter(isVisibleUploadSurface),
+    ...dropTargets(),
+    ...initialTargets,
+  ]);
+}
+
+function isVisibleUploadSurface(element: HTMLElement): boolean {
+  if (isTextEntryElement(element)) return false;
+  const rect = element.getBoundingClientRect();
+  if (rect.width < 80 || rect.height < 80) return false;
+  const style = getComputedStyle(element);
+  if (style.display === "none" || style.visibility === "hidden" || style.pointerEvents === "none") return false;
+  const opacity = Number(style.opacity);
+  return !Number.isFinite(opacity) || opacity > 0.05;
+}
+
+async function dispatchToReactDropHandlers(targets: HTMLElement[], data: DataTransfer): Promise<number> {
+  let count = 0;
+  for (const target of targets) {
+    const handler = reactDropHandler(target);
+    if (!handler) continue;
+    const nativeEvent = dragEventForReact("drop", data);
+    try {
+      await Promise.resolve(handler({
+        dataTransfer: data,
+        target,
+        currentTarget: target,
+        preventDefault: () => undefined,
+        stopPropagation: () => undefined,
+        nativeEvent,
+      }));
+      count += 1;
+    } catch {
+      // DOM drop events below remain the final fallback for this target set.
+    }
+  }
+  return count;
+}
+
+function reactDropHandler(element: HTMLElement): ((event: unknown) => unknown) | undefined {
+  for (const key of Object.getOwnPropertyNames(element)) {
+    if (!key.startsWith("__reactProps$")) continue;
+    const candidate = (element as unknown as Record<string, { onDrop?: unknown }>)[key]?.onDrop;
+    if (typeof candidate !== "function") continue;
+    const source = Function.prototype.toString.call(candidate);
+    if (/dataTransfer/.test(source) && /files|items/.test(source)) {
+      return candidate as (event: unknown) => unknown;
+    }
+  }
+  return undefined;
+}
+
+function dragEventForReact(type: "drop", data: DataTransfer): Event {
+  const page = pageGlobal();
+  const DragEventConstructor = page.DragEvent || (typeof DragEvent === "undefined" ? undefined : DragEvent);
+  if (DragEventConstructor) {
+    return new DragEventConstructor(type, { bubbles: true, cancelable: true, dataTransfer: data });
+  }
+  const event = new Event(type, { bubbles: true, cancelable: true });
+  Object.defineProperty(event, "dataTransfer", { configurable: true, value: data });
+  return event;
 }
 
 function pasteTargets(): HTMLElement[] {
