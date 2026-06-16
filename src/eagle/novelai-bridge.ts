@@ -2,7 +2,7 @@ import type { EagleItem } from "../types";
 import { EagleWebApi, type AddItemInput } from "./eagle-web-api";
 import { normalizeEagleBaseUrl } from "./options";
 import { arrayBufferToBase64, requestArrayBuffer } from "./transport";
-import { normalizeEagleItemName } from "./naming";
+import { buildStructuredEagleName, normalizeEagleItemName } from "./naming";
 
 const STORAGE_KEY = "eagle-looms:novelai-bridge";
 const DEFAULT_MONITOR_LIMIT = 2;
@@ -700,7 +700,12 @@ async function blobToDataUrl(blob: Blob, contentType: string): Promise<string> {
 function novelAiGeneratedItemName(sourceItem: EagleItem, generatedAt: Date, resultIndex: number, extension: string): string {
   const stem = sourceItem.name?.replace(/\.[a-z0-9]{1,12}$/i, "") || sourceItem.id;
   const index = String(Math.max(1, resultIndex)).padStart(2, "0");
-  return normalizeEagleItemName(`${stem} - NovelAI - ${localTimestamp(generatedAt)} - ${index}.${extension}`);
+  return buildStructuredEagleName(`${stem} - NovelAI`, extension, {
+    tool: "novelai",
+    at: utcCompactTimestamp(generatedAt),
+    seq: index,
+    src: sourceItem.id,
+  });
 }
 
 function sourceFileName(item: EagleItem, mimeType: string): string {
@@ -708,13 +713,9 @@ function sourceFileName(item: EagleItem, mimeType: string): string {
   return normalizeEagleItemName(item.name || `${item.id}.${extension}`);
 }
 
-function localTimestamp(date: Date): string {
+function utcCompactTimestamp(date: Date): string {
   const pad = (value: number) => String(value).padStart(2, "0");
-  return `${[
-    date.getFullYear(),
-    pad(date.getMonth() + 1),
-    pad(date.getDate()),
-  ].join("-")} ${pad(date.getHours())}${pad(date.getMinutes())}${pad(date.getSeconds())}`;
+  return `${date.getUTCFullYear()}${pad(date.getUTCMonth() + 1)}${pad(date.getUTCDate())}T${pad(date.getUTCHours())}${pad(date.getUTCMinutes())}${pad(date.getUTCSeconds())}Z`;
 }
 
 function pasteStatus(summary: PasteDispatchSummary): string {

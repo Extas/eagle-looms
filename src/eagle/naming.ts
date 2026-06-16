@@ -4,6 +4,12 @@ const CONTROL_CHARS = /[\u0000-\u001f\u007f-\u009f]/g;
 const FORMAT_CHARS = /[\u200b-\u200f\u202a-\u202e\u2066-\u2069\ufeff]/g;
 const EXTENSION_RE = /^(.+)\.([a-z0-9]{1,12})$/i;
 const RESERVED_DEVICE_NAME_RE = /^(con|prn|aux|nul|com[1-9]|lpt[1-9]|com[¹²³]|lpt[¹²³])$/i;
+const STRUCTURED_NAME_SEPARATOR = " -- ";
+const STRUCTURED_NAME_VERSION = 1;
+const STRUCTURED_NAME_FIELD_ORDER = ["tool", "at", "seq", "src", "job", "seed", "variant"];
+const STRUCTURED_NAME_KEY_RE = /^[a-z][a-z0-9-]*$/;
+const STRUCTURED_NAME_VALUE_RE = /^[A-Za-z0-9._~-]+$/;
+const STRUCTURED_NAME_STEM_RE = /^(.*) -- el([1-9]\d*)\[([a-z][a-z0-9-]*=[A-Za-z0-9._~-]+(?:;[a-z][a-z0-9-]*=[A-Za-z0-9._~-]+)*)\]$/;
 
 const HTML_ENTITIES: Record<string, string> = {
   amp: "&",
@@ -33,6 +39,63 @@ export function normalizeEagleItemNameWithDatePrefix(rawTitle: string, published
   const { stem, extension } = splitExtension(name);
   if (/^\d{4}-\d{2}-\d{2}\b/.test(stem)) return name;
   return joinName(truncateStem(`${prefix} ${stem || fallback}`, extension), extension);
+}
+
+export interface EagleStructuredName {
+  display: string;
+  extension: string;
+  version: number;
+  capsule: string;
+  fields: Record<string, string>;
+}
+
+export function buildStructuredEagleName(
+  rawDisplayTitle: string,
+  rawExtension: string,
+  fields: Record<string, unknown>,
+  fallback = "image",
+): string {
+  const fallbackName = normalizeNameCore(fallback) || "image";
+  const clean = normalizeNameCore(rawDisplayTitle);
+  const displayParts = splitExtension(clean);
+  const extension = normalizeStructuredExtension(rawExtension) || displayParts.extension || "png";
+  const display = safeReservedName(displayParts.stem || fallbackName);
+  const pairs = structuredFieldPairs(fields);
+  if (!pairs.length) return joinName(truncateStem(display, extension), extension);
+
+  const capsule = `el${STRUCTURED_NAME_VERSION}[${pairs.map(([key, value]) => `${key}=${value}`).join(";")}]`;
+  const suffix = `${STRUCTURED_NAME_SEPARATOR}${capsule}`;
+  return joinName(truncateStem(display, extension, suffix), extension, suffix);
+}
+
+export function parseStructuredEagleName(name: string): EagleStructuredName | undefined {
+  const { stem, extension } = splitExtension(String(name || "").trim());
+  if (!stem || !extension) return undefined;
+  const match = stem.match(STRUCTURED_NAME_STEM_RE);
+  if (!match) return undefined;
+
+  const display = match[1].trim();
+  const version = Number(match[2]);
+  const body = match[3];
+  if (!display || !Number.isInteger(version) || version <= 0) return undefined;
+
+  const fields: Record<string, string> = {};
+  for (const pair of body.split(";")) {
+    const [key, value, extra] = pair.split("=");
+    if (extra !== undefined || !STRUCTURED_NAME_KEY_RE.test(key) || !STRUCTURED_NAME_VALUE_RE.test(value)) {
+      return undefined;
+    }
+    if (key in fields) return undefined;
+    fields[key] = value;
+  }
+
+  return {
+    display,
+    extension,
+    version,
+    capsule: `el${version}[${body}]`,
+    fields,
+  };
 }
 
 export function sourceDatePrefix(value: unknown): string {
@@ -116,6 +179,43 @@ function splitExtension(name: string): { stem: string; extension: string } {
   const match = name.match(EXTENSION_RE);
   if (!match) return { stem: name, extension: "" };
   return { stem: match[1].replace(/[. ]+$/g, ""), extension: match[2].toLowerCase() };
+}
+
+function structuredFieldPairs(fields: Record<string, unknown>): Array<[string, string]> {
+  const pairs = new Map<string, string>();
+  for (const [rawKey, rawValue] of Object.entries(fields)) {
+    const key = normalizeStructuredKey(rawKey);
+    const value = normalizeStructuredValue(rawValue);
+    if (!key || !value || pairs.has(key)) continue;
+    pairs.set(key, value);
+  }
+  return [...pairs.entries()].sort(([left], [right]) => structuredKeyRank(left) - structuredKeyRank(right) || left.localeCompare(right));
+}
+
+function normalizeStructuredKey(value: string): string {
+  const key = value.trim().toLowerCase().replace(/[^a-z0-9-]+/g, "-").replace(/^-+|-+$/g, "");
+  return STRUCTURED_NAME_KEY_RE.test(key) ? key : "";
+}
+
+function normalizeStructuredValue(value: unknown): string {
+  return String(value ?? "")
+    .normalize("NFKC")
+    .replace(FORMAT_CHARS, "")
+    .replace(CONTROL_CHARS, " ")
+    .trim()
+    .replace(/[^A-Za-z0-9._~-]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 96);
+}
+
+function normalizeStructuredExtension(value: string): string {
+  const extension = String(value || "").trim().toLowerCase().replace(/^\.+/, "");
+  return /^[a-z0-9]{1,12}$/.test(extension) ? extension : "";
+}
+
+function structuredKeyRank(key: string): number {
+  const index = STRUCTURED_NAME_FIELD_ORDER.indexOf(key);
+  return index === -1 ? STRUCTURED_NAME_FIELD_ORDER.length : index;
 }
 
 function timestampToMilliseconds(value: number): number {

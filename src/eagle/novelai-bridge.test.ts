@@ -59,13 +59,13 @@ describe("NovelAI Eagle bridge", () => {
       },
       sourceItemLink: "http://localhost:41595/item?id=SRC1",
       pageUrl: "https://novelai.net/imagetools",
-      generatedAt: new Date(2026, 5, 16, 3, 4, 5),
+      generatedAt: new Date(Date.UTC(2026, 5, 16, 3, 4, 5)),
       resultIndex: 2,
       contentType: "image/png",
       base64: "abc",
     });
 
-    expect(input.name).toBe("2026-06-14 User Media - NovelAI - 2026-06-16 030405 - 02.png");
+    expect(input.name).toBe("2026-06-14 User Media - NovelAI -- el1[tool=novelai;at=20260616T030405Z;seq=02;src=SRC1].png");
     expect(input.folders).toEqual(["folder-a", "folder-b"]);
     expect(input.tags).toEqual(["tool:novelai", "copyright:bang dream", "character:anon tokyo"]);
     expect(input.website).toBe("https://novelai.net/imagetools");
@@ -77,7 +77,7 @@ describe("NovelAI Eagle bridge", () => {
       sourceItemLink: "http://localhost:41595/item?id=SRC1",
       sourceUrl: "https://pbs.twimg.com/media/source.jpg",
       novelAiUrl: "https://novelai.net/imagetools",
-      generatedAt: new Date(2026, 5, 16, 3, 4, 5).toISOString(),
+      generatedAt: new Date(Date.UTC(2026, 5, 16, 3, 4, 5)).toISOString(),
     });
   });
 
