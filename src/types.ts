@@ -10,10 +10,20 @@ export interface EagleFolder {
 export interface EagleItem {
   id: string;
   name?: string;
+  ext?: string;
   website?: string;
   url?: string;
   annotation?: string;
   tags?: string[];
   folders?: string[];
+  fileURL?: string;
+  fileUrl?: string;
+  filePath?: string;
+  thumbnailURL?: string;
+  thumbnailUrl?: string;
+  thumbnailPath?: string;
+  width?: number;
+  height?: number;
+  size?: number;
   isDeleted?: boolean;
 }

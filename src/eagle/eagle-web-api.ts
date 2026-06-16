@@ -67,6 +67,39 @@ export class EagleWebApi {
     return unwrapRows(data).filter((item) => !item.isDeleted);
   }
 
+  async itemInfo(id: string): Promise<EagleItem> {
+    const itemId = id.trim();
+    if (!itemId) throw new Error('missing Eagle item id');
+    const fields = [
+      'id',
+      'name',
+      'ext',
+      'url',
+      'website',
+      'tags',
+      'folders',
+      'annotation',
+      'fileURL',
+      'fileUrl',
+      'filePath',
+      'thumbnailURL',
+      'thumbnailUrl',
+      'thumbnailPath',
+      'width',
+      'height',
+      'size',
+      'isDeleted',
+    ];
+    const data = await this.post<Paged<EagleItem> | EagleItem[] | EagleItem>('/api/v2/item/get', {
+      id: itemId,
+      limit: 1,
+      fields,
+    });
+    const item = firstItem(data, itemId);
+    if (!item) throw new Error(`Eagle item not found: ${itemId}`);
+    return item;
+  }
+
   async addItem(item: AddItemInput): Promise<string> {
     const data = await this.post<unknown>('/api/v2/item/add', item);
     return extractEagleItemId(data);
@@ -105,6 +138,18 @@ function unwrapRows<T>(payload: Paged<T> | T[]): T[] {
   if (Array.isArray(payload.data)) return payload.data;
   if (Array.isArray(payload.items)) return payload.items;
   return [];
+}
+
+function firstItem(payload: Paged<EagleItem> | EagleItem[] | EagleItem, id: string): EagleItem | undefined {
+  if (Array.isArray(payload)) return payload.find((item) => item.id === id) || payload[0];
+  if (Array.isArray((payload as Paged<EagleItem>).data)) {
+    return (payload as Paged<EagleItem>).data!.find((item) => item.id === id) || (payload as Paged<EagleItem>).data![0];
+  }
+  if (Array.isArray((payload as Paged<EagleItem>).items)) {
+    return (payload as Paged<EagleItem>).items!.find((item) => item.id === id) || (payload as Paged<EagleItem>).items![0];
+  }
+  if ((payload as EagleItem).id) return payload as EagleItem;
+  return undefined;
 }
 
 export function extractEagleItemIds(payload: unknown): string[] {

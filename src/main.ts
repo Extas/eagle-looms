@@ -16,6 +16,7 @@ import { sleep } from "./utils/sleep";
 import { evLog } from "./utils/ev-log";
 import { Filter } from "./filter";
 import { ContextMenu } from "./ui/context-menu";
+import { initNovelAiEagleBridge } from "./eagle/novelai-bridge";
 
 // Dynamically import the modules under ./platform/matchers, in which ADAPTER.addSetup will be executed
 const modules = import.meta.glob('./platform/matchers/*.ts', { eager: true });
@@ -131,6 +132,7 @@ function start() {
         evLog("error", "in iframe");
         return;
       }
+      if (initNovelAiEagleBridge()) return;
       if (document.querySelector(".ehvp-base")) return;
       ADAPTER.ready.then(() => {
         destoryFunc = setup()
