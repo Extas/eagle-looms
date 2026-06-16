@@ -87,7 +87,8 @@ export function normalizeEagleBaseUrl(value: unknown): string {
   try {
     const url = new URL(raw);
     if (!["http:", "https:"].includes(url.protocol)) return DEFAULT_EAGLE_BASE_URL;
-    return url.origin;
+    const token = url.searchParams.get("token")?.trim();
+    return token ? `${url.origin}?token=${encodeURIComponent(token)}` : url.origin;
   } catch {
     return DEFAULT_EAGLE_BASE_URL;
   }

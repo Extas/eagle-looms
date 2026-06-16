@@ -4,6 +4,7 @@ import { DEFAULT_EAGLE_FOLDER_TEMPLATE, eagleFolderPresetForTemplate, eagleFolde
 describe('Eagle options', () => {
   it('normalizes Eagle API URL input to an origin', () => {
     expect(normalizeEagleBaseUrl('http://localhost:41595/api/v2/')).toBe('http://localhost:41595');
+    expect(normalizeEagleBaseUrl('http://localhost:41595/?token=abc-123')).toBe('http://localhost:41595?token=abc-123');
     expect(normalizeEagleBaseUrl('not a url')).toBe('http://localhost:41595');
   });
 

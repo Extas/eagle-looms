@@ -5,6 +5,7 @@ import {
   eagleItemLink,
   isNovelAiImageToolsUrl,
   novelAiGeneratedTags,
+  novelAiSourceFromUrl,
   normalizeNovelAiResultBlob,
   normalizeMonitorLimit,
   parseEagleItemId,
@@ -66,16 +67,25 @@ describe("NovelAI Eagle bridge", () => {
     expect(normalizeMonitorLimit("3")).toBe(3);
   });
 
-  it("builds generated result payloads for the source item's folders", () => {
-    const input = buildNovelAiGeneratedItemInput({
-      sourceItem: {
-        id: "SRC1",
-        name: "2026-06-14 User Media.jpg",
-        url: "https://pbs.twimg.com/media/source.jpg",
-        folders: ["folder-a", "folder-a", "folder-b"],
-        tags: ["site:x.com", "copyright:bang dream", "character:anon tokyo", "source:published:2026-06-14"],
+  it("extracts stable source context from source URLs", () => {
+    expect(novelAiSourceFromUrl("https://twitter.com/knokzm/status/2066471849245208805/photo/1#hash")).toEqual({
+      id: "x.com-2066471849245208805",
+      title: "x.com knokzm status 2066471849245208805",
+      url: "https://twitter.com/knokzm/status/2066471849245208805/photo/1",
+      site: "x.com",
+      tags: ["site:x.com", "author:knokzm"],
+      metadata: {
+        sourceAuthor: "knokzm",
+        sourceWorkId: "2066471849245208805",
       },
-      sourceItemLink: "http://localhost:41595/item?id=SRC1",
+    });
+    expect(novelAiSourceFromUrl("eagle://item/ABC")).toBeUndefined();
+  });
+
+  it("builds generated result payloads from the source URL context", () => {
+    const source = novelAiSourceFromUrl("https://x.com/knokzm/status/2066471849245208805/photo/1")!;
+    const input = buildNovelAiGeneratedItemInput({
+      source,
       pageUrl: "https://novelai.net/imagetools",
       generatedAt: new Date(Date.UTC(2026, 5, 16, 3, 4, 5)),
       resultIndex: 2,
@@ -83,17 +93,19 @@ describe("NovelAI Eagle bridge", () => {
       base64: "abc",
     });
 
-    expect(input.name).toBe("2026-06-14 User Media - NovelAI -- el1[tool=novelai;at=20260616T030405Z;seq=02;src=SRC1].png");
-    expect(input.folders).toEqual(["folder-a", "folder-b"]);
-    expect(input.tags).toEqual(["tool:novelai", "copyright:bang dream", "character:anon tokyo"]);
-    expect(input.website).toBe("https://novelai.net/imagetools");
+    expect(input.name).toBe("x.com knokzm status 2066471849245208805 - NovelAI -- el1[tool=novelai;at=20260616T030405Z;seq=02;src=x.com-2066471849245208805].png");
+    expect(input.folders).toBeUndefined();
+    expect(input.tags).toEqual(["tool:novelai", "site:x.com", "author:knokzm"]);
+    expect(input.website).toBe("https://x.com/knokzm/status/2066471849245208805/photo/1");
     expect(input.base64).toBe("data:image/png;base64,abc");
     expect(JSON.parse(input.annotation!)).toEqual({
       schema: "eagle-looms/novelai-bridge/v1",
-      sourceItemId: "SRC1",
-      sourceItemName: "2026-06-14 User Media.jpg",
-      sourceItemLink: "http://localhost:41595/item?id=SRC1",
-      sourceUrl: "https://pbs.twimg.com/media/source.jpg",
+      sourceId: "x.com-2066471849245208805",
+      sourceTitle: "x.com knokzm status 2066471849245208805",
+      sourceUrl: "https://x.com/knokzm/status/2066471849245208805/photo/1",
+      sourceSite: "x.com",
+      sourceAuthor: "knokzm",
+      sourceWorkId: "2066471849245208805",
       novelAiUrl: "https://novelai.net/imagetools",
       generatedAt: new Date(Date.UTC(2026, 5, 16, 3, 4, 5)).toISOString(),
     });

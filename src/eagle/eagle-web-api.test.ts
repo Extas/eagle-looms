@@ -1,7 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { extractEagleItemId, extractEagleItemIds } from './eagle-web-api';
+import { eagleApiRequestUrl, extractEagleItemId, extractEagleItemIds } from './eagle-web-api';
 
 describe('Eagle Web API response helpers', () => {
+  it('keeps V2 API tokens on every request URL', () => {
+    expect(eagleApiRequestUrl('http://localhost:41595/?token=abc-123', '/api/v2/item/get?limit=1'))
+      .toBe('http://localhost:41595/api/v2/item/get?limit=1&token=abc-123');
+  });
+
   it('extracts item ids from common item/add response shapes', () => {
     expect(extractEagleItemId('abc')).toBe('abc');
     expect(extractEagleItemId({ id: 'abc' })).toBe('abc');

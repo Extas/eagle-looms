@@ -119,7 +119,7 @@ export class EagleWebApi {
   }
 
   private async request<T>(method: 'GET' | 'POST', path: string, body?: unknown): Promise<T> {
-    const url = new URL(path, this.baseUrl).toString();
+    const url = eagleApiRequestUrl(this.baseUrl, path);
     const envelope = await requestJson<EagleEnvelope<T> | T>(url, { method, body });
     if (isEnvelope(envelope)) {
       if (envelope.status === 'error') throw new Error(envelope.message || 'Eagle API error');
@@ -127,6 +127,14 @@ export class EagleWebApi {
     }
     return envelope as T;
   }
+}
+
+export function eagleApiRequestUrl(baseUrl: string, path: string): string {
+  const base = new URL(normalizeEagleBaseUrl(baseUrl));
+  const url = new URL(path, base.origin);
+  const token = base.searchParams.get('token');
+  if (token && !url.searchParams.has('token')) url.searchParams.set('token', token);
+  return url.toString();
 }
 
 function isEnvelope<T>(value: EagleEnvelope<T> | T): value is EagleEnvelope<T> {

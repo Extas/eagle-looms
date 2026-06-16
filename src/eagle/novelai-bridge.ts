@@ -2,7 +2,7 @@ import type { EagleItem } from "../types";
 import { EagleWebApi, type AddItemInput } from "./eagle-web-api";
 import { normalizeEagleBaseUrl } from "./options";
 import { arrayBufferToBase64, requestArrayBuffer } from "./transport";
-import { buildStructuredEagleName, normalizeEagleItemName } from "./naming";
+import { buildStructuredEagleName } from "./naming";
 
 declare const unsafeWindow: (Window & typeof globalThis) | undefined;
 
@@ -31,11 +31,21 @@ interface NovelAiBridgeConfig {
   monitorLimit: number;
 }
 
+export interface NovelAiSourceContext {
+  id: string;
+  title: string;
+  url: string;
+  site: string;
+  tags?: string[];
+  folders?: string[];
+  metadata?: Record<string, string>;
+}
+
 interface BridgeElements {
   root: HTMLElement;
   body: HTMLElement;
   apiInput: HTMLInputElement;
-  itemInput: HTMLInputElement;
+  urlInput: HTMLInputElement;
   importButton: HTMLButtonElement;
   monitorButton: HTMLButtonElement;
   monitorLimitInput: HTMLInputElement;
@@ -400,6 +410,60 @@ export function normalizeMonitorLimit(value: unknown): number {
   return Math.min(MAX_MONITOR_LIMIT, Math.max(1, parsed));
 }
 
+export function novelAiSourceFromUrl(value: string): NovelAiSourceContext | undefined {
+  const raw = value.trim();
+  if (!raw) return undefined;
+  let url: URL;
+  try {
+    url = new URL(raw);
+  } catch {
+    return undefined;
+  }
+  if (!["http:", "https:"].includes(url.protocol)) return undefined;
+  url.hash = "";
+
+  const site = canonicalSourceSite(url.hostname);
+  const parts = url.pathname.split("/").filter(Boolean).map((part) => safeDecodeURIComponent(part));
+  const twitter = twitterSourceInfo(site, parts);
+  if (twitter) {
+    return {
+      id: twitter.id,
+      title: twitter.title,
+      url: url.toString(),
+      site,
+      tags: [`site:${site}`, `author:${twitter.author}`],
+      metadata: {
+        sourceAuthor: twitter.author,
+        sourceWorkId: twitter.workId,
+      },
+    };
+  }
+
+  const pixiv = pixivSourceInfo(site, parts);
+  if (pixiv) {
+    return {
+      id: pixiv.id,
+      title: pixiv.title,
+      url: url.toString(),
+      site,
+      tags: [`site:${site}`],
+      metadata: {
+        sourceWorkId: pixiv.workId,
+      },
+    };
+  }
+
+  const mediaId = mediaIdFromUrl(url, parts);
+  return {
+    id: `${site}-${mediaId}`,
+    title: `${site} ${mediaId}`.trim(),
+    url: url.toString(),
+    site,
+    tags: [`site:${site}`],
+    metadata: mediaId !== "url" ? { sourceWorkId: mediaId } : undefined,
+  };
+}
+
 export function eagleItemImageCandidates(item: EagleItem, baseUrl: string): string[] {
   const candidates: string[] = [];
   const add = (value: unknown, requireImageLike = false) => {
@@ -464,8 +528,7 @@ function isKnownImageCdnUrl(url: string): boolean {
 }
 
 export function buildNovelAiGeneratedItemInput(options: {
-  sourceItem: EagleItem;
-  sourceItemLink: string;
+  source: NovelAiSourceContext;
   pageUrl: string;
   generatedAt: Date;
   resultIndex: number;
@@ -474,23 +537,24 @@ export function buildNovelAiGeneratedItemInput(options: {
 }): AddItemInput {
   const contentType = normalizeImageMime(options.contentType, "image/png");
   const extension = extensionForMime(contentType);
-  const name = novelAiGeneratedItemName(options.sourceItem, options.generatedAt, options.resultIndex, extension);
-  const sourceUrl = options.sourceItem.url || options.sourceItem.website || "";
+  const name = novelAiGeneratedItemName(options.source, options.generatedAt, options.resultIndex, extension);
+  const folders = unique(options.source.folders || []);
   const annotation = JSON.stringify({
     schema: BRIDGE_SCHEMA,
-    sourceItemId: options.sourceItem.id,
-    sourceItemName: options.sourceItem.name || options.sourceItem.id,
-    sourceItemLink: options.sourceItemLink,
-    ...(sourceUrl ? { sourceUrl } : {}),
+    sourceId: options.source.id,
+    sourceTitle: options.source.title,
+    sourceUrl: options.source.url,
+    sourceSite: options.source.site,
+    ...(options.source.metadata || {}),
     novelAiUrl: options.pageUrl,
     generatedAt: options.generatedAt.toISOString(),
   });
   return {
     name,
     base64: ensureDataUrl(options.base64, contentType),
-    website: options.pageUrl,
-    folders: unique(options.sourceItem.folders || []),
-    tags: novelAiGeneratedTags(options.sourceItem.tags),
+    website: options.source.url,
+    ...(folders.length ? { folders } : {}),
+    tags: unique([NOVELAI_TOOL_TAG, ...(options.source.tags || [])]),
     annotation,
   };
 }
@@ -505,8 +569,7 @@ export function novelAiGeneratedTags(sourceTags?: string[]): string[] {
 class NovelAiEagleBridge {
   private config: NovelAiBridgeConfig = defaultConfig();
   private elements?: BridgeElements;
-  private sourceItem?: EagleItem;
-  private sourceItemLink = "";
+  private source?: NovelAiSourceContext;
   private monitorObserver?: MutationObserver;
   private monitorActive = false;
   private monitorChecking = false;
@@ -523,7 +586,7 @@ class NovelAiEagleBridge {
     this.elements = createPanel(this.config);
     document.body.appendChild(this.elements.root);
     this.bindEvents();
-    this.setStatus("Paste an Eagle item link, then import.");
+    this.setStatus("Paste a source URL, then Watch. Eagle item import is deferred.");
     this.updateMonitorUi();
   }
 
@@ -543,16 +606,24 @@ class NovelAiEagleBridge {
       elements.apiInput.value = this.config.eagleBaseUrl;
       void saveConfig(this.config);
     });
-    elements.itemInput.addEventListener("keydown", (event) => {
+    elements.urlInput.addEventListener("keydown", (event) => {
       if (event.key !== "Enter") return;
       event.preventDefault();
-      void this.importEagleImage();
+      void this.watchSourceUrl();
     });
-    elements.importButton.addEventListener("click", () => void this.importEagleImage());
+    elements.importButton.addEventListener("click", () => void this.watchSourceUrl());
     elements.monitorButton.addEventListener("click", () => {
-      this.config.monitorEnabled = !this.config.monitorEnabled;
+      const nextEnabled = !this.config.monitorEnabled;
+      if (nextEnabled && !this.source) {
+        this.config.monitorEnabled = false;
+        void saveConfig(this.config);
+        this.setStatus("Paste a source URL before enabling watch.", true);
+        this.updateMonitorUi();
+        return;
+      }
+      this.config.monitorEnabled = nextEnabled;
       void saveConfig(this.config);
-      if (this.config.monitorEnabled) {
+      if (nextEnabled) {
         this.monitorBaseline = snapshotNovelAiImageSources();
         this.importedResultCount = 0;
         this.importedResultSources.clear();
@@ -572,12 +643,12 @@ class NovelAiEagleBridge {
     });
   }
 
-  private async importEagleImage(): Promise<void> {
+  private async watchSourceUrl(): Promise<void> {
     const elements = this.elements;
     if (!elements) return;
-    const itemId = parseEagleItemId(elements.itemInput.value);
-    if (!itemId) {
-      this.setStatus("Missing Eagle item link or id.", true);
+    const source = novelAiSourceFromUrl(elements.urlInput.value);
+    if (!source) {
+      this.setStatus("Paste a valid http(s) source URL.", true);
       return;
     }
 
@@ -586,26 +657,18 @@ class NovelAiEagleBridge {
     try {
       this.config.eagleBaseUrl = normalizeEagleBaseUrl(elements.apiInput.value);
       elements.apiInput.value = this.config.eagleBaseUrl;
+      this.config.monitorEnabled = true;
       await saveConfig(this.config);
 
-      const api = new EagleWebApi(this.config.eagleBaseUrl);
-      const item = await api.itemInfo(itemId);
-      const blob = await this.fetchEagleImageBlob(item);
-      const fileName = sourceFileName(item, blob.type);
-      this.setStatus("Importing image into NovelAI...");
-      const paste = await pasteImageIntoNovelAi(blob, fileName);
-
-      this.sourceItem = item;
-      this.sourceItemLink = eagleItemLink(this.config.eagleBaseUrl, item.id);
+      this.source = source;
+      elements.urlInput.value = source.url;
       this.renderSource();
-      this.setStatus(pasteStatus(paste));
-
-      await delay(900);
       this.monitorBaseline = snapshotNovelAiImageSources();
       this.importedResultSources.clear();
       this.importingResultSources.clear();
       this.importedResultCount = 0;
-      if (this.config.monitorEnabled) this.startMonitor();
+      this.startMonitor();
+      this.setStatus(`Watching ${source.site}: 0/${this.config.monitorLimit}. Run NovelAI manually.`);
       this.updateMonitorUi();
     } catch (error) {
       this.setStatus(errorMessage(error), true);
@@ -614,37 +677,8 @@ class NovelAiEagleBridge {
     }
   }
 
-  private async fetchEagleImageBlob(item: EagleItem): Promise<Blob> {
-    const candidates = eagleItemImageCandidates(item, this.config.eagleBaseUrl);
-    const fallbackType = mimeForItem(item);
-    const errors: string[] = [];
-    for (const url of candidates) {
-      try {
-        const blob = await downloadImageBlob(url, fallbackType);
-        await assertLikelyImageBlob(blob, url);
-        debugNovelAi("source", "image candidate accepted", {
-          url: shortUrl(url),
-          type: blob.type || "(empty)",
-          size: blob.size,
-        });
-        return blob;
-      } catch (error) {
-        debugNovelAi("source", "image candidate rejected", {
-          url: shortUrl(url),
-          error: errorMessage(error),
-        }, "warn");
-        errors.push(`${shortUrl(url)}: ${errorMessage(error)}`);
-      }
-    }
-
-    if (errors.length) {
-      throw new Error(`Cannot read Eagle image from V2 metadata URLs. ${errors.slice(0, 4).join(" | ")}`);
-    }
-    throw new Error("Eagle item has no V2 fetchable image URL. V2 Web API item/get does not expose original file bytes; use an item whose V2 metadata includes originUrl/imageUrl/mediaUrl/downloadUrl or another direct image URL.");
-  }
-
   private startMonitor(): void {
-    if (!this.sourceItem) {
+    if (!this.source) {
       this.updateMonitorUi();
       return;
     }
@@ -675,7 +709,7 @@ class NovelAiEagleBridge {
   }
 
   private async checkNovelAiResults(): Promise<void> {
-    if (!this.monitorActive || this.monitorChecking || !this.sourceItem) return;
+    if (!this.monitorActive || this.monitorChecking || !this.source) return;
     this.monitorChecking = true;
     try {
       const candidates = resultImageSources()
@@ -707,8 +741,8 @@ class NovelAiEagleBridge {
   }
 
   private async importNovelAiResult(src: string): Promise<void> {
-    const item = this.sourceItem;
-    if (!item) return;
+    const source = this.source;
+    if (!source) return;
     this.importingResultSources.add(src);
     const traceId = novelAiTraceId();
     try {
@@ -721,8 +755,7 @@ class NovelAiEagleBridge {
         size: image.size,
       });
       const input = buildNovelAiGeneratedItemInput({
-        sourceItem: item,
-        sourceItemLink: this.sourceItemLink || eagleItemLink(this.config.eagleBaseUrl, item.id),
+        source,
         pageUrl: location.href,
         generatedAt: new Date(),
         resultIndex: this.importedResultCount + 1,
@@ -748,16 +781,15 @@ class NovelAiEagleBridge {
 
   private renderSource(): void {
     const elements = this.elements;
-    if (!elements || !this.sourceItem) return;
-    const folders = this.sourceItem.folders?.length ? `${this.sourceItem.folders.length} folder(s)` : "no folders";
-    elements.source.textContent = `Target: ${folders}`;
+    if (!elements || !this.source) return;
+    elements.source.textContent = `Source: ${this.source.title}`;
   }
 
   private setBusy(busy: boolean): void {
     const elements = this.elements;
     if (!elements) return;
     elements.importButton.disabled = busy;
-    elements.importButton.textContent = busy ? "..." : "Import";
+    elements.importButton.textContent = busy ? "..." : "Watch";
   }
 
   private setStatus(message: string, isError = false): void {
@@ -879,15 +911,15 @@ function createPanel(config: NovelAiBridgeConfig): BridgeElements {
         <input data-el="api" type="url" autocomplete="off" spellcheck="false">
       </label>
       <label>
-        <span>Item</span>
-        <input data-el="item" type="text" autocomplete="off" spellcheck="false" placeholder="http://localhost:41595/item?id=...">
+        <span>URL</span>
+        <input data-el="url" type="url" autocomplete="off" spellcheck="false" placeholder="https://x.com/...">
       </label>
       <div class="el-nai-row">
-        <button data-el="import" type="button">Import</button>
+        <button data-el="import" type="button">Watch</button>
         <button data-el="monitor" type="button">Monitor: On</button>
         <input data-el="limit" type="number" min="1" max="${MAX_MONITOR_LIMIT}" step="1" title="Auto-stop after this many NovelAI result imports">
       </div>
-      <div class="el-nai-source" data-el="source">Target: source folders</div>
+      <div class="el-nai-source" data-el="source">Eagle item import: later</div>
       <div class="el-nai-status" data-el="status"></div>
     </div>
   `;
@@ -896,7 +928,7 @@ function createPanel(config: NovelAiBridgeConfig): BridgeElements {
     root,
     body: root.querySelector<HTMLElement>(".el-nai-body")!,
     apiInput: root.querySelector<HTMLInputElement>("[data-el='api']")!,
-    itemInput: root.querySelector<HTMLInputElement>("[data-el='item']")!,
+    urlInput: root.querySelector<HTMLInputElement>("[data-el='url']")!,
     importButton: root.querySelector<HTMLButtonElement>("[data-el='import']")!,
     monitorButton: root.querySelector<HTMLButtonElement>("[data-el='monitor']")!,
     monitorLimitInput: root.querySelector<HTMLInputElement>("[data-el='limit']")!,
@@ -1512,37 +1544,20 @@ function decodeDataUrlToBlob(dataUrl: string, fallbackType: string): Blob {
   return new Blob([bytes], { type: contentType });
 }
 
-function novelAiGeneratedItemName(sourceItem: EagleItem, generatedAt: Date, resultIndex: number, extension: string): string {
-  const stem = sourceItem.name?.replace(/\.[a-z0-9]{1,12}$/i, "") || sourceItem.id;
+function novelAiGeneratedItemName(source: NovelAiSourceContext, generatedAt: Date, resultIndex: number, extension: string): string {
+  const stem = source.title || source.id;
   const index = String(Math.max(1, resultIndex)).padStart(2, "0");
   return buildStructuredEagleName(`${stem} - NovelAI`, extension, {
     tool: "novelai",
     at: utcCompactTimestamp(generatedAt),
     seq: index,
-    src: sourceItem.id,
+    src: source.id,
   });
-}
-
-function sourceFileName(item: EagleItem, mimeType: string): string {
-  const extension = item.ext || extensionForMime(mimeType);
-  return normalizeEagleItemName(item.name || `${item.id}.${extension}`);
 }
 
 function utcCompactTimestamp(date: Date): string {
   const pad = (value: number) => String(value).padStart(2, "0");
   return `${date.getUTCFullYear()}${pad(date.getUTCMonth() + 1)}${pad(date.getUTCDate())}T${pad(date.getUTCHours())}${pad(date.getUTCMinutes())}${pad(date.getUTCSeconds())}Z`;
-}
-
-function pasteStatus(summary: PasteDispatchSummary): string {
-  const parts = [
-    summary.pageBridge ? "page bridge" : "",
-    summary.reactInputs ? `${summary.reactInputs} NovelAI handler` : "",
-    summary.clipboard ? "clipboard" : "",
-    summary.fileInputs ? `${summary.fileInputs} file input` : "",
-    summary.pasteTargets ? `${summary.pasteTargets} paste target` : "",
-    summary.dropTargets ? `${summary.dropTargets} drop target` : "",
-  ].filter(Boolean);
-  return `Source ready (${parts.join(", ") || "event"}). Run NAI; watch saves results.`;
 }
 
 function defaultConfig(): NovelAiBridgeConfig {
@@ -1613,10 +1628,6 @@ function ensureDataUrl(base64: string, contentType: string): string {
   return base64.startsWith("data:") ? base64 : `data:${contentType};base64,${base64}`;
 }
 
-function mimeForItem(item: EagleItem): string {
-  return mimeFromExtension(item.ext || item.name?.split(".").pop() || "") || mimeFromUrl(item.url || "") || "image/png";
-}
-
 function normalizeImageMime(value: string | undefined, fallback: string): string {
   const type = String(value || "").trim().toLowerCase();
   return type.startsWith("image/") ? type : fallback;
@@ -1640,6 +1651,62 @@ function mimeFromExtension(extension: string): string {
   if (ext === "bmp") return "image/bmp";
   if (ext === "svg") return "image/svg+xml";
   return "";
+}
+
+function canonicalSourceSite(hostname: string): string {
+  const host = hostname.trim().toLowerCase().replace(/^www\./, "");
+  if (host === "twitter.com" || host === "mobile.twitter.com") return "x.com";
+  return host || "source";
+}
+
+function twitterSourceInfo(site: string, parts: string[]): { id: string; title: string; author: string; workId: string } | undefined {
+  if (site !== "x.com") return undefined;
+  const statusIndex = parts.findIndex((part) => part.toLowerCase() === "status");
+  if (statusIndex <= 0 || !parts[statusIndex + 1]) return undefined;
+  const author = cleanSourceToken(parts[statusIndex - 1]) || "user";
+  const workId = cleanSourceToken(parts[statusIndex + 1]);
+  if (!workId) return undefined;
+  return {
+    id: `${site}-${workId}`,
+    title: `${site} ${author} status ${workId}`,
+    author,
+    workId,
+  };
+}
+
+function pixivSourceInfo(site: string, parts: string[]): { id: string; title: string; workId: string } | undefined {
+  if (site !== "pixiv.net") return undefined;
+  const artworkIndex = parts.findIndex((part) => ["artworks", "artwork"].includes(part.toLowerCase()));
+  const workId = artworkIndex >= 0 ? cleanSourceToken(parts[artworkIndex + 1]) : "";
+  if (!workId) return undefined;
+  return {
+    id: `${site}-${workId}`,
+    title: `${site} artwork ${workId}`,
+    workId,
+  };
+}
+
+function mediaIdFromUrl(url: URL, parts: string[]): string {
+  const last = cleanSourceToken(parts[parts.length - 1]);
+  if (last) return last.replace(/\.[a-z0-9]{1,12}$/i, "");
+  const imageName = cleanSourceToken(url.searchParams.get("name") || url.searchParams.get("id") || "");
+  return imageName || "url";
+}
+
+function cleanSourceToken(value: unknown): string {
+  return String(value || "")
+    .normalize("NFKC")
+    .replace(/[^\p{L}\p{N}._~-]+/gu, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 96);
+}
+
+function safeDecodeURIComponent(value: string): string {
+  try {
+    return decodeURIComponent(value);
+  } catch {
+    return value;
+  }
 }
 
 function extensionForMime(mimeType: string): string {
