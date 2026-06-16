@@ -1,10 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
   buildNovelAiGeneratedItemInput,
+  eagleItemIdFromSourceUrl,
   eagleItemImageCandidates,
   eagleItemLink,
   isNovelAiImageToolsUrl,
   novelAiGeneratedTags,
+  novelAiSourceFromEagleItem,
   novelAiSourceFromUrl,
   normalizeNovelAiResultBlob,
   normalizeMonitorLimit,
@@ -29,6 +31,12 @@ describe("NovelAI Eagle bridge", () => {
 
   it("builds canonical Eagle item links from the configured API base", () => {
     expect(eagleItemLink("http://localhost:41595/api/v2/", "ITEM1")).toBe("http://localhost:41595/item?id=ITEM1");
+  });
+
+  it("detects Eagle item links only from the configured Eagle API origin", () => {
+    expect(eagleItemIdFromSourceUrl("http://localhost:41595/item?id=ITEM1", "http://localhost:41595/?token=abc")).toBe("ITEM1");
+    expect(eagleItemIdFromSourceUrl("http://localhost:41596/item?id=ITEM1", "http://localhost:41595")).toBe("");
+    expect(eagleItemIdFromSourceUrl("https://x.com/user/status/1", "http://localhost:41595")).toBe("");
   });
 
   it("keeps only fetchable image candidates from Eagle item fields", () => {
@@ -108,6 +116,35 @@ describe("NovelAI Eagle bridge", () => {
       sourceWorkId: "2066471849245208805",
       novelAiUrl: "https://novelai.net/imagetools",
       generatedAt: new Date(Date.UTC(2026, 5, 16, 3, 4, 5)).toISOString(),
+    });
+  });
+
+  it("builds generated result payloads for an Eagle item source folder", () => {
+    const source = novelAiSourceFromEagleItem({
+      id: "SRC1",
+      name: "Clipboard - 2026-06-16 13.42.29.png",
+      folders: ["folder-a", "folder-b"],
+      tags: ["copyright:bang dream", "site:x.com", "source:published:2026-06-16"],
+      url: "",
+    }, "http://localhost:41595/item?id=SRC1");
+    const input = buildNovelAiGeneratedItemInput({
+      source,
+      pageUrl: "https://novelai.net/imagetools",
+      generatedAt: new Date(Date.UTC(2026, 5, 16, 3, 4, 5)),
+      resultIndex: 1,
+      contentType: "image/png",
+      base64: "abc",
+    });
+
+    expect(source.title).toBe("Clipboard - 2026-06-16 13.42.29");
+    expect(source.site).toBe("eagle");
+    expect(input.folders).toEqual(["folder-a", "folder-b"]);
+    expect(input.website).toBe("http://localhost:41595/item?id=SRC1");
+    expect(input.tags).toEqual(["tool:novelai", "copyright:bang dream"]);
+    expect(JSON.parse(input.annotation!)).toMatchObject({
+      sourceId: "SRC1",
+      sourceItemId: "SRC1",
+      sourceItemLink: "http://localhost:41595/item?id=SRC1",
     });
   });
 

@@ -404,6 +404,19 @@ export function eagleItemLink(baseUrl: string, id: string): string {
   return url.toString();
 }
 
+export function eagleItemIdFromSourceUrl(value: string, baseUrl: string): string {
+  const raw = value.trim();
+  if (!raw) return "";
+  try {
+    const url = new URL(raw);
+    const eagle = new URL(normalizeEagleBaseUrl(baseUrl));
+    if (url.origin !== eagle.origin || !/^\/item\/?$/i.test(url.pathname)) return "";
+    return url.searchParams.get("id")?.trim() || "";
+  } catch {
+    return "";
+  }
+}
+
 export function normalizeMonitorLimit(value: unknown): number {
   const parsed = Math.trunc(Number(value));
   if (!Number.isFinite(parsed)) return DEFAULT_MONITOR_LIMIT;
@@ -461,6 +474,27 @@ export function novelAiSourceFromUrl(value: string): NovelAiSourceContext | unde
     site,
     tags: [`site:${site}`],
     metadata: mediaId !== "url" ? { sourceWorkId: mediaId } : undefined,
+  };
+}
+
+export function novelAiSourceFromEagleItem(item: EagleItem, itemLink: string): NovelAiSourceContext {
+  const sourceUrl = validHttpUrl(item.url) || validHttpUrl(item.website) || itemLink;
+  const site = sourceUrl === itemLink ? "eagle" : canonicalSourceSite(new URL(sourceUrl).hostname);
+  const title = (item.name || item.id).replace(/\.[a-z0-9]{1,12}$/i, "") || item.id;
+  const inheritedTags = (item.tags || []).filter(isUsefulInheritedTag);
+  const siteTags = site === "eagle" ? [] : [`site:${site}`];
+  return {
+    id: item.id,
+    title,
+    url: sourceUrl,
+    site,
+    folders: unique(item.folders || []),
+    tags: unique([...siteTags, ...inheritedTags]),
+    metadata: {
+      sourceItemId: item.id,
+      sourceItemName: item.name || item.id,
+      sourceItemLink: itemLink,
+    },
   };
 }
 
@@ -577,6 +611,7 @@ class NovelAiEagleBridge {
   private importedResultSources = new Set<string>();
   private importingResultSources = new Set<string>();
   private importedResultCount = 0;
+  private savedResultIds: string[] = [];
   private destroyed = false;
 
   async mount(): Promise<void> {
@@ -626,6 +661,7 @@ class NovelAiEagleBridge {
       if (nextEnabled) {
         this.monitorBaseline = snapshotNovelAiImageSources();
         this.importedResultCount = 0;
+        this.savedResultIds = [];
         this.importedResultSources.clear();
         this.importingResultSources.clear();
         this.startMonitor();
@@ -646,11 +682,7 @@ class NovelAiEagleBridge {
   private async watchSourceUrl(): Promise<void> {
     const elements = this.elements;
     if (!elements) return;
-    const source = novelAiSourceFromUrl(elements.urlInput.value);
-    if (!source) {
-      this.setStatus("Paste a valid http(s) source URL.", true);
-      return;
-    }
+    const rawSourceUrl = elements.urlInput.value.trim();
 
     this.setBusy(true);
     this.stopMonitor();
@@ -660,6 +692,12 @@ class NovelAiEagleBridge {
       this.config.monitorEnabled = true;
       await saveConfig(this.config);
 
+      const source = await this.sourceContextForUrl(rawSourceUrl);
+      if (!source) {
+        this.setStatus("Paste a valid http(s) source URL.", true);
+        return;
+      }
+
       this.source = source;
       elements.urlInput.value = source.url;
       this.renderSource();
@@ -667,6 +705,7 @@ class NovelAiEagleBridge {
       this.importedResultSources.clear();
       this.importingResultSources.clear();
       this.importedResultCount = 0;
+      this.savedResultIds = [];
       this.startMonitor();
       this.setStatus(`Watching ${source.site}: 0/${this.config.monitorLimit}. Run NovelAI manually.`);
       this.updateMonitorUi();
@@ -722,6 +761,10 @@ class NovelAiEagleBridge {
         try {
           await this.importNovelAiResult(src);
         } catch (error) {
+          logNovelAiResult("result import failed", {
+            src: shortUrl(src),
+            error: errorMessage(error),
+          }, "warn");
           debugNovelAi("result", "import failed", {
             src: shortUrl(src),
             error: errorMessage(error),
@@ -732,7 +775,7 @@ class NovelAiEagleBridge {
 
       if (this.importedResultCount >= this.config.monitorLimit) {
         this.stopMonitor();
-        this.setStatus(`Monitor stopped after ${this.importedResultCount}/${this.config.monitorLimit} result imports.`);
+        this.setStatus(savedResultsStatus(this.importedResultCount, this.config.monitorLimit, this.savedResultIds));
       }
     } finally {
       this.monitorChecking = false;
@@ -769,20 +812,72 @@ class NovelAiEagleBridge {
         contentType: image.contentType,
         dataUrlChars: image.dataUrl.length,
       });
+      logNovelAiResult("eagle add input", {
+        name: input.name,
+        website: input.website,
+        folders: input.folders || [],
+        folderCount: input.folders?.length || 0,
+        tags: input.tags || [],
+        sourceTitle: source.title,
+        contentType: image.contentType,
+        dataUrlChars: image.dataUrl.length,
+      });
       const api = new EagleWebApi(this.config.eagleBaseUrl);
       const id = await api.addItem(input);
       this.importedResultSources.add(src);
+      if (id) this.savedResultIds.push(id);
       this.importedResultCount += 1;
+      logNovelAiResult("result saved", {
+        id: id || "(no id returned)",
+        name: input.name,
+        folders: input.folders || [],
+        source: source.title,
+      });
       this.setStatus(`Saved result ${this.importedResultCount}/${this.config.monitorLimit}${id ? `: ${id}` : ""}.`);
     } finally {
       this.importingResultSources.delete(src);
     }
   }
 
+  private async sourceContextForUrl(value: string): Promise<NovelAiSourceContext | undefined> {
+    const itemId = eagleItemIdFromSourceUrl(value, this.config.eagleBaseUrl);
+    if (itemId) {
+      const api = new EagleWebApi(this.config.eagleBaseUrl);
+      const item = await api.itemInfo(itemId);
+      const source = novelAiSourceFromEagleItem(item, eagleItemLink(this.config.eagleBaseUrl, item.id));
+      logNovelAiResult("source resolved from Eagle item", {
+        input: shortUrl(value),
+        itemId: item.id,
+        itemName: item.name || "",
+        sourceTitle: source.title,
+        sourceUrl: source.url,
+        targetFolders: source.folders || [],
+        targetFolderCount: source.folders?.length || 0,
+        tags: source.tags || [],
+      });
+      return source;
+    }
+    const source = novelAiSourceFromUrl(value);
+    if (source) {
+      logNovelAiResult("source resolved from URL", {
+        input: shortUrl(value),
+        sourceTitle: source.title,
+        sourceUrl: source.url,
+        targetFolders: source.folders || [],
+        targetFolderCount: source.folders?.length || 0,
+        tags: source.tags || [],
+      });
+    }
+    return source;
+  }
+
   private renderSource(): void {
     const elements = this.elements;
     if (!elements || !this.source) return;
-    elements.source.textContent = `Source: ${this.source.title}`;
+    const folders = this.source.folders || [];
+    const target = folders.length ? `${folders.length} folder(s)` : "no target folder";
+    elements.source.textContent = `Source: ${this.source.title} | Target: ${target}`;
+    elements.source.title = folders.length ? `Target folders: ${folders.join(", ")}` : "No target folders; Eagle will use its default location.";
   }
 
   private setBusy(busy: boolean): void {
@@ -889,8 +984,8 @@ function createPanel(config: NovelAiBridgeConfig): BridgeElements {
         margin-top: 5px;
         color: #333;
         overflow-wrap: anywhere;
-        max-height: 15px;
-        overflow: hidden;
+        max-height: 30px;
+        overflow: auto;
       }
       #${PANEL_ID} .el-nai-status {
         margin-top: 5px;
@@ -1653,6 +1748,18 @@ function mimeFromExtension(extension: string): string {
   return "";
 }
 
+function validHttpUrl(value: unknown): string {
+  if (typeof value !== "string" || !value.trim()) return "";
+  try {
+    const url = new URL(value.trim());
+    if (!["http:", "https:"].includes(url.protocol)) return "";
+    url.hash = "";
+    return url.toString();
+  } catch {
+    return "";
+  }
+}
+
 function canonicalSourceSite(hostname: string): string {
   const host = hostname.trim().toLowerCase().replace(/^www\./, "");
   if (host === "twitter.com" || host === "mobile.twitter.com") return "x.com";
@@ -1740,6 +1847,13 @@ function shortUrl(url: string): string {
   return url.length > 100 ? `${url.slice(0, 97)}...` : url;
 }
 
+function savedResultsStatus(count: number, limit: number, ids: string[]): string {
+  const saved = `${count}/${limit}`;
+  const visibleIds = ids.filter(Boolean);
+  if (!visibleIds.length) return `Saved ${saved} to Eagle.`;
+  return `Saved ${saved} to Eagle: ${visibleIds.join(", ")}.`;
+}
+
 function unique(values: string[]): string[] {
   return [...new Set(values.map((value) => value.trim()).filter(Boolean))];
 }
@@ -1762,6 +1876,15 @@ function debugNovelAi(traceId: string, step: string, details?: unknown, level: "
     logger.call(console, NAI_DEBUG_PREFIX, traceId, step, details ?? "");
   } catch {
     // Debug logging must never affect import behavior.
+  }
+}
+
+function logNovelAiResult(step: string, details?: unknown, level: "info" | "warn" | "error" = "info"): void {
+  try {
+    const logger = console[level] || console.info;
+    logger.call(console, NAI_DEBUG_PREFIX, step, details ?? "");
+  } catch {
+    // Logging must never affect import behavior.
   }
 }
 
