@@ -397,18 +397,19 @@ function createPanel(config: NovelAiBridgeConfig): BridgeElements {
     <style>
       #${PANEL_ID} {
         position: fixed;
-        top: 12px;
-        right: 12px;
+        top: 10px;
+        right: 10px;
         z-index: 2147483647;
-        width: 330px;
+        width: 248px;
+        max-width: calc(100vw - 20px);
         box-sizing: border-box;
-        padding: 10px;
+        padding: 7px;
         border: 1px solid rgba(0, 0, 0, 0.24);
-        border-radius: 8px;
+        border-radius: 6px;
         background: rgba(255, 255, 255, 0.96);
         color: #111;
-        box-shadow: 0 8px 28px rgba(0, 0, 0, 0.18);
-        font: 12px/1.35 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.14);
+        font: 11px/1.25 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       }
       #${PANEL_ID} * { box-sizing: border-box; }
       #${PANEL_ID} header {
@@ -416,37 +417,39 @@ function createPanel(config: NovelAiBridgeConfig): BridgeElements {
         align-items: center;
         justify-content: space-between;
         gap: 8px;
-        margin-bottom: 8px;
+        margin-bottom: 5px;
       }
-      #${PANEL_ID} strong { font-size: 13px; }
+      #${PANEL_ID} strong { font-size: 12px; white-space: nowrap; }
       #${PANEL_ID} label {
         display: grid;
-        gap: 4px;
-        margin: 7px 0;
+        grid-template-columns: 72px minmax(0, 1fr);
+        gap: 5px;
+        align-items: center;
+        margin: 4px 0;
         font-weight: 600;
       }
       #${PANEL_ID} input {
         width: 100%;
-        min-height: 28px;
+        min-height: 24px;
         border: 1px solid #bbb;
-        border-radius: 5px;
-        padding: 4px 7px;
+        border-radius: 4px;
+        padding: 2px 5px;
         font: inherit;
         background: #fff;
         color: #111;
       }
       #${PANEL_ID} .el-nai-row {
         display: grid;
-        grid-template-columns: 1fr auto 54px;
-        gap: 6px;
+        grid-template-columns: 1fr auto 42px;
+        gap: 5px;
         align-items: center;
-        margin-top: 8px;
+        margin-top: 6px;
       }
       #${PANEL_ID} button {
-        min-height: 28px;
+        min-height: 24px;
         border: 1px solid #222;
-        border-radius: 5px;
-        padding: 4px 8px;
+        border-radius: 4px;
+        padding: 2px 6px;
         background: #f6f6f6;
         color: #111;
         font: inherit;
@@ -462,15 +465,19 @@ function createPanel(config: NovelAiBridgeConfig): BridgeElements {
         border-color: #257a3e;
       }
       #${PANEL_ID} .el-nai-source {
-        margin-top: 8px;
+        margin-top: 6px;
         color: #333;
         overflow-wrap: anywhere;
+        max-height: 28px;
+        overflow: hidden;
       }
       #${PANEL_ID} .el-nai-status {
-        margin-top: 7px;
-        min-height: 32px;
+        margin-top: 6px;
+        min-height: 16px;
+        max-height: 44px;
         color: #2d5a32;
         overflow-wrap: anywhere;
+        overflow: auto;
       }
       #${PANEL_ID} .el-nai-status[data-state="error"] { color: #a01818; }
     </style>
@@ -479,11 +486,11 @@ function createPanel(config: NovelAiBridgeConfig): BridgeElements {
     </header>
     <div class="el-nai-body">
       <label>
-        Eagle API URL
+        <span>Eagle API</span>
         <input data-el="api" type="url" autocomplete="off" spellcheck="false">
       </label>
       <label>
-        Eagle item link
+        <span>Item link</span>
         <input data-el="item" type="text" autocomplete="off" spellcheck="false" placeholder="http://localhost:41595/item?id=...">
       </label>
       <div class="el-nai-row">
@@ -512,7 +519,7 @@ function createPanel(config: NovelAiBridgeConfig): BridgeElements {
   return elements;
 }
 
-async function pasteImageIntoNovelAi(blob: Blob, fileName: string): Promise<PasteDispatchSummary> {
+export async function pasteImageIntoNovelAi(blob: Blob, fileName: string): Promise<PasteDispatchSummary> {
   const file = new File([blob], fileName, { type: blob.type || "image/png" });
   const summary: PasteDispatchSummary = {
     clipboard: false,
@@ -521,6 +528,9 @@ async function pasteImageIntoNovelAi(blob: Blob, fileName: string): Promise<Past
     dropTargets: 0,
   };
 
+  summary.fileInputs = dispatchToFileInputs(file);
+  if (summary.fileInputs > 0) return summary;
+
   try {
     await writeImageToClipboard(blob);
     summary.clipboard = true;
@@ -528,7 +538,6 @@ async function pasteImageIntoNovelAi(blob: Blob, fileName: string): Promise<Past
     summary.clipboardError = errorMessage(error);
   }
 
-  summary.fileInputs = dispatchToFileInputs(file);
   summary.pasteTargets = dispatchPasteEvents(file);
   summary.dropTargets = dispatchDropEvents(file);
 
@@ -571,7 +580,6 @@ function dispatchPasteEvents(file: File): number {
   for (const target of targets) {
     const data = new DataTransfer();
     data.items.add(file);
-    data.setData("text/plain", file.name);
     const event = new ClipboardEvent("paste", {
       bubbles: true,
       cancelable: true,
@@ -590,7 +598,8 @@ function dispatchDropEvents(file: File): number {
   for (const target of targets) {
     const data = new DataTransfer();
     data.items.add(file);
-    data.setData("text/plain", file.name);
+    target.dispatchEvent(new DragEvent("dragenter", { bubbles: true, cancelable: true, dataTransfer: data }));
+    target.dispatchEvent(new DragEvent("dragover", { bubbles: true, cancelable: true, dataTransfer: data }));
     const event = new DragEvent("drop", {
       bubbles: true,
       cancelable: true,
@@ -604,10 +613,9 @@ function dispatchDropEvents(file: File): number {
 
 function pasteTargets(): HTMLElement[] {
   return uniqueElements([
-    document.activeElement instanceof HTMLElement ? document.activeElement : undefined,
-    ...queryAll(".ProseMirror, [contenteditable='true'], textarea, [role='textbox']"),
+    ...queryAll("[class*='upload' i], [class*='drop' i], [data-testid*='upload' i], [aria-label*='image' i], [aria-label*='upload' i]"),
     ...queryAll("main, body"),
-  ]).filter((element) => !element.closest(`#${PANEL_ID}`));
+  ]).filter((element) => !element.closest(`#${PANEL_ID}`) && !isTextEntryElement(element));
 }
 
 function dropTargets(): HTMLElement[] {
@@ -869,6 +877,13 @@ function isUsefulInheritedTag(tag: string): boolean {
 
 function uniqueElements(values: Array<HTMLElement | undefined>): HTMLElement[] {
   return Array.from(new Set(values.filter((value): value is HTMLElement => Boolean(value))));
+}
+
+function isTextEntryElement(element: HTMLElement): boolean {
+  if (element instanceof HTMLTextAreaElement) return true;
+  if (element instanceof HTMLInputElement && element.type !== "file") return true;
+  if (element.isContentEditable) return true;
+  return element.getAttribute("role") === "textbox";
 }
 
 function errorMessage(error: unknown): string {
