@@ -12,6 +12,7 @@ const MAX_MONITOR_LIMIT = 20;
 const NAI_IMPORT_CONFIRM_TIMEOUT_MS = 2200;
 const PANEL_ID = "eagle-looms-novelai-bridge";
 const NAI_DEBUG_PREFIX = "[Eagle Looms][NovelAI]";
+const NAI_DEBUG_STORAGE_KEY = "eagle-looms:novelai-debug";
 const NAI_PAGE_BRIDGE_KEY = "__EagleLoomsNovelAiBridgeV1";
 const BRIDGE_SCHEMA = "eagle-looms/novelai-bridge/v1";
 const NOVELAI_TOOL_TAG = "tool:novelai";
@@ -74,16 +75,40 @@ interface NovelAiPageBridge {
     fileName: string;
     type: string;
     dataUrl: string;
+    debug?: boolean;
   }): Promise<NovelAiPageImportSummary>;
+  readImage?(payload: {
+    traceId: string;
+    src: string;
+    fallbackType?: string;
+    debug?: boolean;
+  }): Promise<NovelAiPageImageReadSummary>;
+}
+
+interface NovelAiPageImageReadSummary {
+  dataUrl?: string;
+  type?: string;
+  size?: number;
+  error?: string;
+}
+
+interface NovelAiResultImageData {
+  dataUrl: string;
+  contentType: string;
+  size: number;
+  via: "page-bridge" | "fetch";
 }
 
 const NOVEL_AI_PAGE_BRIDGE_SOURCE = String.raw`
 (() => {
   const KEY = "__EagleLoomsNovelAiBridgeV1";
-  if (window[KEY]?.version === 1) return;
+  const VERSION = 2;
+  if (window[KEY]?.version === VERSION) return;
   const PREFIX = "[Eagle Looms][NovelAI/page]";
+  let debugEnabled = false;
   const sleep = (ms) => new Promise((resolve) => window.setTimeout(resolve, ms));
   const log = (traceId, step, details, level = "info") => {
+    if (level === "info" && !debugEnabled) return;
     try {
       (console[level] || console.info).call(console, PREFIX, traceId, step, details || "");
     } catch {
@@ -121,6 +146,16 @@ const NOVEL_AI_PAGE_BRIDGE_SOURCE = String.raw`
     for (let index = 0; index < binary.length; index += 1) bytes[index] = binary.charCodeAt(index);
     return new Blob([bytes], { type });
   };
+  const blobToDataUrl = (blob, fallbackType) => new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error("cannot read image blob"));
+    reader.onload = () => {
+      const result = typeof reader.result === "string" ? reader.result : "";
+      if (result) resolve(result);
+      else reject(new Error("empty image data url"));
+    };
+    reader.readAsDataURL(blob.type ? blob : new Blob([blob], { type: fallbackType || "image/png" }));
+  });
   const reactPropsList = (element) => {
     const list = [];
     for (const key of Object.getOwnPropertyNames(element)) {
@@ -249,8 +284,10 @@ const NOVEL_AI_PAGE_BRIDGE_SOURCE = String.raw`
     return await waitForNewImage(baseline, 1200);
   };
   window[KEY] = {
-    version: 1,
+    version: VERSION,
     async importImage(payload) {
+      const previousDebug = debugEnabled;
+      debugEnabled = Boolean(payload.debug);
       const summary = {
         confirmed: false,
         inputs: 0,
@@ -277,6 +314,33 @@ const NOVEL_AI_PAGE_BRIDGE_SOURCE = String.raw`
       } catch (error) {
         summary.error = error instanceof Error ? error.message : String(error);
         log(payload.traceId, "bridge import error", summary, "warn");
+      } finally {
+        debugEnabled = previousDebug;
+      }
+      return summary;
+    },
+    async readImage(payload) {
+      const previousDebug = debugEnabled;
+      debugEnabled = Boolean(payload.debug);
+      const summary = {};
+      try {
+        log(payload.traceId, "read image start", { src: String(payload.src || "").slice(0, 140) });
+        const response = await fetch(payload.src);
+        if (!response.ok) throw new Error(response.status + " " + response.statusText);
+        const blob = await response.blob();
+        summary.type = blob.type || payload.fallbackType || "image/png";
+        summary.size = blob.size;
+        summary.dataUrl = await blobToDataUrl(blob, summary.type);
+        log(payload.traceId, "read image done", {
+          type: summary.type,
+          size: summary.size,
+          dataUrlChars: summary.dataUrl.length,
+        });
+      } catch (error) {
+        summary.error = error instanceof Error ? error.message : String(error);
+        log(payload.traceId, "read image error", summary, "warn");
+      } finally {
+        debugEnabled = previousDebug;
       }
       return summary;
     },
@@ -443,6 +507,7 @@ class NovelAiEagleBridge {
   private monitorChecking = false;
   private monitorBaseline = new Set<string>();
   private importedResultSources = new Set<string>();
+  private importingResultSources = new Set<string>();
   private importedResultCount = 0;
   private destroyed = false;
 
@@ -460,6 +525,7 @@ class NovelAiEagleBridge {
   destroy(): void {
     this.destroyed = true;
     this.stopMonitor();
+    this.importingResultSources.clear();
     document.getElementById(PANEL_ID)?.remove();
   }
 
@@ -485,6 +551,7 @@ class NovelAiEagleBridge {
         this.monitorBaseline = snapshotNovelAiImageSources();
         this.importedResultCount = 0;
         this.importedResultSources.clear();
+        this.importingResultSources.clear();
         this.startMonitor();
       } else {
         this.stopMonitor();
@@ -531,6 +598,7 @@ class NovelAiEagleBridge {
       await delay(900);
       this.monitorBaseline = snapshotNovelAiImageSources();
       this.importedResultSources.clear();
+      this.importingResultSources.clear();
       this.importedResultCount = 0;
       if (this.config.monitorEnabled) this.startMonitor();
       this.updateMonitorUi();
@@ -607,11 +675,20 @@ class NovelAiEagleBridge {
     try {
       const candidates = resultImageSources()
         .filter((src) => !this.monitorBaseline.has(src))
-        .filter((src) => !this.importedResultSources.has(src));
+        .filter((src) => !this.importedResultSources.has(src))
+        .filter((src) => !this.importingResultSources.has(src));
 
       for (const src of candidates) {
         if (this.importedResultCount >= this.config.monitorLimit) break;
-        await this.importNovelAiResult(src);
+        try {
+          await this.importNovelAiResult(src);
+        } catch (error) {
+          debugNovelAi("result", "import failed", {
+            src: shortUrl(src),
+            error: errorMessage(error),
+          }, "warn");
+          this.setStatus(`Result import failed: ${errorMessage(error)}`, true);
+        }
       }
 
       if (this.importedResultCount >= this.config.monitorLimit) {
@@ -627,30 +704,48 @@ class NovelAiEagleBridge {
   private async importNovelAiResult(src: string): Promise<void> {
     const item = this.sourceItem;
     if (!item) return;
-    this.importedResultSources.add(src);
-    const blob = await downloadImageBlob(src, "image/png");
-    const contentType = normalizeImageMime(blob.type, "image/png");
-    const base64 = await blobToDataUrl(blob, contentType);
-    const input = buildNovelAiGeneratedItemInput({
-      sourceItem: item,
-      sourceItemLink: this.sourceItemLink || eagleItemLink(this.config.eagleBaseUrl, item.id),
-      pageUrl: location.href,
-      generatedAt: new Date(),
-      resultIndex: this.importedResultCount + 1,
-      contentType,
-      base64,
-    });
-    const api = new EagleWebApi(this.config.eagleBaseUrl);
-    const id = await api.addItem(input);
-    this.importedResultCount += 1;
-    this.setStatus(`Imported NovelAI result ${this.importedResultCount}/${this.config.monitorLimit}${id ? `: ${id}` : ""}.`);
+    this.importingResultSources.add(src);
+    const traceId = novelAiTraceId();
+    try {
+      debugNovelAi(traceId, "result candidate", { src: shortUrl(src) });
+      const image = await readNovelAiResultImage(src, traceId);
+      debugNovelAi(traceId, "result image accepted", {
+        src: shortUrl(src),
+        via: image.via,
+        type: image.contentType,
+        size: image.size,
+      });
+      const input = buildNovelAiGeneratedItemInput({
+        sourceItem: item,
+        sourceItemLink: this.sourceItemLink || eagleItemLink(this.config.eagleBaseUrl, item.id),
+        pageUrl: location.href,
+        generatedAt: new Date(),
+        resultIndex: this.importedResultCount + 1,
+        contentType: image.contentType,
+        base64: image.dataUrl,
+      });
+      debugNovelAi(traceId, "result eagle input", {
+        name: input.name,
+        folders: input.folders?.length || 0,
+        tags: input.tags?.length || 0,
+        contentType: image.contentType,
+        dataUrlChars: image.dataUrl.length,
+      });
+      const api = new EagleWebApi(this.config.eagleBaseUrl);
+      const id = await api.addItem(input);
+      this.importedResultSources.add(src);
+      this.importedResultCount += 1;
+      this.setStatus(`Saved result ${this.importedResultCount}/${this.config.monitorLimit}${id ? `: ${id}` : ""}.`);
+    } finally {
+      this.importingResultSources.delete(src);
+    }
   }
 
   private renderSource(): void {
     const elements = this.elements;
     if (!elements || !this.sourceItem) return;
     const folders = this.sourceItem.folders?.length ? `${this.sourceItem.folders.length} folder(s)` : "no folders";
-    elements.source.textContent = `${this.sourceItem.name || this.sourceItem.id} -> ${folders}`;
+    elements.source.textContent = `Target: ${folders}`;
   }
 
   private setBusy(busy: boolean): void {
@@ -689,56 +784,56 @@ function createPanel(config: NovelAiBridgeConfig): BridgeElements {
         top: 10px;
         right: 10px;
         z-index: 2147483647;
-        width: 228px;
+        width: 212px;
         max-width: calc(100vw - 20px);
         box-sizing: border-box;
-        padding: 7px;
+        padding: 6px;
         border: 1px solid rgba(0, 0, 0, 0.24);
         border-radius: 6px;
         background: rgba(255, 255, 255, 0.96);
         color: #111;
         box-shadow: 0 4px 16px rgba(0, 0, 0, 0.14);
-        font: 11px/1.25 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        font: 10.5px/1.2 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       }
       #${PANEL_ID} * { box-sizing: border-box; }
       #${PANEL_ID} header {
         display: flex;
         align-items: center;
         justify-content: space-between;
-        gap: 8px;
-        margin-bottom: 5px;
+        gap: 6px;
+        margin-bottom: 4px;
       }
       #${PANEL_ID} strong { font-size: 12px; white-space: nowrap; }
       #${PANEL_ID} label {
         display: grid;
-        grid-template-columns: 38px minmax(0, 1fr);
-        gap: 5px;
+        grid-template-columns: 30px minmax(0, 1fr);
+        gap: 4px;
         align-items: center;
-        margin: 4px 0;
+        margin: 3px 0;
         font-weight: 600;
       }
       #${PANEL_ID} input {
         width: 100%;
-        min-height: 24px;
+        min-height: 22px;
         border: 1px solid #bbb;
         border-radius: 4px;
-        padding: 2px 5px;
+        padding: 2px 4px;
         font: inherit;
         background: #fff;
         color: #111;
       }
       #${PANEL_ID} .el-nai-row {
         display: grid;
-        grid-template-columns: 1fr auto 36px;
-        gap: 5px;
+        grid-template-columns: 1fr auto 34px;
+        gap: 4px;
         align-items: center;
-        margin-top: 6px;
+        margin-top: 5px;
       }
       #${PANEL_ID} button {
-        min-height: 24px;
+        min-height: 22px;
         border: 1px solid #222;
         border-radius: 4px;
-        padding: 2px 6px;
+        padding: 2px 5px;
         background: #f6f6f6;
         color: #111;
         font: inherit;
@@ -754,16 +849,16 @@ function createPanel(config: NovelAiBridgeConfig): BridgeElements {
         border-color: #257a3e;
       }
       #${PANEL_ID} .el-nai-source {
-        margin-top: 6px;
+        margin-top: 5px;
         color: #333;
         overflow-wrap: anywhere;
-        max-height: 26px;
+        max-height: 15px;
         overflow: hidden;
       }
       #${PANEL_ID} .el-nai-status {
-        margin-top: 6px;
+        margin-top: 5px;
         min-height: 16px;
-        max-height: 44px;
+        max-height: 32px;
         color: #2d5a32;
         overflow-wrap: anywhere;
         overflow: auto;
@@ -787,7 +882,7 @@ function createPanel(config: NovelAiBridgeConfig): BridgeElements {
         <button data-el="monitor" type="button">Monitor: On</button>
         <input data-el="limit" type="number" min="1" max="${MAX_MONITOR_LIMIT}" step="1" title="Auto-stop after this many NovelAI result imports">
       </div>
-      <div class="el-nai-source" data-el="source">same Eagle folder on result import</div>
+      <div class="el-nai-source" data-el="source">Target: source folders</div>
       <div class="el-nai-status" data-el="status"></div>
     </div>
   `;
@@ -916,7 +1011,7 @@ async function importThroughNovelAiPageBridge(blob: Blob, fileName: string, trac
     dataUrlChars: dataUrl.length,
   });
   try {
-    return await bridge.importImage({ traceId, fileName, type, dataUrl });
+    return await bridge.importImage({ traceId, fileName, type, dataUrl, debug: isNovelAiDebugEnabled() });
   } catch (error) {
     const message = errorMessage(error);
     debugNovelAi(traceId, "page bridge failed", { error: message }, "warn");
@@ -939,7 +1034,7 @@ function ensureNovelAiPageBridge(traceId: string): NovelAiPageBridge | undefined
     Function?: FunctionConstructor;
   };
   const existing = page[NAI_PAGE_BRIDGE_KEY];
-  if (existing?.version === 1) return existing;
+  if (existing?.version === 2) return existing;
   try {
     const install = page.Function?.(NOVEL_AI_PAGE_BRIDGE_SOURCE);
     if (typeof install !== "function") throw new Error("page Function constructor is not available");
@@ -949,7 +1044,7 @@ function ensureNovelAiPageBridge(traceId: string): NovelAiPageBridge | undefined
     return undefined;
   }
   const installed = page[NAI_PAGE_BRIDGE_KEY];
-  if (installed?.version === 1) return installed;
+  if (installed?.version === 2) return installed;
   debugNovelAi(traceId, "page bridge install failed", { error: "bridge not found after install" }, "warn");
   return undefined;
 }
@@ -1231,14 +1326,73 @@ async function downloadImageBlob(url: string, fallbackType: string): Promise<Blo
   return new Blob([buffer], { type: fallbackType || mimeFromUrl(url) || "image/png" });
 }
 
-async function assertLikelyImageBlob(blob: Blob, url: string): Promise<void> {
+async function readNovelAiResultImage(src: string, traceId: string): Promise<NovelAiResultImageData> {
+  const fallbackType = "image/png";
+  const pageOwnedUrl = src.startsWith("blob:") || src.startsWith("data:");
+  const bridge = pageOwnedUrl ? ensureNovelAiPageBridge(traceId) : undefined;
+  if (bridge?.readImage) {
+    const summary = await bridge.readImage({
+      traceId,
+      src,
+      fallbackType,
+      debug: isNovelAiDebugEnabled(),
+    });
+    if (summary.dataUrl) {
+      const blob = decodeDataUrlToBlob(summary.dataUrl, summary.type || fallbackType);
+      const normalized = await normalizeNovelAiResultBlob(blob, src);
+      return {
+        dataUrl: await blobToDataUrl(normalized.blob, normalized.contentType),
+        contentType: normalized.contentType,
+        size: normalized.blob.size,
+        via: "page-bridge",
+      };
+    }
+    if (summary.error) {
+      debugNovelAi(traceId, "page result read failed", {
+        src: shortUrl(src),
+        error: summary.error,
+      }, "warn");
+    }
+  }
+
+  const blob = await downloadImageBlob(src, fallbackType);
+  const normalized = await normalizeNovelAiResultBlob(blob, src);
+  return {
+    dataUrl: await blobToDataUrl(normalized.blob, normalized.contentType),
+    contentType: normalized.contentType,
+    size: normalized.blob.size,
+    via: "fetch",
+  };
+}
+
+export async function normalizeNovelAiResultBlob(blob: Blob, url: string): Promise<{ blob: Blob; contentType: string }> {
+  const signature = await assertLikelyImageBlob(blob, url);
+  const contentType = mimeFromImageSignature(signature) || normalizeImageMime(blob.type, "image/png");
+  return {
+    blob: forceImageType(blob, contentType),
+    contentType,
+  };
+}
+
+async function assertLikelyImageBlob(blob: Blob, url: string): Promise<string> {
   if (blob.size <= 0) throw new Error("empty image response");
   const header = new Uint8Array(await blob.slice(0, 64).arrayBuffer());
   const signature = imageBlobSignature(header);
-  if (signature) return;
+  if (signature) return signature;
   const preview = new TextDecoder("utf-8", { fatal: false }).decode(header).trim().slice(0, 32);
   const type = blob.type || mimeFromUrl(url) || "(empty)";
   throw new Error(`response is not a supported image (${type}, ${blob.size} bytes, starts with ${JSON.stringify(preview)})`);
+}
+
+function mimeFromImageSignature(signature: string): string {
+  if (signature === "jpeg") return "image/jpeg";
+  if (signature === "png") return "image/png";
+  if (signature === "gif") return "image/gif";
+  if (signature === "webp") return "image/webp";
+  if (signature === "avif") return "image/avif";
+  if (signature === "bmp") return "image/bmp";
+  if (signature === "svg") return "image/svg+xml";
+  return "";
 }
 
 function imageBlobSignature(bytes: Uint8Array): string {
@@ -1328,9 +1482,29 @@ function withImageType(blob: Blob, fallbackType: string): Blob {
   return new Blob([blob], { type });
 }
 
+function forceImageType(blob: Blob, contentType: string): Blob {
+  const type = normalizeImageMime(contentType, "image/png");
+  if (blob.type === type) return blob;
+  return new Blob([blob], { type });
+}
+
 async function blobToDataUrl(blob: Blob, contentType: string): Promise<string> {
   const buffer = await blob.arrayBuffer();
   return `data:${contentType};base64,${arrayBufferToBase64(buffer)}`;
+}
+
+function decodeDataUrlToBlob(dataUrl: string, fallbackType: string): Blob {
+  const match = /^data:([^;,]+)?((?:;[^,]*)?),(.*)$/i.exec(dataUrl);
+  if (!match) throw new Error("invalid image data url");
+  const contentType = normalizeImageMime(match[1], fallbackType);
+  const isBase64 = /;base64/i.test(match[2] || "");
+  const body = match[3] || "";
+  const binary = isBase64 ? atob(body) : decodeURIComponent(body);
+  const bytes = new Uint8Array(binary.length);
+  for (let index = 0; index < binary.length; index += 1) {
+    bytes[index] = binary.charCodeAt(index);
+  }
+  return new Blob([bytes], { type: contentType });
 }
 
 function novelAiGeneratedItemName(sourceItem: EagleItem, generatedAt: Date, resultIndex: number, extension: string): string {
@@ -1363,7 +1537,7 @@ function pasteStatus(summary: PasteDispatchSummary): string {
     summary.pasteTargets ? `${summary.pasteTargets} paste target` : "",
     summary.dropTargets ? `${summary.dropTargets} drop target` : "",
   ].filter(Boolean);
-  return `NovelAI source image imported (${parts.join(", ") || "event dispatched"}). Run NovelAI manually; monitor will import results.`;
+  return `Source ready (${parts.join(", ") || "event"}). Run NAI; watch saves results.`;
 }
 
 function defaultConfig(): NovelAiBridgeConfig {
@@ -1510,11 +1684,21 @@ function novelAiTraceId(): string {
 }
 
 function debugNovelAi(traceId: string, step: string, details?: unknown, level: "info" | "warn" | "error" = "info"): void {
+  if (level === "info" && !isNovelAiDebugEnabled()) return;
   try {
     const logger = console[level] || console.info;
     logger.call(console, NAI_DEBUG_PREFIX, traceId, step, details ?? "");
   } catch {
     // Debug logging must never affect import behavior.
+  }
+}
+
+function isNovelAiDebugEnabled(): boolean {
+  try {
+    const value = localStorage.getItem(NAI_DEBUG_STORAGE_KEY) || "";
+    return /^(1|true|yes|on)$/i.test(value.trim());
+  } catch {
+    return false;
   }
 }
 

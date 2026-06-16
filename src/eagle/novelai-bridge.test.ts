@@ -5,6 +5,7 @@ import {
   eagleItemLink,
   isNovelAiImageToolsUrl,
   novelAiGeneratedTags,
+  normalizeNovelAiResultBlob,
   normalizeMonitorLimit,
   parseEagleItemId,
   pasteImageIntoNovelAi,
@@ -107,13 +108,21 @@ describe("NovelAI Eagle bridge", () => {
     ]);
   });
 
+  it("normalizes NovelAI result blobs from binary signatures", async () => {
+    const jpegHeader = new Uint8Array([0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10]);
+    const result = await normalizeNovelAiResultBlob(new Blob([jpegHeader], { type: "image/png" }), "blob:https://novelai.net/result");
+
+    expect(result.contentType).toBe("image/jpeg");
+    expect(result.blob.type).toBe("image/jpeg");
+  });
+
   it("uses the NovelAI page bridge before isolated-world fallbacks", async () => {
     document.body.innerHTML = `<textarea id="prompt"></textarea>`;
     const bridgeCalls: Array<{ fileName: string; type: string; dataUrl: string }> = [];
     Object.defineProperty(window, "__EagleLoomsNovelAiBridgeV1", {
       configurable: true,
       value: {
-        version: 1,
+        version: 2,
         async importImage(payload: { fileName: string; type: string; dataUrl: string }) {
           bridgeCalls.push(payload);
           const image = document.createElement("img");
