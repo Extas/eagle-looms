@@ -49,6 +49,8 @@ interface BridgeElements {
   importButton: HTMLButtonElement;
   monitorButton: HTMLButtonElement;
   monitorLimitInput: HTMLInputElement;
+  settingsButton: HTMLButtonElement;
+  settingsPanel: HTMLElement;
   status: HTMLElement;
   source: HTMLElement;
 }
@@ -647,6 +649,14 @@ class NovelAiEagleBridge {
       void this.watchSourceUrl();
     });
     elements.importButton.addEventListener("click", () => void this.watchSourceUrl());
+    elements.settingsButton.addEventListener("click", () => {
+      const open = elements.settingsPanel.dataset.open === "true";
+      elements.settingsPanel.dataset.open = open ? "false" : "true";
+      if (!open) {
+        elements.apiInput.focus();
+        elements.apiInput.select();
+      }
+    });
     elements.monitorButton.addEventListener("click", () => {
       const nextEnabled = !this.config.monitorEnabled;
       if (nextEnabled && !this.source) {
@@ -916,33 +926,43 @@ function createPanel(config: NovelAiBridgeConfig): BridgeElements {
         top: 10px;
         right: 10px;
         z-index: 2147483647;
-        width: 212px;
+        width: min(680px, calc(100vw - 20px));
         max-width: calc(100vw - 20px);
         box-sizing: border-box;
-        padding: 6px;
+        padding: 5px 6px;
         border: 1px solid rgba(0, 0, 0, 0.24);
         border-radius: 6px;
         background: rgba(255, 255, 255, 0.96);
         color: #111;
         box-shadow: 0 4px 16px rgba(0, 0, 0, 0.14);
-        font: 10.5px/1.2 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        font: 11px/1.2 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
       }
       #${PANEL_ID} * { box-sizing: border-box; }
-      #${PANEL_ID} header {
+      #${PANEL_ID} .el-nai-main {
         display: flex;
         align-items: center;
-        justify-content: space-between;
-        gap: 6px;
-        margin-bottom: 4px;
+        gap: 4px;
+        min-width: 0;
       }
-      #${PANEL_ID} strong { font-size: 12px; white-space: nowrap; }
+      #${PANEL_ID} strong {
+        flex: 0 0 auto;
+        font-size: 12px;
+        white-space: nowrap;
+        margin-right: 4px;
+      }
       #${PANEL_ID} label {
-        display: grid;
-        grid-template-columns: 30px minmax(0, 1fr);
+        display: flex;
         gap: 4px;
         align-items: center;
-        margin: 3px 0;
+        margin: 0;
         font-weight: 600;
+      }
+      #${PANEL_ID} .el-nai-url {
+        flex: 1 1 260px;
+        min-width: 180px;
+      }
+      #${PANEL_ID} .el-nai-url span {
+        flex: 0 0 auto;
       }
       #${PANEL_ID} input {
         width: 100%;
@@ -954,12 +974,10 @@ function createPanel(config: NovelAiBridgeConfig): BridgeElements {
         background: #fff;
         color: #111;
       }
-      #${PANEL_ID} .el-nai-row {
-        display: grid;
-        grid-template-columns: 1fr auto 34px;
-        gap: 4px;
-        align-items: center;
-        margin-top: 5px;
+      #${PANEL_ID} input[data-el="limit"] {
+        width: 40px;
+        flex: 0 0 40px;
+        text-align: center;
       }
       #${PANEL_ID} button {
         min-height: 22px;
@@ -971,62 +989,115 @@ function createPanel(config: NovelAiBridgeConfig): BridgeElements {
         font: inherit;
         font-weight: 700;
         cursor: pointer;
+        white-space: nowrap;
       }
       #${PANEL_ID} button:disabled {
         cursor: wait;
         opacity: 0.65;
       }
+      #${PANEL_ID} button[data-el="settings"] {
+        width: 34px;
+        flex: 0 0 34px;
+        padding: 2px 3px;
+      }
       #${PANEL_ID} button[data-enabled="true"] {
         background: #e7f6ec;
         border-color: #257a3e;
       }
+      #${PANEL_ID} .el-nai-subline {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-top: 4px;
+        min-width: 0;
+      }
       #${PANEL_ID} .el-nai-source {
-        margin-top: 5px;
+        flex: 1 1 auto;
+        min-width: 0;
         color: #333;
         overflow-wrap: anywhere;
-        max-height: 30px;
-        overflow: auto;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
       }
       #${PANEL_ID} .el-nai-status {
-        margin-top: 5px;
-        min-height: 16px;
-        max-height: 32px;
+        flex: 0 1 auto;
+        min-width: 110px;
+        max-width: 50%;
         color: #2d5a32;
         overflow-wrap: anywhere;
-        overflow: auto;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
       }
       #${PANEL_ID} .el-nai-status[data-state="error"] { color: #a01818; }
+      #${PANEL_ID} .el-nai-settings {
+        display: none;
+        position: absolute;
+        top: calc(100% + 6px);
+        right: 0;
+        width: min(320px, calc(100vw - 20px));
+        padding: 8px;
+        border: 1px solid rgba(0, 0, 0, 0.24);
+        border-radius: 6px;
+        background: rgba(255, 255, 255, 0.98);
+        box-shadow: 0 6px 18px rgba(0, 0, 0, 0.16);
+      }
+      #${PANEL_ID} .el-nai-settings[data-open="true"] {
+        display: block;
+      }
+      #${PANEL_ID} .el-nai-settings label {
+        align-items: stretch;
+        flex-direction: column;
+        gap: 5px;
+      }
+      @media (max-width: 520px) {
+        #${PANEL_ID} {
+          left: 10px;
+          right: 10px;
+          width: auto;
+        }
+        #${PANEL_ID} .el-nai-main {
+          flex-wrap: wrap;
+        }
+        #${PANEL_ID} .el-nai-url {
+          flex-basis: 100%;
+        }
+      }
     </style>
-    <header>
+    <div class="el-nai-main">
       <strong>Eagle -> NAI</strong>
-    </header>
-    <div class="el-nai-body">
-      <label>
-        <span>API</span>
-        <input data-el="api" type="url" autocomplete="off" spellcheck="false">
-      </label>
-      <label>
+      <label class="el-nai-url">
         <span>URL</span>
         <input data-el="url" type="url" autocomplete="off" spellcheck="false" placeholder="https://x.com/...">
       </label>
-      <div class="el-nai-row">
-        <button data-el="import" type="button">Watch</button>
-        <button data-el="monitor" type="button">Monitor: On</button>
-        <input data-el="limit" type="number" min="1" max="${MAX_MONITOR_LIMIT}" step="1" title="Auto-stop after this many NovelAI result imports">
-      </div>
+      <button data-el="import" type="button">Watch</button>
+      <button data-el="monitor" type="button">Watch On</button>
+      <input data-el="limit" type="number" min="1" max="${MAX_MONITOR_LIMIT}" step="1" title="Auto-stop after this many NovelAI result imports">
+      <button data-el="settings" type="button" title="Eagle API settings">API</button>
+    </div>
+    <div class="el-nai-subline">
       <div class="el-nai-source" data-el="source">Eagle item import: later</div>
       <div class="el-nai-status" data-el="status"></div>
+    </div>
+    <div class="el-nai-settings" data-el="settings-panel" data-open="false">
+      <label>
+        <span>Eagle API URL</span>
+        <input data-el="api" type="url" autocomplete="off" spellcheck="false">
+      </label>
     </div>
   `;
 
   const elements: BridgeElements = {
     root,
-    body: root.querySelector<HTMLElement>(".el-nai-body")!,
+    body: root,
     apiInput: root.querySelector<HTMLInputElement>("[data-el='api']")!,
     urlInput: root.querySelector<HTMLInputElement>("[data-el='url']")!,
     importButton: root.querySelector<HTMLButtonElement>("[data-el='import']")!,
     monitorButton: root.querySelector<HTMLButtonElement>("[data-el='monitor']")!,
     monitorLimitInput: root.querySelector<HTMLInputElement>("[data-el='limit']")!,
+    settingsButton: root.querySelector<HTMLButtonElement>("[data-el='settings']")!,
+    settingsPanel: root.querySelector<HTMLElement>("[data-el='settings-panel']")!,
     status: root.querySelector<HTMLElement>("[data-el='status']")!,
     source: root.querySelector<HTMLElement>("[data-el='source']")!,
   };
