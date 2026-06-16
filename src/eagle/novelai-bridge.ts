@@ -11,6 +11,8 @@ const DEFAULT_MONITOR_LIMIT = 2;
 const MAX_MONITOR_LIMIT = 20;
 const NAI_IMPORT_CONFIRM_TIMEOUT_MS = 2200;
 const PANEL_ID = "eagle-looms-novelai-bridge";
+const NAI_DEBUG_PREFIX = "[Eagle Looms][NovelAI]";
+const NAI_PAGE_BRIDGE_KEY = "__EagleLoomsNovelAiBridgeV1";
 const BRIDGE_SCHEMA = "eagle-looms/novelai-bridge/v1";
 const NOVELAI_TOOL_TAG = "tool:novelai";
 const NON_SEMANTIC_INHERITED_TAG_PREFIXES = [
@@ -42,13 +44,245 @@ interface BridgeElements {
 
 interface PasteDispatchSummary {
   confirmed: boolean;
+  pageBridge: boolean;
   clipboard: boolean;
   reactInputs: number;
   fileInputs: number;
   pasteTargets: number;
   dropTargets: number;
+  traceId?: string;
+  pageBridgeError?: string;
   clipboardError?: string;
 }
+
+interface NovelAiPageImportSummary {
+  confirmed: boolean;
+  inputs: number;
+  inputHandlers: number;
+  inputEvents: number;
+  initialDropTargets: number;
+  activeDropTargets: number;
+  dropHandlers: number;
+  domDrops: number;
+  error?: string;
+}
+
+interface NovelAiPageBridge {
+  version: number;
+  importImage(payload: {
+    traceId: string;
+    fileName: string;
+    type: string;
+    dataUrl: string;
+  }): Promise<NovelAiPageImportSummary>;
+}
+
+const NOVEL_AI_PAGE_BRIDGE_SOURCE = String.raw`
+(() => {
+  const KEY = "__EagleLoomsNovelAiBridgeV1";
+  if (window[KEY]?.version === 1) return;
+  const PREFIX = "[Eagle Looms][NovelAI/page]";
+  const sleep = (ms) => new Promise((resolve) => window.setTimeout(resolve, ms));
+  const log = (traceId, step, details, level = "info") => {
+    try {
+      (console[level] || console.info).call(console, PREFIX, traceId, step, details || "");
+    } catch {
+      // Ignore console failures.
+    }
+  };
+  const unique = (values) => Array.from(new Set(values.filter(Boolean)));
+  const isTextEntry = (element) => {
+    if (element instanceof HTMLTextAreaElement) return true;
+    if (element instanceof HTMLInputElement && element.type !== "file") return true;
+    if (element.isContentEditable) return true;
+    return element.getAttribute("role") === "textbox";
+  };
+  const acceptsImageFiles = (input) => {
+    const accept = String(input.accept || "").trim().toLowerCase();
+    return !accept || accept.includes("image") || accept.includes(".png") || accept.includes(".jpg") || accept.includes(".jpeg") || accept.includes(".webp");
+  };
+  const snapshotImages = () => new Set(Array.from(document.querySelectorAll("img")).map((img) => img.currentSrc || img.src).filter(Boolean));
+  const imageSources = () => Array.from(document.querySelectorAll("img")).map((img) => img.currentSrc || img.src).filter(Boolean);
+  const waitForNewImage = async (baseline, timeoutMs) => {
+    const started = Date.now();
+    while (Date.now() - started < timeoutMs) {
+      if (imageSources().some((src) => !baseline.has(src))) return true;
+      await sleep(80);
+    }
+    return false;
+  };
+  const dataUrlToBlob = (dataUrl, fallbackType) => {
+    const match = /^data:([^;,]+)?(?:;base64)?,(.*)$/i.exec(dataUrl);
+    if (!match) throw new Error("invalid data url");
+    const type = match[1] || fallbackType || "image/png";
+    const body = match[2] || "";
+    const binary = atob(body);
+    const bytes = new Uint8Array(binary.length);
+    for (let index = 0; index < binary.length; index += 1) bytes[index] = binary.charCodeAt(index);
+    return new Blob([bytes], { type });
+  };
+  const reactPropsList = (element) => {
+    const list = [];
+    for (const key of Object.getOwnPropertyNames(element)) {
+      if (key.startsWith("__reactProps$")) {
+        const props = element[key];
+        if (props) list.push(props);
+      }
+      if (key.startsWith("__reactFiber$")) {
+        let fiber = element[key];
+        for (let depth = 0; fiber && depth < 6; depth += 1, fiber = fiber.return) {
+          if (fiber.memoizedProps) list.push(fiber.memoizedProps);
+        }
+      }
+    }
+    return list;
+  };
+  const reactHandler = (element, name) => {
+    for (const props of reactPropsList(element)) {
+      const candidate = props?.[name];
+      if (typeof candidate === "function") return candidate;
+    }
+    return undefined;
+  };
+  const eventBase = (type, target, nativeEvent, extras) => ({
+    type,
+    target,
+    currentTarget: target,
+    nativeEvent,
+    preventDefault: () => nativeEvent.preventDefault?.(),
+    stopPropagation: () => nativeEvent.stopPropagation?.(),
+    isDefaultPrevented: () => Boolean(nativeEvent.defaultPrevented),
+    isPropagationStopped: () => false,
+    persist: () => undefined,
+    ...extras,
+  });
+  const setInputFiles = (input, file) => {
+    const data = new DataTransfer();
+    data.items.add(file);
+    Object.defineProperty(input, "files", { configurable: true, value: data.files });
+    return data;
+  };
+  const tryInputs = async (file, baseline, summary, traceId) => {
+    const inputs = Array.from(document.querySelectorAll("input[type='file']")).filter(acceptsImageFiles);
+    summary.inputs = inputs.length;
+    log(traceId, "input candidates", { inputs: inputs.length });
+    for (const input of inputs) {
+      setInputFiles(input, file);
+      const handler = reactHandler(input, "onChange");
+      if (handler) {
+        const nativeEvent = new Event("change", { bubbles: true, cancelable: true, composed: true });
+        summary.inputHandlers += 1;
+        log(traceId, "calling input onChange", { input: input.outerHTML.slice(0, 180) });
+        await Promise.resolve(handler(eventBase("change", input, nativeEvent, {})));
+        if (await waitForNewImage(baseline, 900)) return true;
+      }
+      input.dispatchEvent(new Event("input", { bubbles: true, cancelable: true, composed: true }));
+      input.dispatchEvent(new Event("change", { bubbles: true, cancelable: true, composed: true }));
+      summary.inputEvents += 2;
+      if (await waitForNewImage(baseline, 900)) return true;
+    }
+    return false;
+  };
+  const dragEvent = (type, data) => {
+    try {
+      return new DragEvent(type, { bubbles: true, cancelable: true, dataTransfer: data });
+    } catch {
+      const event = new Event(type, { bubbles: true, cancelable: true });
+      Object.defineProperty(event, "dataTransfer", { configurable: true, value: data });
+      return event;
+    }
+  };
+  const queryDropTargets = () => unique([
+    ...Array.from(document.querySelectorAll("[class*='drop' i], [class*='upload' i], [data-testid*='upload' i], [aria-label*='image' i], [aria-label*='upload' i]")),
+    document.querySelector("main"),
+    document.body,
+  ]).filter((element) => element && !isTextEntry(element));
+  const isVisibleUploadSurface = (element) => {
+    if (!element || isTextEntry(element)) return false;
+    const rect = element.getBoundingClientRect();
+    if (rect.width < 80 || rect.height < 80) return false;
+    const style = getComputedStyle(element);
+    if (style.display === "none" || style.visibility === "hidden" || style.pointerEvents === "none") return false;
+    const opacity = Number(style.opacity);
+    return !Number.isFinite(opacity) || opacity > 0.05;
+  };
+  const activeDropTargets = (initialTargets) => {
+    const elements = Array.from(document.querySelectorAll("body *"));
+    return unique([
+      ...elements.filter((element) => Boolean(reactHandler(element, "onDrop"))),
+      ...elements.filter(isVisibleUploadSurface),
+      ...queryDropTargets(),
+      ...initialTargets,
+    ]);
+  };
+  const tryDrops = async (file, baseline, summary, traceId) => {
+    const initialTargets = queryDropTargets();
+    summary.initialDropTargets = initialTargets.length;
+    const data = new DataTransfer();
+    data.items.add(file);
+    log(traceId, "drop initial targets", { targets: initialTargets.length });
+    for (const target of initialTargets) {
+      target.dispatchEvent(dragEvent("dragenter", data));
+      target.dispatchEvent(dragEvent("dragover", data));
+    }
+    await sleep(180);
+    const targets = activeDropTargets(initialTargets);
+    summary.activeDropTargets = targets.length;
+    log(traceId, "drop active targets", { targets: targets.length });
+    for (const target of targets) {
+      const handler = reactHandler(target, "onDrop");
+      if (!handler) continue;
+      const nativeEvent = dragEvent("drop", data);
+      summary.dropHandlers += 1;
+      log(traceId, "calling drop onDrop", {
+        tag: target.tagName,
+        className: String(target.className || "").slice(0, 120),
+      });
+      await Promise.resolve(handler(eventBase("drop", target, nativeEvent, { dataTransfer: data })));
+      if (await waitForNewImage(baseline, 900)) return true;
+    }
+    for (const target of targets.slice(0, 16)) {
+      target.dispatchEvent(dragEvent("dragover", data));
+      target.dispatchEvent(dragEvent("drop", data));
+      summary.domDrops += 1;
+    }
+    return await waitForNewImage(baseline, 1200);
+  };
+  window[KEY] = {
+    version: 1,
+    async importImage(payload) {
+      const summary = {
+        confirmed: false,
+        inputs: 0,
+        inputHandlers: 0,
+        inputEvents: 0,
+        initialDropTargets: 0,
+        activeDropTargets: 0,
+        dropHandlers: 0,
+        domDrops: 0,
+      };
+      try {
+        const baseline = snapshotImages();
+        const blob = dataUrlToBlob(payload.dataUrl, payload.type);
+        const file = new File([blob], payload.fileName, { type: blob.type || payload.type || "image/png" });
+        log(payload.traceId, "bridge import start", {
+          fileName: file.name,
+          type: file.type,
+          size: file.size,
+          baselineImages: baseline.size,
+        });
+        summary.confirmed = await tryInputs(file, baseline, summary, payload.traceId);
+        if (!summary.confirmed) summary.confirmed = await tryDrops(file, baseline, summary, payload.traceId);
+        log(payload.traceId, "bridge import done", summary, summary.confirmed ? "info" : "warn");
+      } catch (error) {
+        summary.error = error instanceof Error ? error.message : String(error);
+        log(payload.traceId, "bridge import error", summary, "warn");
+      }
+      return summary;
+    },
+  };
+})();
+`;
 
 let currentBridge: NovelAiEagleBridge | undefined;
 
@@ -246,10 +480,9 @@ class NovelAiEagleBridge {
       const api = new EagleWebApi(this.config.eagleBaseUrl);
       const item = await api.itemInfo(itemId);
       const blob = await this.fetchEagleImageBlob(item);
-      const clipboardBlob = await toClipboardImageBlob(blob);
-      const fileName = sourceFileName(item, clipboardBlob.type);
+      const fileName = sourceFileName(item, blob.type);
       this.setStatus("Importing image into NovelAI...");
-      const paste = await pasteImageIntoNovelAi(clipboardBlob, fileName);
+      const paste = await pasteImageIntoNovelAi(blob, fileName);
 
       this.sourceItem = item;
       this.sourceItemLink = eagleItemLink(this.config.eagleBaseUrl, item.id);
@@ -526,56 +759,149 @@ function createPanel(config: NovelAiBridgeConfig): BridgeElements {
 }
 
 export async function pasteImageIntoNovelAi(blob: Blob, fileName: string): Promise<PasteDispatchSummary> {
+  const traceId = novelAiTraceId();
   const file = pageFile(blob, fileName);
   const baseline = snapshotNovelAiImageSources();
   const summary: PasteDispatchSummary = {
     confirmed: false,
+    pageBridge: false,
     clipboard: false,
     reactInputs: 0,
     fileInputs: 0,
     pasteTargets: 0,
     dropTargets: 0,
+    traceId,
   };
+  debugNovelAi(traceId, "import start", {
+    fileName,
+    blobType: blob.type || "(empty)",
+    blobSize: blob.size,
+    baselineImages: baseline.size,
+  });
 
-  summary.reactInputs = dispatchToReactFileInputHandlers(file);
-  if (summary.reactInputs > 0 && await confirmNovelAiImport(baseline)) {
+  const pageBridge = await importThroughNovelAiPageBridge(blob, fileName, traceId);
+  if (pageBridge) {
+    summary.pageBridge = true;
+    summary.reactInputs += pageBridge.inputHandlers;
+    summary.fileInputs += pageBridge.inputEvents;
+    summary.dropTargets += pageBridge.dropHandlers + pageBridge.domDrops;
+    summary.pageBridgeError = pageBridge.error;
+    debugNovelAi(traceId, "page bridge summary", pageBridge, pageBridge.confirmed ? "info" : "warn");
+    if (pageBridge.confirmed) {
+      summary.confirmed = true;
+      debugNovelAi(traceId, "import confirmed", summary);
+      return summary;
+    }
+  }
+
+  const isolatedReactInputs = dispatchToReactFileInputHandlers(file);
+  summary.reactInputs += isolatedReactInputs;
+  debugNovelAi(traceId, "isolated react input handlers", { count: isolatedReactInputs });
+  if (isolatedReactInputs > 0 && await confirmNovelAiImport(baseline, traceId, "isolated react input")) {
     summary.confirmed = true;
+    debugNovelAi(traceId, "import confirmed", summary);
     return summary;
   }
 
-  summary.fileInputs = dispatchToFileInputs(file);
-  if (summary.fileInputs > 0 && await confirmNovelAiImport(baseline)) {
+  const isolatedFileInputs = dispatchToFileInputs(file);
+  summary.fileInputs += isolatedFileInputs;
+  debugNovelAi(traceId, "isolated file input events", { count: isolatedFileInputs });
+  if (isolatedFileInputs > 0 && await confirmNovelAiImport(baseline, traceId, "isolated file input")) {
     summary.confirmed = true;
+    debugNovelAi(traceId, "import confirmed", summary);
     return summary;
   }
 
-  summary.dropTargets = await dispatchDropEvents(file);
-  if (summary.dropTargets > 0 && await confirmNovelAiImport(baseline)) {
+  const isolatedDropTargets = await dispatchDropEvents(file);
+  summary.dropTargets += isolatedDropTargets;
+  debugNovelAi(traceId, "isolated drop events", { count: isolatedDropTargets });
+  if (isolatedDropTargets > 0 && await confirmNovelAiImport(baseline, traceId, "isolated drop")) {
     summary.confirmed = true;
+    debugNovelAi(traceId, "import confirmed", summary);
     return summary;
   }
 
-  summary.pasteTargets = dispatchPasteEvents(file);
-  if (summary.pasteTargets > 0 && await confirmNovelAiImport(baseline)) {
+  const isolatedPasteTargets = dispatchPasteEvents(file);
+  summary.pasteTargets += isolatedPasteTargets;
+  debugNovelAi(traceId, "isolated paste events", { count: isolatedPasteTargets });
+  if (isolatedPasteTargets > 0 && await confirmNovelAiImport(baseline, traceId, "isolated paste")) {
     summary.confirmed = true;
+    debugNovelAi(traceId, "import confirmed", summary);
     return summary;
   }
 
   try {
-    await writeImageToClipboard(blob);
+    const clipboardBlob = await toClipboardImageBlob(blob);
+    debugNovelAi(traceId, "clipboard fallback prepared", {
+      type: clipboardBlob.type || "(empty)",
+      size: clipboardBlob.size,
+    });
+    await writeImageToClipboard(clipboardBlob);
     summary.clipboard = true;
   } catch (error) {
     summary.clipboardError = errorMessage(error);
+    debugNovelAi(traceId, "clipboard fallback failed", { error: summary.clipboardError }, "warn");
   }
 
   if (summary.clipboard) {
-    throw new Error("Image copied to clipboard, but NovelAI did not confirm automatic import. Click the NovelAI upload button or press Ctrl+V.");
+    throw new Error(`Image copied to clipboard, but NovelAI did not confirm automatic import. Click the NovelAI upload button or press Ctrl+V. Trace: ${traceId}.`);
   }
   if (summary.dropTargets > 0) {
     const detail = summary.clipboardError ? ` Clipboard fallback is also unavailable: ${summary.clipboardError}` : "";
-    throw new Error(`NovelAI opened an image drop target, but did not accept the automatic drop.${detail}`.trim());
+    throw new Error(`NovelAI opened an image drop target, but did not accept the automatic drop.${detail} Trace: ${traceId}.`.trim());
   }
-  throw new Error(`Cannot import image into NovelAI. ${summary.clipboardError || "No compatible NovelAI import target was found."}`.trim());
+  const bridgeDetail = summary.pageBridgeError ? ` Page bridge: ${summary.pageBridgeError}` : "";
+  throw new Error(`Cannot import image into NovelAI. ${summary.clipboardError || "No compatible NovelAI import target was found."}${bridgeDetail} Trace: ${traceId}.`.trim());
+}
+
+async function importThroughNovelAiPageBridge(blob: Blob, fileName: string, traceId: string): Promise<NovelAiPageImportSummary | undefined> {
+  const bridge = ensureNovelAiPageBridge(traceId);
+  if (!bridge) return undefined;
+  const type = normalizeImageMime(blob.type, mimeFromExtension(fileName.split(".").pop() || "") || "image/png");
+  const dataUrl = await blobToDataUrl(withImageType(blob, type), type);
+  debugNovelAi(traceId, "page bridge payload", {
+    fileName,
+    type,
+    bytes: blob.size,
+    dataUrlChars: dataUrl.length,
+  });
+  try {
+    return await bridge.importImage({ traceId, fileName, type, dataUrl });
+  } catch (error) {
+    const message = errorMessage(error);
+    debugNovelAi(traceId, "page bridge failed", { error: message }, "warn");
+    return {
+      confirmed: false,
+      inputs: 0,
+      inputHandlers: 0,
+      inputEvents: 0,
+      initialDropTargets: 0,
+      activeDropTargets: 0,
+      dropHandlers: 0,
+      domDrops: 0,
+      error: message,
+    };
+  }
+}
+
+function ensureNovelAiPageBridge(traceId: string): NovelAiPageBridge | undefined {
+  const page = pageGlobal() as unknown as Record<string, NovelAiPageBridge | undefined> & {
+    Function?: FunctionConstructor;
+  };
+  const existing = page[NAI_PAGE_BRIDGE_KEY];
+  if (existing?.version === 1) return existing;
+  try {
+    const install = page.Function?.(NOVEL_AI_PAGE_BRIDGE_SOURCE);
+    if (typeof install !== "function") throw new Error("page Function constructor is not available");
+    install();
+  } catch (error) {
+    debugNovelAi(traceId, "page bridge install failed", { error: errorMessage(error) }, "warn");
+    return undefined;
+  }
+  const installed = page[NAI_PAGE_BRIDGE_KEY];
+  if (installed?.version === 1) return installed;
+  debugNovelAi(traceId, "page bridge install failed", { error: "bridge not found after install" }, "warn");
+  return undefined;
 }
 
 async function writeImageToClipboard(blob: Blob): Promise<void> {
@@ -808,12 +1134,17 @@ function snapshotNovelAiImageSources(): Set<string> {
   return new Set(Array.from(document.querySelectorAll<HTMLImageElement>("img")).map((img) => img.currentSrc || img.src).filter(Boolean));
 }
 
-async function confirmNovelAiImport(baseline: Set<string>): Promise<boolean> {
+async function confirmNovelAiImport(baseline: Set<string>, traceId?: string, phase = "import"): Promise<boolean> {
   const started = Date.now();
   while (Date.now() - started < NAI_IMPORT_CONFIRM_TIMEOUT_MS) {
-    if (resultImageSources().some(src => !baseline.has(src))) return true;
+    const sources = resultImageSources();
+    if (sources.some(src => !baseline.has(src))) {
+      if (traceId) debugNovelAi(traceId, `${phase} confirmed`, { baseline: baseline.size, images: sources.length });
+      return true;
+    }
     await delay(100);
   }
+  if (traceId) debugNovelAi(traceId, `${phase} not confirmed`, { baseline: baseline.size, images: resultImageSources().length }, "warn");
   return false;
 }
 
@@ -851,22 +1182,57 @@ async function downloadImageBlob(url: string, fallbackType: string): Promise<Blo
 }
 
 async function toClipboardImageBlob(blob: Blob): Promise<Blob> {
-  const input = withImageType(blob, "image/png");
+  const input = withImageType(blob, normalizeImageMime(blob.type, "image/png"));
   if (input.type === "image/png") return input;
+  let lastError = "";
   try {
     const bitmap = await createImageBitmap(input);
-    const canvas = document.createElement("canvas");
-    canvas.width = bitmap.width;
-    canvas.height = bitmap.height;
-    canvas.getContext("2d")?.drawImage(bitmap, 0, 0);
-    bitmap.close();
-    const png = await new Promise<Blob>((resolve, reject) => {
-      canvas.toBlob((result) => result ? resolve(result) : reject(new Error("canvas export failed")), "image/png");
-    });
-    return png;
-  } catch {
-    return input;
+    try {
+      return await canvasToPng(bitmap.width, bitmap.height, (context) => context.drawImage(bitmap, 0, 0));
+    } finally {
+      bitmap.close();
+    }
+  } catch (error) {
+    lastError = errorMessage(error);
   }
+
+  try {
+    const url = URL.createObjectURL(input);
+    try {
+      const image = await loadImageElement(url);
+      return await canvasToPng(image.naturalWidth || image.width, image.naturalHeight || image.height, (context) => context.drawImage(image, 0, 0));
+    } finally {
+      URL.revokeObjectURL(url);
+    }
+  } catch (error) {
+    const detail = lastError ? `${lastError}; ${errorMessage(error)}` : errorMessage(error);
+    throw new Error(`Cannot convert image to PNG for clipboard fallback: ${detail}`);
+  }
+}
+
+async function loadImageElement(url: string): Promise<HTMLImageElement> {
+  return await new Promise((resolve, reject) => {
+    const image = new Image();
+    image.onload = () => resolve(image);
+    image.onerror = () => reject(new Error("image decode failed"));
+    image.src = url;
+  });
+}
+
+async function canvasToPng(width: number, height: number, draw: (context: CanvasRenderingContext2D) => void): Promise<Blob> {
+  if (width <= 0 || height <= 0) throw new Error("image has no drawable size");
+  const canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+  const context = canvas.getContext("2d");
+  if (!context) throw new Error("canvas 2d context is unavailable");
+  draw(context);
+  return await new Promise<Blob>((resolve, reject) => {
+    canvas.toBlob((result) => {
+      if (result) resolve(result);
+      else reject(new Error("canvas export failed"));
+    }, "image/png");
+  });
 }
 
 function withImageType(blob: Blob, fallbackType: string): Blob {
@@ -903,6 +1269,7 @@ function utcCompactTimestamp(date: Date): string {
 
 function pasteStatus(summary: PasteDispatchSummary): string {
   const parts = [
+    summary.pageBridge ? "page bridge" : "",
     summary.reactInputs ? `${summary.reactInputs} NovelAI handler` : "",
     summary.clipboard ? "clipboard" : "",
     summary.fileInputs ? `${summary.fileInputs} file input` : "",
@@ -1049,6 +1416,19 @@ function isUsefulInheritedTag(tag: string): boolean {
   if (!normalized || normalized === NOVELAI_TOOL_TAG) return false;
   if (normalized === "eagle-looms") return false;
   return !NON_SEMANTIC_INHERITED_TAG_PREFIXES.some((prefix) => normalized.startsWith(prefix));
+}
+
+function novelAiTraceId(): string {
+  return `nai-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 7)}`;
+}
+
+function debugNovelAi(traceId: string, step: string, details?: unknown, level: "info" | "warn" | "error" = "info"): void {
+  try {
+    const logger = console[level] || console.info;
+    logger.call(console, NAI_DEBUG_PREFIX, traceId, step, details ?? "");
+  } catch {
+    // Debug logging must never affect import behavior.
+  }
 }
 
 function pageFile(blob: Blob, fileName: string): File {

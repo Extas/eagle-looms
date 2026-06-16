@@ -103,6 +103,49 @@ describe("NovelAI Eagle bridge", () => {
     ]);
   });
 
+  it("uses the NovelAI page bridge before isolated-world fallbacks", async () => {
+    document.body.innerHTML = `<textarea id="prompt"></textarea>`;
+    const bridgeCalls: Array<{ fileName: string; type: string; dataUrl: string }> = [];
+    Object.defineProperty(window, "__EagleLoomsNovelAiBridgeV1", {
+      configurable: true,
+      value: {
+        version: 1,
+        async importImage(payload: { fileName: string; type: string; dataUrl: string }) {
+          bridgeCalls.push(payload);
+          const image = document.createElement("img");
+          image.src = "blob:https://novelai.net/page-bridge-source-image";
+          document.body.appendChild(image);
+          return {
+            confirmed: true,
+            inputs: 1,
+            inputHandlers: 1,
+            inputEvents: 0,
+            initialDropTargets: 0,
+            activeDropTargets: 0,
+            dropHandlers: 0,
+            domDrops: 0,
+          };
+        },
+      },
+    });
+
+    try {
+      const result = await pasteImageIntoNovelAi(new Blob(["image"], { type: "image/png" }), "bridge-source.png");
+
+      expect(result.confirmed).toBe(true);
+      expect(result.pageBridge).toBe(true);
+      expect(result.reactInputs).toBe(1);
+      expect(result.fileInputs).toBe(0);
+      expect(result.dropTargets).toBe(0);
+      expect(bridgeCalls).toHaveLength(1);
+      expect(bridgeCalls[0].fileName).toBe("bridge-source.png");
+      expect(bridgeCalls[0].type).toBe("image/png");
+      expect(bridgeCalls[0].dataUrl).toMatch(/^data:image\/png;base64,/);
+    } finally {
+      delete (window as unknown as Record<string, unknown>).__EagleLoomsNovelAiBridgeV1;
+    }
+  });
+
   it("imports into NovelAI through its React image input handler before paste fallbacks", async () => {
     document.body.innerHTML = `
       <textarea id="prompt"></textarea>
@@ -202,5 +245,5 @@ describe("NovelAI Eagle bridge", () => {
       configurable: true,
       value: clipboardWrites,
     });
-  });
+  }, 10000);
 });
