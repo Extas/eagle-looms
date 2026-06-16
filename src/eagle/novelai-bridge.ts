@@ -13,7 +13,7 @@ const NAI_IMPORT_CONFIRM_TIMEOUT_MS = 2200;
 const PANEL_ID = "eagle-looms-novelai-bridge";
 const NAI_DEBUG_PREFIX = "[Eagle Looms][NovelAI]";
 const NAI_DEBUG_STORAGE_KEY = "eagle-looms:novelai-debug";
-const NAI_PAGE_BRIDGE_KEY = "__EagleLoomsNovelAiBridgeV1";
+const NAI_PAGE_BRIDGE_KEY = "__EagleLoomsNovelAiBridgeV2";
 const BRIDGE_SCHEMA = "eagle-looms/novelai-bridge/v1";
 const NOVELAI_TOOL_TAG = "tool:novelai";
 const NON_SEMANTIC_INHERITED_TAG_PREFIXES = [
@@ -101,7 +101,7 @@ interface NovelAiResultImageData {
 
 const NOVEL_AI_PAGE_BRIDGE_SOURCE = String.raw`
 (() => {
-  const KEY = "__EagleLoomsNovelAiBridgeV1";
+  const KEY = "__EagleLoomsNovelAiBridgeV2";
   const VERSION = 2;
   if (window[KEY]?.version === VERSION) return;
   const PREFIX = "[Eagle Looms][NovelAI/page]";
@@ -434,10 +434,15 @@ function annotationImageCandidates(annotation: unknown): string[] {
     addAnnotationUrl(values, parsed.sourceUrl, true);
     if (Array.isArray(parsed.imageUrls)) parsed.imageUrls.forEach((url) => addAnnotationUrl(values, url));
     if (Array.isArray(parsed.mediaUrls)) parsed.mediaUrls.forEach((url) => addAnnotationUrl(values, url));
+    addAnnotationUrlsFromText(values, JSON.stringify(parsed));
   } catch {
-    for (const match of annotation.matchAll(/https?:\/\/[^\s"'<>]+/g)) addAnnotationUrl(values, match[0]);
+    addAnnotationUrlsFromText(values, annotation);
   }
   return unique(values);
+}
+
+function addAnnotationUrlsFromText(values: string[], text: string): void {
+  for (const match of text.matchAll(/https?:\/\/[^\s"'<>|\\]+/g)) addAnnotationUrl(values, match[0]);
 }
 
 function addAnnotationUrl(values: string[], value: unknown, requireImageLike = false): void {
@@ -611,10 +616,6 @@ class NovelAiEagleBridge {
 
   private async fetchEagleImageBlob(item: EagleItem): Promise<Blob> {
     const candidates = eagleItemImageCandidates(item, this.config.eagleBaseUrl);
-    if (candidates.length === 0) {
-      throw new Error("Eagle item has no fetchable image URL. Re-import items with a direct image url, or use an item collected by Eagle Looms.");
-    }
-
     const fallbackType = mimeForItem(item);
     const errors: string[] = [];
     for (const url of candidates) {
@@ -635,7 +636,11 @@ class NovelAiEagleBridge {
         errors.push(`${shortUrl(url)}: ${errorMessage(error)}`);
       }
     }
-    throw new Error(`Cannot read Eagle image. ${errors.slice(0, 3).join(" | ")}`);
+
+    if (errors.length) {
+      throw new Error(`Cannot read Eagle image from V2 metadata URLs. ${errors.slice(0, 4).join(" | ")}`);
+    }
+    throw new Error("Eagle item has no V2 fetchable image URL. V2 Web API item/get does not expose original file bytes; use an item whose V2 metadata includes originUrl/imageUrl/mediaUrl/downloadUrl or another direct image URL.");
   }
 
   private startMonitor(): void {
@@ -1323,7 +1328,7 @@ async function downloadImageBlob(url: string, fallbackType: string): Promise<Blo
     return withImageType(blob, fallbackType || mimeFromUrl(url));
   }
   const buffer = await requestArrayBuffer(url);
-  return new Blob([buffer], { type: fallbackType || mimeFromUrl(url) || "image/png" });
+  return new Blob([buffer], { type: mimeFromUrl(url) || fallbackType || "image/png" });
 }
 
 async function readNovelAiResultImage(src: string, traceId: string): Promise<NovelAiResultImageData> {

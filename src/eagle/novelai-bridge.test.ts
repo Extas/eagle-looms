@@ -47,6 +47,18 @@ describe("NovelAI Eagle bridge", () => {
     ]);
   });
 
+  it("finds direct image URLs embedded in Eagle Looms V2 annotation text", () => {
+    expect(eagleItemImageCandidates({
+      id: "ITEM1",
+      annotation: JSON.stringify({
+        schema: "eagle-looms/item/v1",
+        stableKey: "eagle-looms:v2:https://x.com/a/status/1/photo/1|https://pbs.twimg.com/media/abc?format=jpg&name=large|",
+      }),
+    }, "http://localhost:41595")).toEqual([
+      "https://pbs.twimg.com/media/abc?format=jpg&name=large",
+    ]);
+  });
+
   it("clamps monitor limits to a small explicit range", () => {
     expect(normalizeMonitorLimit(undefined)).toBe(2);
     expect(normalizeMonitorLimit(0)).toBe(1);
@@ -119,7 +131,7 @@ describe("NovelAI Eagle bridge", () => {
   it("uses the NovelAI page bridge before isolated-world fallbacks", async () => {
     document.body.innerHTML = `<textarea id="prompt"></textarea>`;
     const bridgeCalls: Array<{ fileName: string; type: string; dataUrl: string }> = [];
-    Object.defineProperty(window, "__EagleLoomsNovelAiBridgeV1", {
+    Object.defineProperty(window, "__EagleLoomsNovelAiBridgeV2", {
       configurable: true,
       value: {
         version: 2,
@@ -155,7 +167,7 @@ describe("NovelAI Eagle bridge", () => {
       expect(bridgeCalls[0].type).toBe("image/png");
       expect(bridgeCalls[0].dataUrl).toMatch(/^data:image\/png;base64,/);
     } finally {
-      delete (window as unknown as Record<string, unknown>).__EagleLoomsNovelAiBridgeV1;
+      delete (window as unknown as Record<string, unknown>).__EagleLoomsNovelAiBridgeV2;
     }
   });
 
