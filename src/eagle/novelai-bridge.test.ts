@@ -35,9 +35,13 @@ describe("NovelAI Eagle bridge", () => {
       fileURL: "eagle://asset/ITEM1",
       thumbnailURL: "/thumbnail/ITEM1.png",
       url: "https://cdn.example.test/media?id=ITEM1",
+      annotation: JSON.stringify({
+        sourceUrl: "https://x.com/knokzm/status/2066471849245208805/photo/1",
+        originUrl: "https://pbs.twimg.com/media/HK2U4XSa0AAd2Vx?format=jpg&name=large",
+      }),
       website: "https://example.test/posts/ITEM1",
     }, "http://localhost:41595")).toEqual([
-      "https://cdn.example.test/media?id=ITEM1",
+      "https://pbs.twimg.com/media/HK2U4XSa0AAd2Vx?format=jpg&name=large",
       "http://localhost:41595/thumbnail/ITEM1.png",
     ]);
   });

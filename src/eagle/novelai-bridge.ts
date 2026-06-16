@@ -348,11 +348,50 @@ export function eagleItemImageCandidates(item: EagleItem, baseUrl: string): stri
 
   add(item.fileURL);
   add(item.fileUrl);
-  add(item.url);
+  for (const url of annotationImageCandidates(item.annotation)) add(url);
+  add(item.url, true);
   add(item.website, true);
   add(item.thumbnailURL);
   add(item.thumbnailUrl);
   return unique(candidates);
+}
+
+function annotationImageCandidates(annotation: unknown): string[] {
+  if (typeof annotation !== "string" || !annotation.trim()) return [];
+  const values: string[] = [];
+  try {
+    const parsed = JSON.parse(annotation) as Record<string, unknown>;
+    addAnnotationUrl(values, parsed.originUrl);
+    addAnnotationUrl(values, parsed.originalUrl);
+    addAnnotationUrl(values, parsed.imageUrl);
+    addAnnotationUrl(values, parsed.mediaUrl);
+    addAnnotationUrl(values, parsed.downloadUrl);
+    addAnnotationUrl(values, parsed.url);
+    addAnnotationUrl(values, parsed.sourceUrl, true);
+    if (Array.isArray(parsed.imageUrls)) parsed.imageUrls.forEach((url) => addAnnotationUrl(values, url));
+    if (Array.isArray(parsed.mediaUrls)) parsed.mediaUrls.forEach((url) => addAnnotationUrl(values, url));
+  } catch {
+    for (const match of annotation.matchAll(/https?:\/\/[^\s"'<>]+/g)) addAnnotationUrl(values, match[0]);
+  }
+  return unique(values);
+}
+
+function addAnnotationUrl(values: string[], value: unknown, requireImageLike = false): void {
+  if (typeof value !== "string" || !value.trim()) return;
+  const url = value.trim();
+  if (!isFetchableUrl(url)) return;
+  if (requireImageLike && !looksLikeImageUrl(url)) return;
+  if (!requireImageLike && !looksLikeImageUrl(url) && !isKnownImageCdnUrl(url)) return;
+  values.push(url);
+}
+
+function isKnownImageCdnUrl(url: string): boolean {
+  try {
+    const parsed = new URL(url);
+    return /(^|\.)pbs\.twimg\.com$/i.test(parsed.hostname) || parsed.searchParams.has("format");
+  } catch {
+    return false;
+  }
 }
 
 export function buildNovelAiGeneratedItemInput(options: {
@@ -512,8 +551,19 @@ class NovelAiEagleBridge {
     const errors: string[] = [];
     for (const url of candidates) {
       try {
-        return await downloadImageBlob(url, fallbackType);
+        const blob = await downloadImageBlob(url, fallbackType);
+        await assertLikelyImageBlob(blob, url);
+        debugNovelAi("source", "image candidate accepted", {
+          url: shortUrl(url),
+          type: blob.type || "(empty)",
+          size: blob.size,
+        });
+        return blob;
       } catch (error) {
+        debugNovelAi("source", "image candidate rejected", {
+          url: shortUrl(url),
+          error: errorMessage(error),
+        }, "warn");
         errors.push(`${shortUrl(url)}: ${errorMessage(error)}`);
       }
     }
@@ -1179,6 +1229,43 @@ async function downloadImageBlob(url: string, fallbackType: string): Promise<Blo
   }
   const buffer = await requestArrayBuffer(url);
   return new Blob([buffer], { type: fallbackType || mimeFromUrl(url) || "image/png" });
+}
+
+async function assertLikelyImageBlob(blob: Blob, url: string): Promise<void> {
+  if (blob.size <= 0) throw new Error("empty image response");
+  const header = new Uint8Array(await blob.slice(0, 64).arrayBuffer());
+  const signature = imageBlobSignature(header);
+  if (signature) return;
+  const preview = new TextDecoder("utf-8", { fatal: false }).decode(header).trim().slice(0, 32);
+  const type = blob.type || mimeFromUrl(url) || "(empty)";
+  throw new Error(`response is not a supported image (${type}, ${blob.size} bytes, starts with ${JSON.stringify(preview)})`);
+}
+
+function imageBlobSignature(bytes: Uint8Array): string {
+  if (bytes.length >= 3 && bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff) return "jpeg";
+  if (bytes.length >= 8 && bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4e && bytes[3] === 0x47) return "png";
+  if (bytes.length >= 6 && (asciiPrefix(bytes, "GIF87a") || asciiPrefix(bytes, "GIF89a"))) return "gif";
+  if (bytes.length >= 12 && asciiPrefix(bytes, "RIFF") && asciiAt(bytes, 8, "WEBP")) return "webp";
+  if (bytes.length >= 12 && asciiAt(bytes, 4, "ftyp") && /avif|avis/i.test(asciiSlice(bytes, 8, 16))) return "avif";
+  if (bytes.length >= 2 && asciiPrefix(bytes, "BM")) return "bmp";
+  if (/^<\?xml|^<svg/i.test(new TextDecoder("utf-8", { fatal: false }).decode(bytes).trim())) return "svg";
+  return "";
+}
+
+function asciiPrefix(bytes: Uint8Array, prefix: string): boolean {
+  return asciiAt(bytes, 0, prefix);
+}
+
+function asciiAt(bytes: Uint8Array, offset: number, value: string): boolean {
+  if (bytes.length < offset + value.length) return false;
+  for (let index = 0; index < value.length; index += 1) {
+    if (bytes[offset + index] !== value.charCodeAt(index)) return false;
+  }
+  return true;
+}
+
+function asciiSlice(bytes: Uint8Array, start: number, end: number): string {
+  return String.fromCharCode(...bytes.slice(start, end));
 }
 
 async function toClipboardImageBlob(blob: Blob): Promise<Blob> {
