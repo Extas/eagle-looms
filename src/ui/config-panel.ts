@@ -92,6 +92,20 @@ export class ConfigPanel {
             }
             this.refreshEagleConfigPreviewFor(item.key);
           });
+          const numberKey = item.key;
+          if (isEditableEagleNumberKey(numberKey)) {
+            q<HTMLInputElement>(`#${numberKey}Input`, this.panel).addEventListener("change", (event) => {
+              const input = event.currentTarget as HTMLInputElement;
+              const value = Number(input.value);
+              if (!input.value.trim() || !Number.isFinite(value)) {
+                const conf = ADAPTER.conf.selectedSiteNameConfig ? ADAPTER.conf : ADAPTER.globalConf;
+                input.value = String(conf[numberKey]);
+                return;
+              }
+              events.modNumberConfigEvent(numberKey, undefined, value);
+              this.refreshEagleConfigPreviewFor(numberKey);
+            });
+          }
           break;
         case "boolean":
           q(`#${item.key}Checkbox`, this.panel).addEventListener("click", () => {
@@ -233,9 +247,10 @@ function createOption(item: ConfigItem) {
       input = `<input id="${item.key}Checkbox" ${conf[item.key as ConfigBooleanType] ? "checked" : ""} type="checkbox" />`;
       break;
     case "number":
+      const editable = isEditableEagleNumberKey(item.key);
       input = `<span>
                   <button id="${item.key}MinusBTN" class="p-btn" type="button">-</button>
-                  <input id="${item.key}Input" value="${conf[item.key as ConfigNumberType]}" disabled type="text" />
+                  <input id="${item.key}Input" value="${conf[item.key as ConfigNumberType]}" ${editable ? 'inputmode="numeric"' : "disabled"} type="text" />
                   <button id="${item.key}AddBTN" class="p-btn" type="button">+</button></span>`;
       break;
     case "select":
@@ -252,7 +267,12 @@ function createOption(item: ConfigItem) {
   }
   const [start, end] = item.gridColumnRange ? item.gridColumnRange : [1, 11];
   const eagleInputClass = isEaglePreviewConfigKey(item.key) && item.typ === "input" ? " eagle-config-text-item" : "";
-  return `<div id="${item.key}ConfigItem" class="config-panel-item${eagleInputClass}" style="grid-column-start: ${start}; grid-column-end: ${end}; padding-left: 5px;${display ? "" : " display: none;"}"><label class="p-label"><span><span>${i18nValue.get()}</span><span class="p-tooltip">${i18nValueTooltip ? " ?:" : " :"}<span class="p-tooltiptext">${i18nValueTooltip?.get() || ""}</span></span></span>${input}</label></div>`;
+  const eagleNumberClass = isEditableEagleNumberKey(item.key) ? " eagle-config-number-item" : "";
+  return `<div id="${item.key}ConfigItem" class="config-panel-item${eagleInputClass}${eagleNumberClass}" style="grid-column-start: ${start}; grid-column-end: ${end}; padding-left: 5px;${display ? "" : " display: none;"}"><label class="p-label"><span><span>${i18nValue.get()}</span><span class="p-tooltip">${i18nValueTooltip ? " ?:" : " :"}<span class="p-tooltiptext">${i18nValueTooltip?.get() || ""}</span></span></span>${input}</label></div>`;
+}
+
+function isEditableEagleNumberKey(key: ConfigItem["key"]): key is "eagleImportLimit" | "eagleConfirmThreshold" | "eagleMaxSourceTags" {
+  return key === "eagleImportLimit" || key === "eagleConfirmThreshold" || key === "eagleMaxSourceTags";
 }
 
 function escapeAttr(value: string): string {

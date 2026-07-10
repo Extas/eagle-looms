@@ -111,6 +111,32 @@ describe("ConfigPanel Eagle preview", () => {
     expect(panel.panel.querySelector("#eagleImportLimitConfigItem")?.classList.contains("eagle-config-text-item")).toBe(false);
   });
 
+  it("allows direct entry for Eagle numeric settings without changing upstream number controls", () => {
+    const modNumberConfigEvent = vi.fn();
+    const panel = createPanel(createEvents({ modNumberConfigEvent }));
+    const importLimit = panel.panel.querySelector<HTMLInputElement>("#eagleImportLimitInput")!;
+    const columns = panel.panel.querySelector<HTMLInputElement>("#colCountInput")!;
+
+    expect(importLimit.disabled).toBe(false);
+    expect(importLimit.inputMode).toBe("numeric");
+    expect(columns.disabled).toBe(true);
+
+    importLimit.value = "250";
+    importLimit.dispatchEvent(new Event("change"));
+    expect(modNumberConfigEvent).toHaveBeenCalledWith("eagleImportLimit", undefined, 250);
+  });
+
+  it("restores the saved Eagle number when direct input is not numeric", () => {
+    const modNumberConfigEvent = vi.fn();
+    const panel = createPanel(createEvents({ modNumberConfigEvent }));
+    const importLimit = panel.panel.querySelector<HTMLInputElement>("#eagleImportLimitInput")!;
+
+    importLimit.value = "";
+    importLimit.dispatchEvent(new Event("change"));
+    expect(importLimit.value).toBe(String(ADAPTER.globalConf.eagleImportLimit));
+    expect(modNumberConfigEvent).not.toHaveBeenCalled();
+  });
+
   it("shows the Eagle confirmation policy in the preview", () => {
     ADAPTER.globalConf.eagleConfirmMode = "auto";
     ADAPTER.globalConf.eagleConfirmThreshold = 3;

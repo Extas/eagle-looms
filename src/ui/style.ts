@@ -539,6 +539,9 @@ export function styleCSS() {
 .p-config input {
   cursor: ns-resize;
 }
+.eagle-config-number-item input {
+  cursor: text;
+}
 .eagle-config-preview {
   grid-column-start: 1;
   grid-column-end: 11;
