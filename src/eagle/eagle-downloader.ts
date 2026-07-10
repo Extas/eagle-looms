@@ -10,7 +10,7 @@ import EBUS from "../event-bus";
 import { classifyEagleApiError, EagleWebApi, AddItemInput, extractEagleLibraryName, extractEagleLibraryPath } from "./eagle-web-api";
 import { ensureFolderPath } from "./folders";
 import { arrayBufferToBase64 } from "./transport";
-import { cleanFolderTagValue, collapseCharacterFolderValues, EAGLE_FOLDER_PRESET_TEMPLATES, EagleFolderTokens, hasMalformedEagleFolderTokenSyntax, normalizeEagleBaseUrl, normalizeEagleFolderTemplate, normalizeEagleImportLimit, resolveEagleFolderPaths } from "./options";
+import { cleanFolderTagValue, collapseCharacterFolderValues, EAGLE_FOLDER_PRESET_TEMPLATES, EagleFolderTokens, findUnknownEagleFolderTokens, hasMalformedEagleFolderTokenSyntax, normalizeEagleBaseUrl, normalizeEagleFolderTemplate, normalizeEagleImportLimit, resolveEagleFolderPaths } from "./options";
 import { duplicateQueries, hasPlannedAssetKey, isDuplicateItem, isSessionImported, markPlannedAssetKey, markSessionImported } from "./duplicates";
 import { normalizeEagleItemTags, normalizeEagleTags, semanticSourceTags, sourcePublishedAtTags, sourceTagsFromGalleryMeta } from "./tags";
 import { isReadyForEagleImport } from "./import-readiness";
@@ -574,6 +574,10 @@ export function eagleFolderTemplateForImport(value: unknown): string {
   const template = normalizeEagleFolderTemplate(value);
   if (hasMalformedEagleFolderTokenSyntax(template)) {
     throw new Error(i18n.eagleImportMalformedFolderRule.get());
+  }
+  const unknownTokens = findUnknownEagleFolderTokens(template);
+  if (unknownTokens.length) {
+    throw new Error(format(i18n.eagleImportUnknownFolderRule.get(), { tokens: unknownTokens.join(", ") }));
   }
   return template;
 }

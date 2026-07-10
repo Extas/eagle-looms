@@ -269,9 +269,12 @@ describe('Eagle downloader duplicate checks', () => {
     expect(eagleImportErrorMessage(new Error('Eagle API returned invalid JSON'))).toContain('API URL');
   });
 
-  it('rejects malformed folder rules before an Eagle write can create literal brace folders', () => {
+  it('rejects malformed or unknown folder rules before Eagle can create literal brace folders', () => {
     expect(eagleFolderTemplateForImport('Eagle Looms/{site}/{date}')).toBe('Eagle Looms/{site}/{date}');
     expect(() => eagleFolderTemplateForImport('Eagle Looms/{site/{date}')).toThrow(i18n.eagleImportMalformedFolderRule.get());
+    expect(() => eagleFolderTemplateForImport('Eagle Looms/{site}/{data}')).toThrow(
+      i18n.eagleImportUnknownFolderRule.get().replace('{tokens}', '{data}'),
+    );
   });
 
   it('reports a malformed current-image folder rule before connecting to Eagle', async () => {
@@ -295,6 +298,32 @@ describe('Eagle downloader duplicate checks', () => {
     expect(eagleProbeMock).not.toHaveBeenCalled();
     expect(panel.showEagleImportResult).toHaveBeenCalledWith(
       expect.arrayContaining([expect.stringContaining(i18n.eagleImportMalformedFolderRule.get())]),
+      true,
+      [],
+    );
+  });
+
+  it('reports an unknown current-image folder token before connecting to Eagle', async () => {
+    const imf = { stage: EAGLE_IMPORT_DONE_STAGE, data: new Uint8Array([1]) };
+    const panel = {
+      flushUI: vi.fn(),
+      showEagleImportResult: vi.fn(),
+    };
+    const downloader = Object.assign(Object.create(EagleDownloader.prototype), {
+      panel,
+      pageFetcher: { chapters: [{ title: 'Chapter', filteredQueue: [imf] }] },
+      abort: vi.fn(),
+      downloading: false,
+      done: false,
+    }) as EagleDownloader;
+    ADAPTER.conf = { ...defaultConf(), eagleFolderPath: 'Eagle Looms/{site}/{data}' };
+    eagleProbeMock.mockReset();
+
+    await downloader.importOne(0, 0);
+
+    expect(eagleProbeMock).not.toHaveBeenCalled();
+    expect(panel.showEagleImportResult).toHaveBeenCalledWith(
+      expect.arrayContaining([expect.stringContaining('{data}')]),
       true,
       [],
     );
