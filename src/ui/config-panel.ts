@@ -1,7 +1,7 @@
 import { clearSiteConfigKeys, Config, ConfigBooleanType, ConfigTextType, ConfigItem, ConfigItems, ConfigNumberType, ConfigSelectType, defaultConf, resetConf } from "../config";
 import { EagleWebApi } from "../eagle/eagle-web-api";
 import { localDatePrefix } from "../eagle/naming";
-import { findUnknownEagleFolderTokens, hasMalformedEagleFolderTokenSyntax, resolveEagleFolderPaths } from "../eagle/options";
+import { findUnknownEagleFolderTokens, hasMalformedEagleFolderTokenSyntax, resolveEagleFolderPaths, tryNormalizeEagleBaseUrl } from "../eagle/options";
 import { ADAPTER } from "../platform/adapt";
 import { I18nValue, i18n } from "../utils/i18n";
 import q from "../utils/query-element";
@@ -124,6 +124,17 @@ export class ConfigPanel {
           break;
         case "input":
           q(`#${item.key}TextInput`, this.panel).addEventListener("change", () => {
+            if (item.key === "eagleBaseUrl") {
+              const input = q<HTMLInputElement>(`#${item.key}TextInput`, this.panel);
+              const normalized = tryNormalizeEagleBaseUrl(input.value);
+              if (!normalized) {
+                input.setCustomValidity(i18n.eagleBaseUrlInvalid.get());
+                input.reportValidity();
+                return;
+              }
+              input.setCustomValidity("");
+              input.value = normalized;
+            }
             events.modTextConfigEvent(item.key as ConfigTextType);
             this.refreshEagleConfigPreviewFor(item.key);
           });

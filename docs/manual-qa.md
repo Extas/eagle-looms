@@ -71,6 +71,7 @@ Config panel contains Eagle API URL, folder preset, folder path, import limit, s
 Eagle import limit, confirmation threshold, and source tag limit accept direct numeric entry as well as +/- adjustment
 Eagle API URL and folder path inputs expand across the available settings row instead of truncating to the upstream short text-input width
 Eagle API URL accepts localhost or IP plus a custom port without requiring an explicit http:// prefix
+invalid or non-HTTP Eagle API addresses show native validation feedback and do not overwrite the saved address
 Config panel contains Eagle confirmation mode and auto confirmation threshold
 Auto confirmation threshold is visible only while confirmation mode is Auto
 Folder preset dropdown uses the current UI language instead of raw internal preset names

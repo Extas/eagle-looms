@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { cleanFolderTagValue, collapseCharacterFolderValues, DEFAULT_EAGLE_FOLDER_TEMPLATE, eagleFolderPresetForTemplate, eagleFolderTemplateForPreset, findUnknownEagleFolderTokens, hasMalformedEagleFolderTokenSyntax, normalizeEagleBaseUrl, normalizeEagleBoolean, normalizeEagleConfigPatch, normalizeEagleConfirmMode, normalizeEagleConfirmThreshold, normalizeEagleFolderPreset, normalizeEagleFolderTemplate, normalizeEagleImportLimit, normalizeEagleMaxSourceTags, resolveEagleFolderPath, resolveEagleFolderPaths } from './options';
+import { cleanFolderTagValue, collapseCharacterFolderValues, DEFAULT_EAGLE_FOLDER_TEMPLATE, eagleFolderPresetForTemplate, eagleFolderTemplateForPreset, findUnknownEagleFolderTokens, hasMalformedEagleFolderTokenSyntax, normalizeEagleBaseUrl, normalizeEagleBoolean, normalizeEagleConfigPatch, normalizeEagleConfirmMode, normalizeEagleConfirmThreshold, normalizeEagleFolderPreset, normalizeEagleFolderTemplate, normalizeEagleImportLimit, normalizeEagleMaxSourceTags, resolveEagleFolderPath, resolveEagleFolderPaths, tryNormalizeEagleBaseUrl } from './options';
 
 describe('Eagle options', () => {
   it('normalizes Eagle API URL input to an origin', () => {
@@ -8,6 +8,8 @@ describe('Eagle options', () => {
     expect(normalizeEagleBaseUrl('localhost:5000/api/v2?token=custom')).toBe('http://localhost:5000?token=custom');
     expect(normalizeEagleBaseUrl('127.0.0.1:5001')).toBe('http://127.0.0.1:5001');
     expect(normalizeEagleBaseUrl('not a url')).toBe('http://localhost:41595');
+    expect(tryNormalizeEagleBaseUrl('not a url')).toBeUndefined();
+    expect(tryNormalizeEagleBaseUrl('file:///tmp/eagle')).toBeUndefined();
   });
 
   it('normalizes folder template and resolves tokens into safe folder segments', () => {

@@ -115,6 +115,23 @@ describe("ConfigPanel Eagle preview", () => {
     expect(panel.panel.querySelector("#eagleImportLimitConfigItem")?.classList.contains("eagle-config-text-item")).toBe(false);
   });
 
+  it("rejects an invalid Eagle API address instead of silently saving the default", () => {
+    const modTextConfigEvent = vi.fn();
+    const panel = createPanel(createEvents({ modTextConfigEvent }));
+    const input = panel.panel.querySelector<HTMLInputElement>("#eagleBaseUrlTextInput")!;
+
+    input.value = "not a url";
+    input.dispatchEvent(new Event("change"));
+    expect(modTextConfigEvent).not.toHaveBeenCalled();
+    expect(input.validationMessage).toBe(i18n.eagleBaseUrlInvalid.get());
+
+    input.value = "localhost:5000?token=custom";
+    input.dispatchEvent(new Event("change"));
+    expect(input.value).toBe("http://localhost:5000?token=custom");
+    expect(input.validationMessage).toBe("");
+    expect(modTextConfigEvent).toHaveBeenCalledWith("eagleBaseUrl");
+  });
+
   it("allows direct entry for Eagle numeric settings without changing upstream number controls", () => {
     const modNumberConfigEvent = vi.fn();
     const panel = createPanel(createEvents({ modNumberConfigEvent }));

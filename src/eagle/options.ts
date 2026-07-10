@@ -92,14 +92,18 @@ export function eagleFolderPresetForTemplate(value: unknown): EagleFolderPreset 
 }
 
 export function normalizeEagleBaseUrl(value: unknown): string {
+  return tryNormalizeEagleBaseUrl(value) || DEFAULT_EAGLE_BASE_URL;
+}
+
+export function tryNormalizeEagleBaseUrl(value: unknown): string | undefined {
   const raw = typeof value === "string" && value.trim() ? value.trim() : DEFAULT_EAGLE_BASE_URL;
   try {
     const url = new URL(/^[a-z][a-z\d+.-]*:\/\//i.test(raw) ? raw : `http://${raw}`);
-    if (!["http:", "https:"].includes(url.protocol)) return DEFAULT_EAGLE_BASE_URL;
+    if (!["http:", "https:"].includes(url.protocol)) return undefined;
     const token = url.searchParams.get("token")?.trim();
     return token ? `${url.origin}?token=${encodeURIComponent(token)}` : url.origin;
   } catch {
-    return DEFAULT_EAGLE_BASE_URL;
+    return undefined;
   }
 }
 

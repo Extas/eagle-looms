@@ -416,6 +416,12 @@ pero desactivará la lupa y la capacidad de arrastrar y mover imágenes.`,
     'Local Eagle Web API endpoint. http:// may be omitted for localhost/IP addresses. A V2 token supplied as ?token=... is preserved.',
     'Endpoint local de Eagle Web API. http:// puede omitirse para localhost/IP; se conserva ?token=....',
   ],
+  eagleBaseUrlInvalid: [
+    'Enter a valid HTTP or HTTPS Eagle API address.',
+    '请输入有效的 HTTP 或 HTTPS Eagle API 地址。',
+    'Enter a valid HTTP or HTTPS Eagle API address.',
+    'Introduce una direccion HTTP o HTTPS valida para Eagle.',
+  ],
   eagleFolderPreset: [
     'Eagle Folder Preset',
     'Eagle 文件夹预设',
