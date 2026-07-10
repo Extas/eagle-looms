@@ -46,6 +46,22 @@ describe('Eagle import summary', () => {
     ]);
   });
 
+  it('marks a stopped partial import without treating cancellation as a failure', () => {
+    expect(eagleSummaryParts({
+      canceled: true,
+      planned: 5,
+      imported: 2,
+      skipped: 0,
+      failed: 0,
+    })).toEqual([
+      'stopped before completion',
+      'planned 5',
+      'imported 2',
+      'skipped 0',
+      'failed 0',
+    ]);
+  });
+
   it('makes early import failures visible even before any item is planned', () => {
     expect(eagleSummaryParts({
       planned: 0,

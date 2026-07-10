@@ -836,6 +836,18 @@ pero desactivará la lupa y la capacidad de arrastrar y mover imágenes.`,
     'no new items',
     'sin elementos nuevos',
   ],
+  eagleSummaryCanceled: [
+    'stopped before completion',
+    '完成前已停止',
+    'stopped before completion',
+    'detenida antes de completar',
+  ],
+  eagleImportStoppedPartial: [
+    'Import stopped. Partial result: imported {imported}, skipped {skipped}, failed {failed}.',
+    '导入已停止。部分结果：已导入 {imported}，已跳过 {skipped}，失败 {failed}。',
+    'Import stopped. Partial result: imported {imported}, skipped {skipped}, failed {failed}.',
+    'Importacion detenida. Resultado parcial: importados {imported}, omitidos {skipped}, fallidos {failed}.',
+  ],
   eagleSummaryNoItemsImported: [
     'no items imported',
     '没有项目导入',

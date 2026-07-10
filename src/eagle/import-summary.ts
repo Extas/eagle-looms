@@ -3,6 +3,7 @@ import { DEFAULT_EAGLE_CONFIRM_THRESHOLD, normalizeEagleConfirmMode, normalizeEa
 
 export type EagleImportSummaryStats = {
   libraryName?: string;
+  canceled?: boolean;
   planned: number;
   imported: number;
   skipped: number;
@@ -72,6 +73,7 @@ export function eagleSummaryParts(stats: EagleImportSummaryStats): string[] {
   const reasons = skippedReasons.length ? ` (${skippedReasons.join(", ")})` : "";
   const parts = [
     importOutcome(stats),
+    stats.canceled ? i18n.eagleSummaryCanceled.get() : "",
     stats.libraryName ? format(i18n.eaglePlanLibrary.get(), { value: stats.libraryName }) : "",
     format(i18n.eagleSummaryPlanned.get(), { count: stats.planned }),
     format(i18n.eagleSummaryImported.get(), { count: stats.imported }),
