@@ -117,7 +117,7 @@ Copy plan copies the full collapsed details, not only the compact summary
 confirmation toast uses the compact summary instead of the full plan
 result toast stays short after writing, such as Imported 2 images to Eagle, and points to the result panel when failures occur
 confirmation panel, toast, and final result summary use the current UI language for fixed import-summary labels
-confirmation panel uses user-facing wording such as visible tags max, duplicates skipped, and will skip before writing
+confirmation panel uses user-facing wording such as additional source tags max, duplicates skipped, and will skip before writing
 confirmation panel says writes image items only when new items will be written, and does not show that line for all-skipped duplicate imports
 confirmation panel can copy the import plan before writing without confirming the import
 long confirmation details scroll inside the body while Copy plan, Cancel, and Write remain visible

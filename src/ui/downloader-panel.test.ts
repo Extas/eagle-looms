@@ -227,7 +227,7 @@ describe("DownloaderPanel Eagle import confirmation", () => {
     const confirm = panel.confirmEagleImportPlan(
       ["will write 6", "destination Eagle Looms/site/a", "skipped before writing 1 (duplicates 1)"],
       "Write 6 new items to Eagle?",
-      ["selected 12", "planned 10", "limit 10, omitted 2", "will write 6", "visible tags max 20"]
+      ["selected 12", "planned 10", "limit 10, omitted 2", "will write 6", "additional source tags max 20"]
     );
     confirm.then(() => {
       settled = true;
@@ -252,7 +252,7 @@ describe("DownloaderPanel Eagle import confirmation", () => {
       "planned 10",
       "limit 10, omitted 2",
       "will write 6",
-      "visible tags max 20",
+      "additional source tags max 20",
     ].join("\n"));
     expect(copyButton.textContent).toBe(i18n.eagleImportResultCopied.get());
     expect(document.querySelector(".ehvp-eagle-import-confirm")).not.toBeNull();

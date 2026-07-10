@@ -108,7 +108,7 @@ describe('Eagle import summary', () => {
       missingFolderTokens: { copyright: 1, author: 2 },
       folderTokenSamples: { copyright: ['bang dream'], author: ['soha blan', 'soha blan', 'very long artist name that should be shortened in summaries'] },
     };
-    expect(eaglePlanSummary(plan)).toBe('Eagle import plan: selected 3, planned 2, limit 2, omitted 1, will write 1, will skip before writing 1 (duplicates 1), folders Eagle Looms/site/a, writes image items only, item names 2025-07-08 anime-pictures-908175.png | 2025-07-09 anime-pictures-908176.png, name policy date prefix when source date exists, missing folder metadata copyright 1, author 2, folder metadata copyright bang dream; author soha blan | very long artist name that should be..., visible tags max 20, duplicates skipped.');
+    expect(eaglePlanSummary(plan)).toBe('Eagle import plan: selected 3, planned 2, limit 2, omitted 1, will write 1, will skip before writing 1 (duplicates 1), folders Eagle Looms/site/a, writes image items only, item names 2025-07-08 anime-pictures-908175.png | 2025-07-09 anime-pictures-908176.png, name policy date prefix when source date exists, missing folder metadata copyright 1, author 2, folder metadata copyright bang dream; author soha blan | very long artist name that should be..., additional source tags max 20, duplicates skipped.');
     expect(eaglePlanSummaryParts(plan)).toEqual([
       'selected 3',
       'planned 2',
@@ -121,7 +121,7 @@ describe('Eagle import summary', () => {
       'name policy date prefix when source date exists',
       'missing folder metadata copyright 1, author 2',
       'folder metadata copyright bang dream; author soha blan | very long artist name that should be...',
-      'visible tags max 20',
+      'additional source tags max 20',
       'duplicates skipped',
     ]);
     expect(eaglePlanHeadline(plan)).toBe('Write 1 new item to Eagle (1 skipped before writing, 1 over limit omitted)?');
@@ -180,7 +180,7 @@ describe('Eagle import summary', () => {
       writable: 2,
       folders: ['Eagle Looms/pixiv.net/artist 42'],
       fallbackFolderTokens: { copyright: 1 },
-    })).toBe('Eagle import plan: planned 2, will write 2, folders Eagle Looms/pixiv.net/artist 42, writes image items only, folder fallback copyright 1 (gallery/author/chapter/Unsorted), visible tags max 20, duplicates skipped.');
+    })).toBe('Eagle import plan: planned 2, will write 2, folders Eagle Looms/pixiv.net/artist 42, writes image items only, folder fallback copyright 1 (gallery/author/chapter/Unsorted), additional source tags max 20, duplicates skipped.');
   });
 
   it('does not promise writes when the preflight will skip every item', () => {
@@ -214,7 +214,7 @@ describe('Eagle import summary', () => {
       '将写入 1',
       '文件夹 Eagle Looms/site/a',
       '只写入图片项目',
-      '可见标签最多 20',
+      '额外来源标签最多 20',
       '重复项 跳过',
     ]);
 

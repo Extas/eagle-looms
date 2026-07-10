@@ -30,7 +30,7 @@ default Eagle API URL: http://localhost:41595
 default folder template: Eagle Looms/{site}/{date}
 default folder date: local date when the import starts
 default import limit: 100
-default visible source tag limit: 20 additional tags; source publication date is retained independently
+default additional source tag limit: 20; source publication date is retained independently
 duplicate skip: enabled by default
 item names: source date prefix when available, then source identity
 config preview: shows config scope, resolved example folder, visible tag policy, and extra-asset policy
