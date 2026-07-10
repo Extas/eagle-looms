@@ -139,9 +139,6 @@ export class EagleDownloader extends Downloader {
         selectedJobs.push(...assets.map(asset => this.jobForAsset(folderTemplate, asset)));
       }
 
-      const importPlan = limitImportJobs(selectedJobs, ADAPTER.conf.eagleImportLimit);
-      const jobs = importPlan.jobs;
-      stats.planned = jobs.length;
       if (selectedJobs.length === 0) {
         throw new Error(i18n.eagleImportNoFetchedImages.get());
       }
@@ -150,10 +147,13 @@ export class EagleDownloader extends Downloader {
       const connection = await api.probe();
       const libraryName = extractEagleLibraryName(connection.library) || i18n.eagleConfigUnknownLibrary.get();
       stats.libraryName = libraryName;
-      if (ADAPTER.conf.eagleSkipDuplicates && jobs.length > 1) {
+      if (ADAPTER.conf.eagleSkipDuplicates && selectedJobs.length > 1) {
         EBUS.emit("notify-message", "info", i18n.eagleImportCheckingDuplicates.get(), 4000);
       }
-      const preflight = await this.preflightJobs(api, jobs);
+      const preflight = await this.preflightJobs(api, selectedJobs);
+      const importPlan = limitWritableImportJobs(selectedJobs, ADAPTER.conf.eagleImportLimit);
+      const jobs = importPlan.jobs;
+      stats.planned = jobs.length;
       prepareWritableJobNames(jobs);
       const plan = {
         folderTemplate,
@@ -166,7 +166,7 @@ export class EagleDownloader extends Downloader {
         selected: importPlan.selected,
         planned: jobs.length,
         omittedByLimit: importPlan.omittedByLimit,
-        writable: preflight.writable,
+        writable: importPlan.writable,
         sessionSkipped: preflight.sessionSkipped,
         duplicateSkipped: preflight.duplicateSkipped,
         preflightFailed: preflight.failed,
@@ -186,14 +186,14 @@ export class EagleDownloader extends Downloader {
           return;
         }
       }
-      if (preflight.writable > 0) await assertEagleLibraryUnchanged(api, connection.library);
+      if (importPlan.writable > 0) await assertEagleLibraryUnchanged(api, connection.library);
 
       let writeIndex = 0;
       for (const job of jobs) {
         if (abortable && !this.downloading) throw new Error("abort");
-        if (!job.skipReason && !job.preflightError && preflight.writable > 0) {
+        if (!job.skipReason && !job.preflightError && importPlan.writable > 0) {
           writeIndex += 1;
-          this.panel.setImportProgress(i18n.eagleImportWritingToEagle.get(), writeIndex, preflight.writable);
+          this.panel.setImportProgress(i18n.eagleImportWritingToEagle.get(), writeIndex, importPlan.writable);
         }
         await this.writeJob(api, folderIds, job, stats, usedNamesForFolder(folderNames, job.folderKey));
       }
@@ -713,14 +713,21 @@ function usesCopyrightFolderFallback(folderTemplate: string): boolean {
   return normalizeEagleFolderTemplate(folderTemplate) === EAGLE_FOLDER_PRESET_TEMPLATES.copyright;
 }
 
-function limitImportJobs(jobs: EagleImportJob[], value: number): { jobs: EagleImportJob[]; limit: number; selected: number; omittedByLimit: number } {
+export function limitWritableImportJobs(jobs: EagleImportJob[], value: number): { jobs: EagleImportJob[]; limit: number; selected: number; omittedByLimit: number; writable: number } {
   const limit = normalizeEagleImportLimit(value);
-  const limitedJobs = jobs.slice(0, limit);
+  let writable = 0;
+  const limitedJobs = jobs.filter(job => {
+    if (job.skipReason || job.preflightError) return true;
+    if (writable >= limit) return false;
+    writable += 1;
+    return true;
+  });
   return {
     jobs: limitedJobs,
     limit,
     selected: jobs.length,
     omittedByLimit: Math.max(0, jobs.length - limitedJobs.length),
+    writable,
   };
 }
 

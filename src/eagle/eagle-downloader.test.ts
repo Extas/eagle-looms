@@ -4,7 +4,7 @@ import { GalleryMeta } from '../download/gallery-meta';
 import { ADAPTER } from '../platform/adapt';
 import { i18n } from '../utils/i18n';
 import { clearSessionImportedAssets, duplicateQueries, hasPlannedAssetKey, isDuplicateItem, isSessionImported, markPlannedAssetKey, markSessionImported, stableKeyForAsset } from './duplicates';
-import { assertEagleLibraryUnchanged, EagleDownloader, eagleFolderTemplateForImport, eagleImportEndStage, eagleImportErrorMessage, eagleImportResultLinks, toAddItemInput } from './eagle-downloader';
+import { assertEagleLibraryUnchanged, EagleDownloader, eagleFolderTemplateForImport, eagleImportEndStage, eagleImportErrorMessage, eagleImportResultLinks, limitWritableImportJobs, toAddItemInput } from './eagle-downloader';
 import { EAGLE_IMPORT_DONE_STAGE, isReadyForEagleImport } from './import-readiness';
 import { EAGLE_RAW_RECORD_SCHEMA, type EagleRawRecord } from './raw-record';
 
@@ -177,6 +177,20 @@ describe('Eagle downloader duplicate checks', () => {
     expect(api.queryItems).toHaveBeenCalledTimes(4);
     expect(jobs[1].asset).toBeDefined();
     expect((jobs[1] as any).skipReason).toBe('session');
+  });
+
+  it('applies the import limit to writable items without letting duplicates consume it', () => {
+    const duplicate = { asset: eagleAsset('duplicate.jpg'), skipReason: 'duplicate' };
+    const first = { asset: eagleAsset('first.jpg') };
+    const second = { asset: eagleAsset('second.jpg') };
+    const failed = { asset: eagleAsset('failed.jpg'), preflightError: new Error('query failed') };
+
+    const plan = limitWritableImportJobs([duplicate, first, second, failed] as any, 1);
+
+    expect(plan.jobs).toEqual([duplicate, first, failed]);
+    expect(plan.writable).toBe(1);
+    expect(plan.omittedByLimit).toBe(1);
+    expect(plan.selected).toBe(4);
   });
 
   it('imports only fetched images that match the upstream DONE-and-data contract', () => {
