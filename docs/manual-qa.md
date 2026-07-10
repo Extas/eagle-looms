@@ -140,6 +140,7 @@ confirmation panel focuses the write button, keeps Tab focus inside the panel, r
 Cancel closes the confirmation without writing new Eagle items
 clicking either import button again while import/confirmation/write is active stops the pending import and closes the confirmation
 stopping during duplicate preflight prevents queued Eagle queries from reaching confirmation or write stages
+stopping while destination folders resolve prevents the pending item/add call and is not reported as an import failure
 Write to Eagle creates image items only, plus the destination folders required by those items
 final summary reports planned, imported, skipped, failed, and destination folders
 final result panel and copied diagnostics retain the target Eagle library name after the transient plan notification closes

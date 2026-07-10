@@ -476,6 +476,49 @@ describe('Eagle downloader duplicate checks', () => {
     clearSessionImportedAssets();
   });
 
+  it('stops after folder resolution without submitting the item write', async () => {
+    ADAPTER.conf = defaultConf();
+    const downloader = Object.assign(Object.create(EagleDownloader.prototype), {
+      importStopRequested: false,
+    }) as any;
+    downloader.folderIdsForJob = vi.fn().mockImplementation(async () => {
+      downloader.importStopRequested = true;
+      return ['folder-id'];
+    });
+    const api = {
+      baseUrl: 'http://localhost:41595',
+      addItem: vi.fn().mockResolvedValue('item-id'),
+    };
+    const stats = {
+      planned: 1,
+      imported: 0,
+      skipped: 0,
+      sessionSkipped: 0,
+      duplicateSkipped: 0,
+      failed: 0,
+      folders: [],
+      folderLinks: [],
+      itemLinks: [],
+      skippedItems: [],
+      failures: [],
+    };
+
+    await expect(downloader.writeJob(api, new Map(), {
+      asset: {
+        ...eagleAsset('source image.jpg'),
+        node: { authorUrls: [] },
+        meta: { authorUrls: [] },
+      },
+      folderPaths: [['Eagle Looms', 'site', 'date']],
+      folderKeys: ['Eagle Looms/site/date'],
+      folderKey: 'Eagle Looms/site/date',
+      preflightChecked: true,
+    }, stats, new Set())).rejects.toThrow('abort');
+
+    expect(api.addItem).not.toHaveBeenCalled();
+    expect(stats.failed).toBe(0);
+  });
+
   it('shows an item link when exactly one asset was actually imported', () => {
     const folderLinks = [{ label: 'Eagle Looms/site/date', url: 'http://localhost:41595/folder?id=folder' }];
     const itemLinks = [{ label: 'image.jpg', url: 'http://localhost:41595/item?id=item' }];

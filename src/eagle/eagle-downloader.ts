@@ -441,6 +441,7 @@ export class EagleDownloader extends Downloader {
   private async writeJob(api: EagleWebApi, folderIds: Map<string, string>, job: EagleImportJob, stats: EagleImportStats, usedNames: Set<string>): Promise<void> {
     const asset = job.asset;
     try {
+      this.assertImportActive();
       if (job.preflightError) throw job.preflightError;
       if (job.skipReason) {
         applySkippedJob(stats, job.skipReason, job.finalName || asset.name);
@@ -458,12 +459,14 @@ export class EagleDownloader extends Downloader {
       }
       asset.name = job.finalName || createEagleItemName(asset.name, usedNames);
       const jobFolderIds = await this.folderIdsForJob(api, folderIds, job, stats);
+      this.assertImportActive();
       const id = await api.addItem(toAddItemInput(asset, jobFolderIds));
       if (!id) throw new Error("Eagle did not return an item ID.");
       recordUniqueLink(stats.itemLinks, asset.name, eagleItemUrl(api, id));
       markSessionImported(asset);
       stats.imported += 1;
     } catch (error) {
+      if (this.importStopRequested || (error instanceof Error && error.message === "abort")) throw error;
       recordImportFailure(stats, job.finalName || asset.name, error);
     }
   }
@@ -480,14 +483,17 @@ export class EagleDownloader extends Downloader {
   }
 
   private async folderIdsForJob(api: EagleWebApi, folderIds: Map<string, string>, job: EagleImportJob, stats: EagleImportStats): Promise<string[]> {
+    this.assertImportActive();
     stats.folders.push(...job.folderKeys);
     const ids: string[] = [];
     for (let i = 0; i < job.folderPaths.length; i++) {
+      this.assertImportActive();
       const folderPath = job.folderPaths[i];
       const folderKey = job.folderKeys[i];
       let folderId = folderIds.get(folderKey);
       if (!folderId) {
         folderId = await ensureFolderPath(api, folderPath);
+        this.assertImportActive();
         folderIds.set(folderKey, folderId);
       }
       recordUniqueLink(stats.folderLinks, folderKey, eagleFolderUrl(api, folderId));
