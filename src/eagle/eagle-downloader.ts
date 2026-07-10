@@ -156,6 +156,7 @@ export class EagleDownloader extends Downloader {
       const jobs = importPlan.jobs;
       stats.planned = jobs.length;
       prepareWritableJobNames(jobs);
+      const organization = eaglePlanOrganization(folderTemplate, jobs);
       const plan = {
         folderTemplate,
         libraryName,
@@ -171,12 +172,8 @@ export class EagleDownloader extends Downloader {
         sessionSkipped: preflight.sessionSkipped,
         duplicateSkipped: preflight.duplicateSkipped,
         preflightFailed: preflight.failed,
-        folders: jobs.flatMap(job => job.folderKeys),
-        itemNameSamples: itemNameSamples(jobs),
+        ...organization,
         itemNamePolicy: itemNamePolicy(),
-        missingFolderTokens: missingFolderTokenCounts(folderTemplate, jobs),
-        fallbackFolderTokens: fallbackFolderTokenCounts(folderTemplate, jobs),
-        folderTokenSamples: folderTokenSamples(folderTemplate, jobs),
       };
       EBUS.emit("notify-message", "info", eaglePlanCompactSummary(plan), 8000);
       if (shouldConfirmImportPlan(plan)) {
@@ -274,6 +271,7 @@ export class EagleDownloader extends Downloader {
       const preflight = await this.preflightJobs(api, jobs);
       this.assertImportActive();
       prepareWritableJobNames(jobs);
+      const organization = eaglePlanOrganization(folderTemplate, jobs);
       const plan = {
         folderTemplate,
         libraryName,
@@ -286,12 +284,8 @@ export class EagleDownloader extends Downloader {
         sessionSkipped: preflight.sessionSkipped,
         duplicateSkipped: preflight.duplicateSkipped,
         preflightFailed: preflight.failed,
-        folders: jobs.flatMap(job => job.folderKeys),
-        itemNameSamples: itemNameSamples(jobs),
+        ...organization,
         itemNamePolicy: itemNamePolicy(),
-        missingFolderTokens: missingFolderTokenCounts(folderTemplate, jobs),
-        fallbackFolderTokens: fallbackFolderTokenCounts(folderTemplate, jobs),
-        folderTokenSamples: folderTokenSamples(folderTemplate, jobs),
       };
       EBUS.emit("notify-message", "info", eaglePlanCompactSummary(plan), 5000);
       if (shouldConfirmImportPlan(plan)) {
@@ -647,9 +641,18 @@ function eagleItemName(rawTitle: string, publishedAt?: string): string {
 }
 
 function itemNameSamples(jobs: EagleImportJob[]): string[] {
+  return jobs.map(job => job.finalName || job.asset.name);
+}
+
+function eaglePlanOrganization(folderTemplate: string, jobs: EagleImportJob[]) {
   const writable = jobs.filter(job => !job.skipReason && !job.preflightError);
-  const source = writable.length ? writable : jobs;
-  return source.map(job => job.finalName || job.asset.name);
+  return {
+    folders: writable.flatMap(job => job.folderKeys),
+    itemNameSamples: itemNameSamples(writable),
+    missingFolderTokens: missingFolderTokenCounts(folderTemplate, writable),
+    fallbackFolderTokens: fallbackFolderTokenCounts(folderTemplate, writable),
+    folderTokenSamples: folderTokenSamples(folderTemplate, writable),
+  };
 }
 
 function itemNamePolicy(): string {

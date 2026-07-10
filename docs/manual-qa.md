@@ -185,6 +185,7 @@ session and Eagle duplicate preflight skips
 missing folder metadata counts for used metadata tokens
 folder fallback counts when the optional Site / Copyright preset has to replace missing copyright
 sample resolved copyright/character/author values when present
+destination folders and folder metadata samples only describe items that will actually be written, not duplicates or preflight failures
 source tag limit and duplicate policy
 ```
 

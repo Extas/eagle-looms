@@ -470,6 +470,74 @@ describe('Eagle downloader duplicate checks', () => {
     );
   });
 
+  it('shows only writable destinations and metadata in the import plan', async () => {
+    const imf = { stage: EAGLE_IMPORT_DONE_STAGE, data: new Uint8Array([1]) };
+    const chapter = { title: 'Chapter 1', filteredQueue: [imf] };
+    const skippedAsset = {
+      ...eagleAsset('skipped.jpg'),
+      folderTokens: { site: 'site', gallery: '', chapter: '', copyright: 'old work' },
+    };
+    const writableAsset = {
+      ...eagleAsset('writable.jpg'),
+      sourceUrl: 'https://example.test/posts/writable',
+      originUrl: 'https://img.example.test/writable.jpg',
+      folderTokens: { site: 'site', gallery: '', chapter: '', copyright: 'new work' },
+    };
+    const jobs = [
+      {
+        asset: skippedAsset,
+        folderPaths: [['Eagle Looms', 'site', 'old work']],
+        folderKeys: ['Eagle Looms/site/old work'],
+        folderKey: 'Eagle Looms/site/old work',
+      },
+      {
+        asset: writableAsset,
+        folderPaths: [['Eagle Looms', 'site', 'new work']],
+        folderKeys: ['Eagle Looms/site/new work'],
+        folderKey: 'Eagle Looms/site/new work',
+      },
+    ];
+    const panel = {
+      flushUI: vi.fn(),
+      setImportProgress: vi.fn(),
+      confirmEagleImportPlan: vi.fn().mockResolvedValue(false),
+      showEagleImportResult: vi.fn(),
+    };
+    const downloader = Object.assign(Object.create(EagleDownloader.prototype), {
+      panel,
+      pageFetcher: { chapters: [chapter] },
+      meta: vi.fn().mockReturnValue({}),
+      assetsForChapter: vi.fn().mockReturnValue([skippedAsset, writableAsset]),
+      jobForAsset: vi.fn((_: string, asset: typeof skippedAsset) => jobs.find(job => job.asset === asset)),
+      preflightJobs: vi.fn().mockImplementation(async (_api, plannedJobs) => {
+        plannedJobs[0].skipReason = 'duplicate';
+        plannedJobs.forEach((job: { preflightChecked?: boolean }) => { job.preflightChecked = true; });
+        return { writable: 1, sessionSkipped: 0, duplicateSkipped: 1, failed: 0 };
+      }),
+      writeJob: vi.fn(),
+      abort: vi.fn(),
+      downloading: false,
+      done: false,
+    }) as any as EagleDownloader;
+    ADAPTER.conf = {
+      ...defaultConf(),
+      eagleFolderPath: 'Eagle Looms/{site}/{copyright}',
+      eagleConfirmMode: 'always',
+    };
+    eagleProbeMock.mockReset();
+    eagleProbeMock.mockResolvedValue({ library: { name: 'Test Library', path: 'D:/Test.library' } });
+
+    await downloader.importOne(0, 0);
+
+    expect(panel.confirmEagleImportPlan).toHaveBeenCalledTimes(1);
+    const [compact, , details] = panel.confirmEagleImportPlan.mock.calls[0];
+    expect(compact.join(' ')).toContain('Eagle Looms/site/new work');
+    expect(compact.join(' ')).not.toContain('Eagle Looms/site/old work');
+    expect(details.join(' ')).toContain('copyright new work');
+    expect(details.join(' ')).not.toContain('old work');
+    expect((downloader as any).writeJob).not.toHaveBeenCalled();
+  });
+
   it('adds a direct Eagle item link after a single-item write', async () => {
     clearSessionImportedAssets();
     ADAPTER.conf = defaultConf();
