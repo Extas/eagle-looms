@@ -227,3 +227,32 @@ export function cleanFolderName(value: string): string {
     .trim()
     .slice(0, 120);
 }
+
+export function collapseCharacterFolderValues(values: string[]): string[] {
+  const normalized = [...new Set(values.map(value => cleanFolderName(value.replace(/_+/g, " "))).filter(Boolean))]
+    .sort((a, b) => a.length - b.length || a.localeCompare(b));
+  const kept: string[] = [];
+  for (const value of normalized) {
+    const key = characterFolderKey(value);
+    if (!key || kept.some(existing => characterFolderKey(existing) === key)) continue;
+    const baseKey = qualifiedCharacterBaseKey(key);
+    if (baseKey && kept.some(existing => characterFolderKey(existing) === baseKey)) continue;
+    kept.push(value);
+  }
+  return kept;
+}
+
+function characterFolderKey(value: string): string {
+  return value
+    .toLowerCase()
+    .replace(/[_/\\-]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function qualifiedCharacterBaseKey(key: string): string {
+  const base = key
+    .replace(/\s*(?:(?:\([^)]*\)|\[[^\]]*]|\{[^}]*})\s*)+$/g, "")
+    .trim();
+  return base && base !== key ? base : "";
+}

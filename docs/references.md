@@ -60,6 +60,7 @@ Best-practice summary used by this project:
 
 ```text
 category/namespace tags are stable enough for identity and folder tokens
+character qualifiers may disambiguate different characters as well as variants, so fold a qualified tag only when its unqualified base is also present
 general/AI tags are useful for search but should be capped and kept out of default folder roots
 source metadata should be parsed before deriving visible Eagle organization
 avoid creating per-gallery or per-author tag groups by default

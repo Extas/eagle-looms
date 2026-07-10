@@ -190,7 +190,8 @@ multiple copyright values choose the shortest normalized folder value
 default Site / Import date preset uses the local date captured when import starts, even when source publication metadata exists
 optional Site / Copyright preset falls back to gallery, author, chapter, then Unsorted when copyright is missing
 templates using {character} add the same image to multiple character folders when distinct characters exist
-longer outfit-style character variants fold into the shorter character name
+explicitly qualified character variants fold only when the unqualified base character is present
+qualified disambiguations such as same-name characters from different works remain separate folders
 ```
 
 Duplicate behavior:

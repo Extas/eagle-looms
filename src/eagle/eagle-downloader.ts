@@ -10,7 +10,7 @@ import EBUS from "../event-bus";
 import { EagleWebApi, AddItemInput } from "./eagle-web-api";
 import { ensureFolderPath } from "./folders";
 import { arrayBufferToBase64 } from "./transport";
-import { EAGLE_FOLDER_PRESET_TEMPLATES, EagleFolderTokens, normalizeEagleBaseUrl, normalizeEagleFolderTemplate, normalizeEagleImportLimit, resolveEagleFolderPaths } from "./options";
+import { collapseCharacterFolderValues, EAGLE_FOLDER_PRESET_TEMPLATES, EagleFolderTokens, normalizeEagleBaseUrl, normalizeEagleFolderTemplate, normalizeEagleImportLimit, resolveEagleFolderPaths } from "./options";
 import { duplicateQueries, hasPlannedAssetKey, isDuplicateItem, isSessionImported, markPlannedAssetKey, markSessionImported } from "./duplicates";
 import { normalizeEagleItemTags, normalizeEagleTags, semanticSourceTags, sourcePublishedAtTags, sourceTagsFromGalleryMeta } from "./tags";
 import { isReadyForEagleImport } from "./import-readiness";
@@ -582,7 +582,7 @@ function eagleSourceTags(imf: IMGFetcher, meta: GalleryMeta): string[] {
 
 function eagleFolderTokens(tags: string[], meta: GalleryMeta, chapter: Chapter, chapterDirectory: string, importDate: string): EagleFolderTokens {
   const copyrights = tagValues(tags, "copyright");
-  const characters = collapseCharacterValues(tagValues(tags, "character"));
+  const characters = collapseCharacterFolderValues(tagValues(tags, "character"));
   const authors = tagValues(tags, "author");
   return {
     site: ADAPTER.matcher?.name || location.hostname,
@@ -609,29 +609,6 @@ function tagValues(tags: string[], prefix: "copyright" | "character" | "author")
 
 function shortestTagValue(values: string[]): string {
   return values[0] || "";
-}
-
-function collapseCharacterValues(values: string[]): string[] {
-  const kept: string[] = [];
-  for (const value of values) {
-    const valueKey = characterVariantKey(value);
-    if (!valueKey) continue;
-    const hasBaseCharacter = kept.some(existing => {
-      const existingKey = characterVariantKey(existing);
-      return valueKey === existingKey || valueKey.startsWith(`${existingKey} `);
-    });
-    if (!hasBaseCharacter) kept.push(value);
-  }
-  return kept;
-}
-
-function characterVariantKey(value: string): string {
-  return value
-    .toLowerCase()
-    .replace(/\([^)]*\)|\[[^\]]*]|\{[^}]*}/g, " ")
-    .replace(/[_/\\-]+/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
 }
 
 function usedNamesForFolder(folderNames: Map<string, Set<string>>, folderKey: string): Set<string> {

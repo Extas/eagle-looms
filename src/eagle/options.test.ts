@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { DEFAULT_EAGLE_FOLDER_TEMPLATE, eagleFolderPresetForTemplate, eagleFolderTemplateForPreset, normalizeEagleBaseUrl, normalizeEagleBoolean, normalizeEagleConfigPatch, normalizeEagleConfirmMode, normalizeEagleConfirmThreshold, normalizeEagleFolderPreset, normalizeEagleFolderTemplate, normalizeEagleImportLimit, normalizeEagleMaxSourceTags, resolveEagleFolderPath, resolveEagleFolderPaths } from './options';
+import { collapseCharacterFolderValues, DEFAULT_EAGLE_FOLDER_TEMPLATE, eagleFolderPresetForTemplate, eagleFolderTemplateForPreset, normalizeEagleBaseUrl, normalizeEagleBoolean, normalizeEagleConfigPatch, normalizeEagleConfirmMode, normalizeEagleConfirmThreshold, normalizeEagleFolderPreset, normalizeEagleFolderTemplate, normalizeEagleImportLimit, normalizeEagleMaxSourceTags, resolveEagleFolderPath, resolveEagleFolderPaths } from './options';
 
 describe('Eagle options', () => {
   it('normalizes Eagle API URL input to an origin', () => {
@@ -60,6 +60,28 @@ describe('Eagle options', () => {
     })).toEqual([
       ['Eagle Looms', 'anime-pictures.net', 'bang dream', 'tomori takamatsu'],
       ['Eagle Looms', 'anime-pictures.net', 'bang dream', 'anon chihaya'],
+    ]);
+  });
+
+  it('folds explicit character variants only when the unqualified base character exists', () => {
+    expect(collapseCharacterFolderValues([
+      'hakurei_reimu_(pc-98)',
+      'hakurei_reimu',
+      'hakurei_reimu_[alternate_costume]',
+    ])).toEqual(['hakurei reimu']);
+  });
+
+  it('keeps qualified characters used for disambiguation and similar name prefixes separate', () => {
+    expect(collapseCharacterFolderValues([
+      'shimakaze_(kancolle)',
+      'shimakaze_(azur_lane)',
+      'rem',
+      'remilia_scarlet',
+    ])).toEqual([
+      'rem',
+      'remilia scarlet',
+      'shimakaze (kancolle)',
+      'shimakaze (azur lane)',
     ]);
   });
 
