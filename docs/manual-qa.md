@@ -85,7 +85,7 @@ Eagle import preview updates after changing folder preset/path or source tag lim
 Eagle import preview shows folder preset, saved folder rule, and example resolved folders as separate rows
 Eagle import preview shows batch limit and duplicate policy
 Eagle import preview shows confirmation policy, including auto threshold, always, or never
-Eagle import preview explains source fields: website stores the source page, url stores the original image, duplicate checks use source/original URL and legacy keys
+Eagle import preview explains the observed V2 result: source page is the visible Eagle link; original identity and collected author URLs are retained when available; duplicate checks use source/original identity
 Eagle import preview explains visible tag priority: copyright:/character:/author: first, then other source tags within the cap
 Eagle import preview explains that source:published:* is retained independently of the source tag cap
 Eagle import preview shows whether the current tab uses global settings, inherits global Eagle settings, or overrides specific Eagle fields

@@ -239,8 +239,9 @@ describe("ConfigPanel Eagle preview", () => {
     const preview = panel.panel.querySelector<HTMLElement>("#eagle-config-preview")!;
 
     expect(preview.textContent).toContain(i18n.eagleConfigPreviewSourceFields.get());
-    expect(preview.textContent).toContain("website = source page");
-    expect(preview.textContent).toContain("url = original image");
+    expect(preview.textContent).toContain("source page = visible Eagle link");
+    expect(preview.textContent).toContain("author URLs are retained when available");
+    expect(preview.textContent).toContain("duplicates use source/original identity");
   });
 
   it("shows the folder preset, saved rule, and example folders separately", () => {
