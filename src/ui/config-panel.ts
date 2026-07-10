@@ -1,7 +1,7 @@
 import { clearSiteConfigKeys, Config, ConfigBooleanType, ConfigTextType, ConfigItem, ConfigItems, ConfigNumberType, ConfigSelectType, defaultConf, resetConf } from "../config";
 import { EagleWebApi } from "../eagle/eagle-web-api";
 import { localDatePrefix } from "../eagle/naming";
-import { findUnknownEagleFolderTokens, resolveEagleFolderPaths } from "../eagle/options";
+import { findUnknownEagleFolderTokens, hasMalformedEagleFolderTokenSyntax, resolveEagleFolderPaths } from "../eagle/options";
 import { ADAPTER } from "../platform/adapt";
 import { I18nValue, i18n } from "../utils/i18n";
 import q from "../utils/query-element";
@@ -327,8 +327,12 @@ function eagleConfigPreviewHTML(): string {
     .replace("{duplicates}", conf.eagleSkipDuplicates ? i18n.eagleConfigPreviewSkipDuplicates.get() : i18n.eagleConfigPreviewAddDuplicates.get());
   const confirmPolicy = eagleConfirmPolicyText(conf.eagleConfirmMode, conf.eagleConfirmThreshold);
   const unknownFolderTokens = findUnknownEagleFolderTokens(conf.eagleFolderPath);
-  const folderWarning = unknownFolderTokens.length
-    ? `<div class="eagle-config-warning" role="alert"><b>${escapeHTML(i18n.eagleConfigFolderWarning.get())}</b><span>${escapeHTML(i18n.eagleConfigUnknownFolderTokens.get().replace("{tokens}", unknownFolderTokens.join(", ")))}</span></div>`
+  const folderWarnings = [
+    unknownFolderTokens.length ? i18n.eagleConfigUnknownFolderTokens.get().replace("{tokens}", unknownFolderTokens.join(", ")) : "",
+    hasMalformedEagleFolderTokenSyntax(conf.eagleFolderPath) ? i18n.eagleConfigMalformedFolderTokens.get() : "",
+  ].filter(Boolean);
+  const folderWarning = folderWarnings.length
+    ? `<div class="eagle-config-warning" role="alert"><b>${escapeHTML(i18n.eagleConfigFolderWarning.get())}</b><span>${escapeHTML(folderWarnings.join(" "))}</span></div>`
     : "";
   const useGlobalButton = eagleConfigHasSiteOverrides()
     ? `<button type="button" id="eagle-config-use-global" class="ehvp-custom-btn ehvp-custom-btn-plain">${escapeHTML(i18n.eagleConfigUseGlobal.get())}</button>`

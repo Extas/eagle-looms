@@ -91,6 +91,7 @@ settings persist after reload
 manual folder path edits switch preset to Custom path
 matching saved paths infer the correct built-in preset
 unknown custom folder tokens show a warning before import and remain visible in the example path
+unmatched or nested braces in custom folder tokens show a warning before import
 ```
 
 ## E2E Import Flow

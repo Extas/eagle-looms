@@ -118,6 +118,21 @@ export function findUnknownEagleFolderTokens(value: unknown): string[] {
     .filter(token => !EAGLE_FOLDER_TOKENS.has(token));
 }
 
+export function hasMalformedEagleFolderTokenSyntax(value: unknown): boolean {
+  if (typeof value !== "string") return false;
+  let open = false;
+  for (const character of value) {
+    if (character === "{") {
+      if (open) return true;
+      open = true;
+    } else if (character === "}") {
+      if (!open) return true;
+      open = false;
+    }
+  }
+  return open;
+}
+
 export function normalizeEagleImportLimit(value: unknown): number {
   const parsed = Math.trunc(Number(value));
   if (!Number.isFinite(parsed)) return DEFAULT_EAGLE_IMPORT_LIMIT;

@@ -184,6 +184,15 @@ describe("ConfigPanel Eagle preview", () => {
     expect(warning.textContent).toContain(i18n.eagleConfigFolderWarning.get());
   });
 
+  it("warns before import when a custom folder rule has malformed token braces", () => {
+    ADAPTER.globalConf.eagleFolderPreset = "custom";
+    ADAPTER.globalConf.eagleFolderPath = "Eagle Looms/{site/{date}";
+    const panel = createPanel();
+    const warning = panel.panel.querySelector<HTMLElement>(".eagle-config-warning")!;
+
+    expect(warning.textContent).toContain(i18n.eagleConfigMalformedFolderTokens.get());
+  });
+
   it("keeps exactly one Eagle preview after switching config scope", () => {
     const panel = createPanel();
     const siteTab = panel.configSelect.querySelector<HTMLElement>('[data-value="test-site"]')!;

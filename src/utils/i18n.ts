@@ -668,6 +668,12 @@ pero desactivará la lupa y la capacidad de arrastrar y mover imágenes.`,
     'Unknown tokens: {tokens}. Eagle will create them as literal folder names.',
     'Variables desconocidas: {tokens}. Eagle las creara como nombres literales.',
   ],
+  eagleConfigMalformedFolderTokens: [
+    'Folder tokens contain unmatched or nested braces. Eagle will use them literally.',
+    '文件夹变量包含未配对或嵌套的大括号。Eagle 会将其作为普通文件夹名称处理。',
+    'Folder tokens contain unmatched or nested braces. Eagle will use them literally.',
+    'Las variables contienen llaves sin pareja o anidadas. Eagle las usara literalmente.',
+  ],
   eagleConfigPreviewNames: [
     'Item names',
     '文件名',

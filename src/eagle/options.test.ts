@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { cleanFolderTagValue, collapseCharacterFolderValues, DEFAULT_EAGLE_FOLDER_TEMPLATE, eagleFolderPresetForTemplate, eagleFolderTemplateForPreset, findUnknownEagleFolderTokens, normalizeEagleBaseUrl, normalizeEagleBoolean, normalizeEagleConfigPatch, normalizeEagleConfirmMode, normalizeEagleConfirmThreshold, normalizeEagleFolderPreset, normalizeEagleFolderTemplate, normalizeEagleImportLimit, normalizeEagleMaxSourceTags, resolveEagleFolderPath, resolveEagleFolderPaths } from './options';
+import { cleanFolderTagValue, collapseCharacterFolderValues, DEFAULT_EAGLE_FOLDER_TEMPLATE, eagleFolderPresetForTemplate, eagleFolderTemplateForPreset, findUnknownEagleFolderTokens, hasMalformedEagleFolderTokenSyntax, normalizeEagleBaseUrl, normalizeEagleBoolean, normalizeEagleConfigPatch, normalizeEagleConfirmMode, normalizeEagleConfirmThreshold, normalizeEagleFolderPreset, normalizeEagleFolderTemplate, normalizeEagleImportLimit, normalizeEagleMaxSourceTags, resolveEagleFolderPath, resolveEagleFolderPaths } from './options';
 
 describe('Eagle options', () => {
   it('normalizes Eagle API URL input to an origin', () => {
@@ -33,6 +33,13 @@ describe('Eagle options', () => {
   it('reports unsupported folder tokens without rejecting custom literal folders', () => {
     expect(findUnknownEagleFolderTokens('Eagle Looms/{site}/{data}/{site}/{}')).toEqual(['{data}', '{}']);
     expect(findUnknownEagleFolderTokens('Eagle Looms/{site}/{date}/{author}')).toEqual([]);
+  });
+
+  it('detects unmatched and nested folder token braces', () => {
+    expect(hasMalformedEagleFolderTokenSyntax('Eagle Looms/{site}/{date}')).toBe(false);
+    expect(hasMalformedEagleFolderTokenSyntax('Eagle Looms/{site/{date}}')).toBe(true);
+    expect(hasMalformedEagleFolderTokenSyntax('Eagle Looms/{site')).toBe(true);
+    expect(hasMalformedEagleFolderTokenSyntax('Eagle Looms/site}')).toBe(true);
   });
 
   it('normalizes folder presets and exposes their templates', () => {
