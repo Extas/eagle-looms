@@ -112,6 +112,7 @@ Cherry Pick range actions use the current UI language for pick, exclude, and cle
 chapter range actions use the current UI language for select all, unselect all, and add new chapters
 chapter titles in the range selector render as plain text, even when the source page title contains HTML-like markup
 Config preview makes Eagle API URL, folder template, duplicate policy, source tag cap, and config scope visible before import
+every import preflight summary identifies the currently open target Eagle library, including auto-confirmed small imports
 Load missing & import loads selected gray missing images first, then writes loaded images to Eagle
 Import loaded only uses the same Eagle preflight, confirmation, duplicate handling, and stop behavior as Load missing & import, but only writes green loaded images and does not fetch additional images
 Eagle preflight checks duplicates and resolves destination folders before writing

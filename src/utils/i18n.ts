@@ -818,6 +818,12 @@ pero desactivará la lupa y la capacidad de arrastrar y mover imágenes.`,
     'Eagle import plan',
     'Plan de importacion Eagle',
   ],
+  eaglePlanLibrary: [
+    'library {value}',
+    '资料库 {value}',
+    'library {value}',
+    'biblioteca {value}',
+  ],
   eagleSummaryNoNewItems: [
     'no new items',
     '没有新项目',

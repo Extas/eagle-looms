@@ -1,5 +1,5 @@
 import { clearSiteConfigKeys, Config, ConfigBooleanType, ConfigTextType, ConfigItem, ConfigItems, ConfigNumberType, ConfigSelectType, defaultConf, resetConf } from "../config";
-import { EagleWebApi } from "../eagle/eagle-web-api";
+import { EagleWebApi, extractEagleLibraryName } from "../eagle/eagle-web-api";
 import { localDatePrefix } from "../eagle/naming";
 import { displayEagleBaseUrl, findUnknownEagleFolderTokens, hasMalformedEagleFolderTokenSyntax, resolveEagleFolderPaths, tryNormalizeEagleBaseUrl } from "../eagle/options";
 import { ADAPTER } from "../platform/adapt";
@@ -475,9 +475,7 @@ function eagleVersion(value: unknown): string {
 }
 
 function eagleLibraryName(value: unknown): string {
-  if (!value || typeof value !== "object") return i18n.eagleConfigUnknownLibrary.get();
-  const data = value as { name?: unknown; data?: { name?: unknown } };
-  return String(data.name || data.data?.name || i18n.eagleConfigUnknownLibrary.get());
+  return extractEagleLibraryName(value) || i18n.eagleConfigUnknownLibrary.get();
 }
 
 function errorMessage(error: unknown): string {

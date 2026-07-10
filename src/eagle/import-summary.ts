@@ -15,6 +15,7 @@ export type EagleImportSummaryStats = {
 
 export type EagleImportPlan = {
   folderTemplate: string;
+  libraryName?: string;
   explicitConfirm?: boolean;
   confirmMode?: EagleConfirmMode;
   confirmThreshold?: number;
@@ -123,6 +124,7 @@ export function eaglePlanHeadline(plan: EagleImportPlan): string {
 
 export function eaglePlanSummaryParts(plan: EagleImportPlan): string[] {
   const parts = [];
+  if (plan.libraryName) parts.push(format(i18n.eaglePlanLibrary.get(), { value: plan.libraryName }));
   if (plan.selected !== undefined && plan.planned !== undefined && plan.selected !== plan.planned) {
     parts.push(format(i18n.eaglePlanSelected.get(), { count: plan.selected }));
   }
@@ -183,6 +185,7 @@ export function eaglePlanSummaryParts(plan: EagleImportPlan): string[] {
 
 export function eaglePlanCompactParts(plan: EagleImportPlan): string[] {
   const parts = [];
+  if (plan.libraryName) parts.push(format(i18n.eaglePlanLibrary.get(), { value: plan.libraryName }));
   const writable = plan.writable ?? plan.planned ?? 0;
   parts.push(format(i18n.eaglePlanWillWrite.get(), { count: writable }));
   const folders = unique(plan.folders || []).slice(0, MAX_COMPACT_FOLDERS);

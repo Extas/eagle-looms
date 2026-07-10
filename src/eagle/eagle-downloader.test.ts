@@ -17,6 +17,7 @@ vi.mock("$", () => ({
 }));
 
 vi.mock("./eagle-web-api", () => ({
+  extractEagleLibraryName: (value: any) => value?.name || value?.data?.name || '',
   EagleWebApi: class EagleWebApi {
     readonly baseUrl: string;
 

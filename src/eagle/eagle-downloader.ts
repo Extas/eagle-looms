@@ -7,7 +7,7 @@ import { FetchState, IMGFetcher } from "../img-fetcher";
 import type ImageNode from "../img-node";
 import { SubData } from "../platform/platform";
 import EBUS from "../event-bus";
-import { EagleWebApi, AddItemInput } from "./eagle-web-api";
+import { EagleWebApi, AddItemInput, extractEagleLibraryName } from "./eagle-web-api";
 import { ensureFolderPath } from "./folders";
 import { arrayBufferToBase64 } from "./transport";
 import { cleanFolderTagValue, collapseCharacterFolderValues, EAGLE_FOLDER_PRESET_TEMPLATES, EagleFolderTokens, hasMalformedEagleFolderTokenSyntax, normalizeEagleBaseUrl, normalizeEagleFolderTemplate, normalizeEagleImportLimit, resolveEagleFolderPaths } from "./options";
@@ -147,7 +147,8 @@ export class EagleDownloader extends Downloader {
       }
       const api = new EagleWebApi(normalizeEagleBaseUrl(ADAPTER.conf.eagleBaseUrl));
       this.panel.setImportProgress(i18n.eagleImportCheckingEagle.get());
-      await api.probe();
+      const connection = await api.probe();
+      const libraryName = extractEagleLibraryName(connection.library) || i18n.eagleConfigUnknownLibrary.get();
       if (ADAPTER.conf.eagleSkipDuplicates && jobs.length > 1) {
         EBUS.emit("notify-message", "info", i18n.eagleImportCheckingDuplicates.get(), 4000);
       }
@@ -155,6 +156,7 @@ export class EagleDownloader extends Downloader {
       prepareWritableJobNames(jobs);
       const plan = {
         folderTemplate,
+        libraryName,
         importLimit: importPlan.limit,
         sourceTagLimit: ADAPTER.conf.eagleMaxSourceTags,
         skipDuplicates: ADAPTER.conf.eagleSkipDuplicates,
@@ -252,7 +254,8 @@ export class EagleDownloader extends Downloader {
       const folderTemplate = eagleFolderTemplateForImport(ADAPTER.conf.eagleFolderPath);
       const api = new EagleWebApi(normalizeEagleBaseUrl(ADAPTER.conf.eagleBaseUrl));
       this.panel.setImportProgress(i18n.eagleImportCheckingEagle.get());
-      await api.probe();
+      const connection = await api.probe();
+      const libraryName = extractEagleLibraryName(connection.library) || i18n.eagleConfigUnknownLibrary.get();
       const chapterTitle = safeTitle(titleToString(chapter.title));
       const singleChapter = this.pageFetcher.chapters.length === 1;
       const importDate = localDatePrefix();
@@ -266,6 +269,7 @@ export class EagleDownloader extends Downloader {
       prepareWritableJobNames(jobs);
       const plan = {
         folderTemplate,
+        libraryName,
         sourceTagLimit: ADAPTER.conf.eagleMaxSourceTags,
         skipDuplicates: ADAPTER.conf.eagleSkipDuplicates,
         confirmMode: ADAPTER.conf.eagleConfirmMode,

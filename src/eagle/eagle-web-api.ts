@@ -190,3 +190,10 @@ export function extractEagleItemId(payload: unknown): string {
   if (item.data) return extractEagleItemId(item.data);
   return '';
 }
+
+export function extractEagleLibraryName(payload: unknown): string {
+  if (!payload || typeof payload !== 'object') return '';
+  const value = payload as { name?: unknown; data?: unknown };
+  if (typeof value.name === 'string' && value.name.trim()) return value.name.trim();
+  return value.data ? extractEagleLibraryName(value.data) : '';
+}
