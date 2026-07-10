@@ -674,6 +674,12 @@ pero desactivará la lupa y la capacidad de arrastrar y mover imágenes.`,
     'Folder tokens contain unmatched or nested braces. Eagle will use them literally.',
     'Las variables contienen llaves sin pareja o anidadas. Eagle las usara literalmente.',
   ],
+  eagleImportMalformedFolderRule: [
+    'Eagle folder rule has unmatched or nested braces. Correct Eagle Folder Path in Config before importing.',
+    'Eagle 文件夹规则包含未配对或嵌套的大括号。请先在配置中修正 Eagle 文件夹路径。',
+    'Eagle folder rule has unmatched or nested braces. Correct Eagle Folder Path in Config before importing.',
+    'La regla de carpeta tiene llaves sin pareja o anidadas. Corrige la ruta Eagle antes de importar.',
+  ],
   eagleConfigPreviewNames: [
     'Item names',
     '文件名',

@@ -10,7 +10,7 @@ import EBUS from "../event-bus";
 import { EagleWebApi, AddItemInput } from "./eagle-web-api";
 import { ensureFolderPath } from "./folders";
 import { arrayBufferToBase64 } from "./transport";
-import { cleanFolderTagValue, collapseCharacterFolderValues, EAGLE_FOLDER_PRESET_TEMPLATES, EagleFolderTokens, normalizeEagleBaseUrl, normalizeEagleFolderTemplate, normalizeEagleImportLimit, resolveEagleFolderPaths } from "./options";
+import { cleanFolderTagValue, collapseCharacterFolderValues, EAGLE_FOLDER_PRESET_TEMPLATES, EagleFolderTokens, hasMalformedEagleFolderTokenSyntax, normalizeEagleBaseUrl, normalizeEagleFolderTemplate, normalizeEagleImportLimit, resolveEagleFolderPaths } from "./options";
 import { duplicateQueries, hasPlannedAssetKey, isDuplicateItem, isSessionImported, markPlannedAssetKey, markSessionImported } from "./duplicates";
 import { normalizeEagleItemTags, normalizeEagleTags, semanticSourceTags, sourcePublishedAtTags, sourceTagsFromGalleryMeta } from "./tags";
 import { isReadyForEagleImport } from "./import-readiness";
@@ -121,7 +121,7 @@ export class EagleDownloader extends Downloader {
     try {
       this.panel.flushUI("packaging");
       const singleChapter = chapters.length === 1;
-      const folderTemplate = normalizeEagleFolderTemplate(ADAPTER.conf.eagleFolderPath);
+      const folderTemplate = eagleFolderTemplateForImport(ADAPTER.conf.eagleFolderPath);
       const importDate = localDatePrefix();
       const selectedJobs: EagleImportJob[] = [];
 
@@ -246,12 +246,12 @@ export class EagleDownloader extends Downloader {
       }
 
       this.panel.flushUI("packaging");
+      const folderTemplate = eagleFolderTemplateForImport(ADAPTER.conf.eagleFolderPath);
       const api = new EagleWebApi(normalizeEagleBaseUrl(ADAPTER.conf.eagleBaseUrl));
       this.panel.setImportProgress(i18n.eagleImportCheckingEagle.get());
       await api.probe();
       const chapterTitle = safeTitle(titleToString(chapter.title));
       const singleChapter = this.pageFetcher.chapters.length === 1;
-      const folderTemplate = normalizeEagleFolderTemplate(ADAPTER.conf.eagleFolderPath);
       const importDate = localDatePrefix();
       const folderIds = new Map<string, string>();
       const folderNames = new Map<string, Set<string>>();
@@ -510,6 +510,14 @@ export function eagleImportErrorMessage(error: unknown): string {
     return format(i18n.eagleImportApiTimedOut.get(), { message });
   }
   return message;
+}
+
+export function eagleFolderTemplateForImport(value: unknown): string {
+  const template = normalizeEagleFolderTemplate(value);
+  if (hasMalformedEagleFolderTokenSyntax(template)) {
+    throw new Error(i18n.eagleImportMalformedFolderRule.get());
+  }
+  return template;
 }
 
 function recordResultLink(stats: EagleImportStats, label: string, url: string): void {

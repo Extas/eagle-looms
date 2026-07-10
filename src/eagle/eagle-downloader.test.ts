@@ -4,7 +4,7 @@ import { GalleryMeta } from '../download/gallery-meta';
 import { ADAPTER } from '../platform/adapt';
 import { i18n } from '../utils/i18n';
 import { clearSessionImportedAssets, duplicateQueries, hasPlannedAssetKey, isDuplicateItem, isSessionImported, markPlannedAssetKey, markSessionImported, stableKeyForAsset } from './duplicates';
-import { EagleDownloader, eagleImportEndStage, eagleImportErrorMessage, toAddItemInput } from './eagle-downloader';
+import { EagleDownloader, eagleFolderTemplateForImport, eagleImportEndStage, eagleImportErrorMessage, toAddItemInput } from './eagle-downloader';
 import { EAGLE_IMPORT_DONE_STAGE, isReadyForEagleImport } from './import-readiness';
 import { EAGLE_RAW_RECORD_SCHEMA, type EagleRawRecord } from './raw-record';
 
@@ -195,6 +195,37 @@ describe('Eagle downloader duplicate checks', () => {
     expect(eagleImportErrorMessage(new Error('0 network error'))).toContain('Cannot reach Eagle Web API');
     expect(eagleImportErrorMessage(new Error('request timed out'))).toContain('Eagle Web API timed out');
     expect(eagleImportErrorMessage(new Error('403 Forbidden'))).toBe('403 Forbidden');
+  });
+
+  it('rejects malformed folder rules before an Eagle write can create literal brace folders', () => {
+    expect(eagleFolderTemplateForImport('Eagle Looms/{site}/{date}')).toBe('Eagle Looms/{site}/{date}');
+    expect(() => eagleFolderTemplateForImport('Eagle Looms/{site/{date}')).toThrow(i18n.eagleImportMalformedFolderRule.get());
+  });
+
+  it('reports a malformed current-image folder rule before connecting to Eagle', async () => {
+    const imf = { stage: EAGLE_IMPORT_DONE_STAGE, data: new Uint8Array([1]) };
+    const panel = {
+      flushUI: vi.fn(),
+      showEagleImportResult: vi.fn(),
+    };
+    const downloader = Object.assign(Object.create(EagleDownloader.prototype), {
+      panel,
+      pageFetcher: { chapters: [{ title: 'Chapter', filteredQueue: [imf] }] },
+      abort: vi.fn(),
+      downloading: false,
+      done: false,
+    }) as EagleDownloader;
+    ADAPTER.conf = { ...defaultConf(), eagleFolderPath: 'Eagle Looms/{site/{date}' };
+    eagleProbeMock.mockReset();
+
+    await downloader.importOne(0, 0);
+
+    expect(eagleProbeMock).not.toHaveBeenCalled();
+    expect(panel.showEagleImportResult).toHaveBeenCalledWith(
+      expect.arrayContaining([expect.stringContaining(i18n.eagleImportMalformedFolderRule.get())]),
+      true,
+      [],
+    );
   });
 
   it('writes collected author URLs into Eagle item annotations', () => {

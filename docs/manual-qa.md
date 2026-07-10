@@ -92,6 +92,7 @@ manual folder path edits switch preset to Custom path
 matching saved paths infer the correct built-in preset
 unknown custom folder tokens show a warning before import and remain visible in the example path
 unmatched or nested braces in custom folder tokens show a warning before import
+malformed folder-token braces stop bulk and current-image imports before Eagle connection or folder creation
 ```
 
 ## E2E Import Flow
