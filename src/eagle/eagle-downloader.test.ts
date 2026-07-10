@@ -349,6 +349,52 @@ describe('Eagle downloader duplicate checks', () => {
     );
   });
 
+  it('adds a direct Eagle item link after a single-item write', async () => {
+    clearSessionImportedAssets();
+    ADAPTER.conf = defaultConf();
+    const downloader = Object.assign(Object.create(EagleDownloader.prototype), {
+      folderIdsForJob: vi.fn().mockResolvedValue(['folder-id']),
+    }) as any;
+    const api = {
+      baseUrl: 'http://localhost:41595',
+      addItem: vi.fn().mockResolvedValue('item-id'),
+    };
+    const assetWithMeta = {
+      ...eagleAsset('source image.jpg'),
+      node: { authorUrls: [] },
+      meta: { authorUrls: [] },
+    };
+    const stats = {
+      planned: 1,
+      imported: 0,
+      skipped: 0,
+      sessionSkipped: 0,
+      duplicateSkipped: 0,
+      failed: 0,
+      folders: [],
+      links: [],
+      skippedItems: [],
+      failures: [],
+    };
+
+    await downloader.writeJob(api, {
+      get: vi.fn(),
+    }, {
+      asset: assetWithMeta,
+      folderPaths: [['Eagle Looms', 'site', '2026-07-11']],
+      folderKeys: ['Eagle Looms/site/2026-07-11'],
+      folderKey: 'Eagle Looms/site/2026-07-11',
+      preflightChecked: true,
+    }, stats, new Set());
+
+    expect(stats.imported).toBe(1);
+    expect(stats.links).toContainEqual({
+      label: 'source image.jpg',
+      url: 'http://localhost:41595/item?id=item-id',
+    });
+    clearSessionImportedAssets();
+  });
+
   it('shows a result-panel error when current-image import has no image target', async () => {
     const panel = {
       showEagleImportResult: vi.fn(),
