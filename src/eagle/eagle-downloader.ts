@@ -151,6 +151,7 @@ export class EagleDownloader extends Downloader {
         EBUS.emit("notify-message", "info", i18n.eagleImportCheckingDuplicates.get(), 4000);
       }
       const preflight = await this.preflightJobs(api, selectedJobs);
+      this.assertImportActive();
       const importPlan = limitWritableImportJobs(selectedJobs, ADAPTER.conf.eagleImportLimit);
       const jobs = importPlan.jobs;
       stats.planned = jobs.length;
@@ -269,6 +270,7 @@ export class EagleDownloader extends Downloader {
       if (assets.length === 0) throw new Error(i18n.eagleImportCurrentNotReady.get());
       const jobs = assets.map(asset => this.jobForAsset(folderTemplate, asset));
       const preflight = await this.preflightJobs(api, jobs);
+      this.assertImportActive();
       prepareWritableJobNames(jobs);
       const plan = {
         folderTemplate,
@@ -371,13 +373,16 @@ export class EagleDownloader extends Downloader {
 
   private async isDuplicate(api: EagleWebApi, asset: EagleImportAsset): Promise<boolean> {
     for (const query of duplicateQueries(asset)) {
+      this.assertImportActive();
       const items = await api.queryItems(query, 20);
+      this.assertImportActive();
       if (items.some(item => isDuplicateItem(item, asset))) return true;
     }
     return false;
   }
 
   private async preflightJobs(api: EagleWebApi, jobs: EagleImportJob[]): Promise<EagleImportPreflight> {
+    this.assertImportActive();
     const preflight: EagleImportPreflight = { writable: 0, sessionSkipped: 0, duplicateSkipped: 0, failed: 0 };
     const plannedKeys = new Set<string>();
     const candidates: EagleImportJob[] = [];
@@ -385,6 +390,7 @@ export class EagleDownloader extends Downloader {
     const reportProgress = () => this.panel.setImportProgress(i18n.eagleImportCheckingEagle.get(), checked, jobs.length);
 
     for (const job of jobs) {
+      this.assertImportActive();
       job.preflightChecked = true;
       if (hasPlannedAssetKey(job.asset, plannedKeys) || isSessionImported(job.asset)) {
         job.skipReason = "session";
@@ -398,6 +404,7 @@ export class EagleDownloader extends Downloader {
     reportProgress();
 
     if (!ADAPTER.conf.eagleSkipDuplicates) {
+      this.assertImportActive();
       preflight.writable = candidates.length;
       checked += candidates.length;
       reportProgress();
@@ -407,21 +414,28 @@ export class EagleDownloader extends Downloader {
     const limit = pLimit(EAGLE_DUPLICATE_CHECK_CONCURRENCY);
     await Promise.all(candidates.map(job => limit(async () => {
       try {
+        this.assertImportActive();
         if (await this.isDuplicate(api, job.asset)) {
           job.skipReason = "duplicate";
           preflight.duplicateSkipped += 1;
         } else {
           preflight.writable += 1;
         }
+        this.assertImportActive();
       } catch (error) {
+        if (this.importStopRequested || (error instanceof Error && error.message === "abort")) throw error;
         job.preflightError = error;
         preflight.failed += 1;
       } finally {
         checked += 1;
-        reportProgress();
+        if (!this.importStopRequested) reportProgress();
       }
     })));
     return preflight;
+  }
+
+  private assertImportActive(): void {
+    if (this.importStopRequested) throw new Error("abort");
   }
 
   private async writeJob(api: EagleWebApi, folderIds: Map<string, string>, job: EagleImportJob, stats: EagleImportStats, usedNames: Set<string>): Promise<void> {

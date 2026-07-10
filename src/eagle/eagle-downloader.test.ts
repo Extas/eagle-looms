@@ -162,6 +162,19 @@ describe('Eagle downloader duplicate checks', () => {
     expect(panel.setImportProgress).toHaveBeenLastCalledWith(i18n.eagleImportCheckingEagle.get(), 6, 6);
   });
 
+  it('cancels duplicate preflight before queued Eagle queries continue', async () => {
+    ADAPTER.conf = defaultConf();
+    const panel = { setImportProgress: vi.fn() };
+    const api = { queryItems: vi.fn().mockResolvedValue([]) };
+    const downloader = Object.assign(Object.create(EagleDownloader.prototype), {
+      panel,
+      importStopRequested: true,
+    }) as EagleDownloader;
+
+    await expect((downloader as any).preflightJobs(api, [{ asset: eagleAsset('image.jpg') }])).rejects.toThrow('abort');
+    expect(api.queryItems).not.toHaveBeenCalled();
+  });
+
   it('skips repeated assets in one plan before querying Eagle', async () => {
     clearSessionImportedAssets();
     ADAPTER.conf = defaultConf();
