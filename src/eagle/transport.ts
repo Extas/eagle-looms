@@ -15,7 +15,11 @@ export async function requestJson<T>(url: string, options: JsonRequestOptions = 
     body: options.body === undefined ? undefined : JSON.stringify(options.body),
     timeoutMs: options.timeoutMs,
   });
-  return JSON.parse(text) as T;
+  try {
+    return JSON.parse(text) as T;
+  } catch {
+    throw new Error('Eagle API returned invalid JSON');
+  }
 }
 
 export async function requestText(url: string, options: {

@@ -484,8 +484,12 @@ function errorMessage(error: unknown): string {
 
 function eagleConnectionErrorMessage(error: unknown): string {
   const message = errorMessage(error);
-  if (classifyEagleApiError(error) === "authorization") {
+  const kind = classifyEagleApiError(error);
+  if (kind === "authorization") {
     return i18n.eagleImportApiUnauthorized.get().replace("{message}", message);
+  }
+  if (kind === "response") {
+    return i18n.eagleImportApiInvalidResponse.get().replace("{message}", message);
   }
   return message;
 }

@@ -1540,6 +1540,12 @@ pero desactivará la lupa y la capacidad de arrastrar y mover imágenes.`,
     'Eagle API authorization failed. Check the API token in Config and Eagle Developer settings, then retry. ({message})',
     'Fallo de autorizacion de Eagle API. Comprueba el token en Config y ajustes de desarrollador, y reintenta. ({message})',
   ],
+  eagleImportApiInvalidResponse: [
+    'Eagle API returned an unexpected response. Check that the API URL points to Eagle Web API V2, then use Config > Test Eagle. ({message})',
+    'Eagle API 返回了异常响应。请确认 API 地址指向 Eagle Web API V2，然后使用“配置 > 测试 Eagle”。（{message}）',
+    'Eagle API returned an unexpected response. Check that the API URL points to Eagle Web API V2, then use Config > Test Eagle. ({message})',
+    'Eagle API devolvio una respuesta inesperada. Comprueba que la URL apunta a Web API V2 y usa Config > Test Eagle. ({message})',
+  ],
   eagleImportSkipReasonDuplicate: [
     'duplicate',
     '重复',

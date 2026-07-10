@@ -34,6 +34,7 @@ describe('Eagle Web API response helpers', () => {
   it('classifies actionable Eagle API transport and authorization failures', () => {
     expect(classifyEagleApiError(new Error('403 Forbidden'))).toBe('authorization');
     expect(classifyEagleApiError(new Error('invalid API token'))).toBe('authorization');
+    expect(classifyEagleApiError(new Error('Eagle API returned invalid JSON'))).toBe('response');
     expect(classifyEagleApiError(new Error('request timed out'))).toBe('timeout');
     expect(classifyEagleApiError(new Error('Failed to fetch'))).toBe('connection');
     expect(classifyEagleApiError(new Error('bad request'))).toBe('other');

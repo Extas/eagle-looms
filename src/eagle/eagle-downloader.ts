@@ -565,6 +565,9 @@ export function eagleImportErrorMessage(error: unknown): string {
   if (kind === "connection") {
     return format(i18n.eagleImportCannotReachApi.get(), { message });
   }
+  if (kind === "response") {
+    return format(i18n.eagleImportApiInvalidResponse.get(), { message });
+  }
   if (kind === "timeout") {
     return format(i18n.eagleImportApiTimedOut.get(), { message });
   }

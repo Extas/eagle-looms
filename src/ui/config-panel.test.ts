@@ -14,7 +14,12 @@ vi.mock("$", () => ({
 }));
 
 vi.mock("../eagle/eagle-web-api", () => ({
-  classifyEagleApiError: (error: any) => /401|403|unauthorized|forbidden|token/i.test(String(error?.message || error)) ? "authorization" : "other",
+  classifyEagleApiError: (error: any) => {
+    const message = String(error?.message || error);
+    if (/401|403|unauthorized|forbidden|token/i.test(message)) return "authorization";
+    if (/invalid json|invalid api response/i.test(message)) return "response";
+    return "other";
+  },
   extractEagleLibraryName: (value: any) => value?.name || value?.data?.name || "",
   EagleWebApi: class EagleWebApi {
     readonly baseUrl: string;
@@ -113,6 +118,19 @@ describe("ConfigPanel Eagle preview", () => {
 
     expect(status.textContent).toContain("API token");
     expect(status.textContent).toContain("403 Forbidden");
+  });
+
+  it("identifies a non-Eagle or proxy HTML response as an API URL problem", async () => {
+    probeMock.mockRejectedValue(new Error("Eagle API returned invalid JSON"));
+    const panel = createPanel();
+    const status = panel.panel.querySelector<HTMLElement>("#eagle-config-connection-status")!;
+
+    panel.panel.querySelector<HTMLButtonElement>("#eagle-config-test-connection")!.click();
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(status.textContent).toContain("API URL");
+    expect(status.textContent).toContain("invalid JSON");
   });
 
   it("keeps Eagle API tokens out of connection preview and test results", async () => {

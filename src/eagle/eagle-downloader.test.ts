@@ -21,6 +21,7 @@ vi.mock("./eagle-web-api", () => ({
   classifyEagleApiError: (error: any) => {
     const message = String(error?.message || error || '').toLowerCase();
     if (/401|403|unauthorized|forbidden|token/.test(message)) return 'authorization';
+    if (/invalid json|invalid api response/.test(message)) return 'response';
     if (/timeout|timed out/.test(message)) return 'timeout';
     if (/failed to fetch|network|connection refused/.test(message)) return 'connection';
     return 'other';
@@ -265,6 +266,7 @@ describe('Eagle downloader duplicate checks', () => {
     expect(eagleImportErrorMessage(new Error('0 network error'))).toContain('Cannot reach Eagle Web API');
     expect(eagleImportErrorMessage(new Error('request timed out'))).toContain('Eagle Web API timed out');
     expect(eagleImportErrorMessage(new Error('403 Forbidden'))).toContain('API token');
+    expect(eagleImportErrorMessage(new Error('Eagle API returned invalid JSON'))).toContain('API URL');
   });
 
   it('rejects malformed folder rules before an Eagle write can create literal brace folders', () => {
