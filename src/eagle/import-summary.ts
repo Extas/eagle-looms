@@ -195,6 +195,12 @@ export function eaglePlanCompactParts(plan: EagleImportPlan): string[] {
   if (plan.libraryName) parts.push(format(i18n.eaglePlanLibrary.get(), { value: plan.libraryName }));
   const writable = plan.writable ?? plan.planned ?? 0;
   parts.push(format(i18n.eaglePlanWillWrite.get(), { count: writable }));
+  if (plan.omittedByLimit) {
+    parts.push(format(i18n.eaglePlanLimitOmitted.get(), {
+      limit: plan.importLimit ?? plan.planned ?? plan.omittedByLimit,
+      omitted: plan.omittedByLimit,
+    }));
+  }
   const folders = unique(plan.folders || []).slice(0, MAX_COMPACT_FOLDERS);
   if (writable > 0) {
     if (folders.length) {

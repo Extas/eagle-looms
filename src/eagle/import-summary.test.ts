@@ -145,10 +145,11 @@ describe('Eagle import summary', () => {
       'duplicates skipped',
     ]);
     expect(eaglePlanHeadline(plan)).toBe('Write 1 new item to Eagle (1 skipped before writing, 1 over limit omitted)?');
-    expect(eaglePlanCompactSummary(plan)).toBe('Eagle import plan: library Test Library, will write 1, destination Eagle Looms/site/a, skipped before writing 1 (duplicates 1).');
+    expect(eaglePlanCompactSummary(plan)).toBe('Eagle import plan: library Test Library, will write 1, limit 2, omitted 1, destination Eagle Looms/site/a, skipped before writing 1 (duplicates 1).');
     expect(eaglePlanCompactParts(plan)).toEqual([
       'library Test Library',
       'will write 1',
+      'limit 2, omitted 1',
       'destination Eagle Looms/site/a',
       'skipped before writing 1 (duplicates 1)',
     ]);

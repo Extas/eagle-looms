@@ -127,6 +127,7 @@ always confirmation mode shows confirmation whenever will-write is greater than 
 never confirmation mode skips confirmation unless preflight failures or import-limit omissions need review
 preflight failures and over-limit omissions force confirmation even for small batches
 confirmation panel defaults to a compact summary: will-write, first destination folders, and skipped-before-writing when present
+compact plans include the configured import limit and omitted count whenever selected writable items exceed the limit
 confirmation panel keeps full selected, planned, limit omissions, item names, folder metadata, tag cap, and duplicate-policy details collapsed by default
 Copy plan copies the full collapsed details, not only the compact summary
 confirmation toast uses the compact summary instead of the full plan
