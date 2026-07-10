@@ -4,7 +4,7 @@ import { GalleryMeta } from '../download/gallery-meta';
 import { ADAPTER } from '../platform/adapt';
 import { i18n } from '../utils/i18n';
 import { clearSessionImportedAssets, duplicateQueries, hasPlannedAssetKey, isDuplicateItem, isSessionImported, markPlannedAssetKey, markSessionImported, stableKeyForAsset } from './duplicates';
-import { EagleDownloader, eagleFolderTemplateForImport, eagleImportEndStage, eagleImportErrorMessage, toAddItemInput } from './eagle-downloader';
+import { EagleDownloader, eagleFolderTemplateForImport, eagleImportEndStage, eagleImportErrorMessage, eagleImportResultLinks, toAddItemInput } from './eagle-downloader';
 import { EAGLE_IMPORT_DONE_STAGE, isReadyForEagleImport } from './import-readiness';
 import { EAGLE_RAW_RECORD_SCHEMA, type EagleRawRecord } from './raw-record';
 
@@ -403,7 +403,8 @@ describe('Eagle downloader duplicate checks', () => {
       duplicateSkipped: 0,
       failed: 0,
       folders: [],
-      links: [],
+      folderLinks: [],
+      itemLinks: [],
       skippedItems: [],
       failures: [],
     };
@@ -419,11 +420,20 @@ describe('Eagle downloader duplicate checks', () => {
     }, stats, new Set());
 
     expect(stats.imported).toBe(1);
-    expect(stats.links).toContainEqual({
+    expect(stats.itemLinks).toContainEqual({
       label: 'source image.jpg',
       url: 'http://localhost:41595/item?id=item-id',
     });
     clearSessionImportedAssets();
+  });
+
+  it('shows an item link when exactly one asset was actually imported', () => {
+    const folderLinks = [{ label: 'Eagle Looms/site/date', url: 'http://localhost:41595/folder?id=folder' }];
+    const itemLinks = [{ label: 'image.jpg', url: 'http://localhost:41595/item?id=item' }];
+
+    expect(eagleImportResultLinks({ imported: 1, folderLinks, itemLinks })).toEqual([...itemLinks, ...folderLinks]);
+    expect(eagleImportResultLinks({ imported: 2, folderLinks, itemLinks })).toEqual(folderLinks);
+    expect(eagleImportResultLinks({ imported: 0, folderLinks, itemLinks })).toEqual(folderLinks);
   });
 
   it('shows a result-panel error when current-image import has no image target', async () => {

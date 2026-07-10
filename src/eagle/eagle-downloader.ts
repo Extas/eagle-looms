@@ -26,12 +26,15 @@ const EAGLE_DUPLICATE_CHECK_CONCURRENCY = 4;
 
 type EagleImportStats = EagleImportSummaryStats & {
   folders: string[];
-  links: Array<{ label: string; url: string }>;
+  folderLinks: EagleImportResultLink[];
+  itemLinks: EagleImportResultLink[];
   skippedItems: string[];
   failures: string[];
   sessionSkipped: number;
   duplicateSkipped: number;
 };
+
+type EagleImportResultLink = { label: string; url: string };
 
 type EagleImportAsset = {
   name: string;
@@ -193,7 +196,7 @@ export class EagleDownloader extends Downloader {
 
       this.done = stats.failed === 0;
       endStage = eagleImportEndStage(stats);
-      this.panel.showEagleImportResult(eagleSummaryParts(stats), stats.failed > 0, stats.links);
+      this.panel.showEagleImportResult(eagleSummaryParts(stats), stats.failed > 0, eagleImportResultLinks(stats));
       EBUS.emit("notify-message", this.done ? "info" : "error", eagleToastSummary(stats), 10000);
     } catch (error: any) {
       if (error === "abort" || error?.message === "abort") {
@@ -201,7 +204,7 @@ export class EagleDownloader extends Downloader {
         return;
       }
       recordImportFailure(stats, i18n.eagleSummaryTitle.get(), error);
-      this.panel.showEagleImportResult(eagleSummaryParts(stats), true, stats.links);
+      this.panel.showEagleImportResult(eagleSummaryParts(stats), true, eagleImportResultLinks(stats));
       EBUS.emit("notify-message", "error", format(i18n.eagleImportFailedToast.get(), { message: eagleImportErrorMessage(error) }), 10000);
       throw error;
     } finally {
@@ -219,7 +222,7 @@ export class EagleDownloader extends Downloader {
     if (!chapter || !imf) {
       const stats = emptyImportStats();
       recordImportFailure(stats, i18n.eagleSummaryTitle.get(), new Error(i18n.eagleImportNoImageFound.get()));
-      this.panel.showEagleImportResult(eagleSummaryParts(stats), true, stats.links);
+      this.panel.showEagleImportResult(eagleSummaryParts(stats), true, eagleImportResultLinks(stats));
       EBUS.emit("notify-message", "error", i18n.eagleImportNoImageFound.get(), 4000);
       return;
     }
@@ -302,11 +305,11 @@ export class EagleDownloader extends Downloader {
       }
       this.done = stats.failed === 0;
       endStage = eagleImportEndStage(stats);
-      this.panel.showEagleImportResult(eagleSummaryParts(stats), stats.failed > 0, stats.links);
+      this.panel.showEagleImportResult(eagleSummaryParts(stats), stats.failed > 0, eagleImportResultLinks(stats));
       EBUS.emit("notify-message", stats.failed === 0 ? "info" : "error", eagleToastSummary(stats), 10000);
     } catch (error) {
       recordImportFailure(stats, i18n.eagleSummaryTitle.get(), error);
-      this.panel.showEagleImportResult(eagleSummaryParts(stats), true, stats.links);
+      this.panel.showEagleImportResult(eagleSummaryParts(stats), true, eagleImportResultLinks(stats));
       EBUS.emit("notify-message", "error", format(i18n.eagleImportFailedToast.get(), { message: eagleImportErrorMessage(error) }), 8000);
     } finally {
       this.abort((cancelled || this.importStopRequested) ? "downloadStart" : endStage);
@@ -435,7 +438,7 @@ export class EagleDownloader extends Downloader {
       const jobFolderIds = await this.folderIdsForJob(api, folderIds, job, stats);
       const id = await api.addItem(toAddItemInput(asset, jobFolderIds));
       if (!id) throw new Error("Eagle did not return an item ID.");
-      if (stats.planned === 1) recordResultLink(stats, asset.name, eagleItemUrl(api, id));
+      recordUniqueLink(stats.itemLinks, asset.name, eagleItemUrl(api, id));
       markSessionImported(asset);
       stats.imported += 1;
     } catch (error) {
@@ -465,7 +468,7 @@ export class EagleDownloader extends Downloader {
         folderId = await ensureFolderPath(api, folderPath);
         folderIds.set(folderKey, folderId);
       }
-      recordResultLink(stats, folderKey, eagleFolderUrl(api, folderId));
+      recordUniqueLink(stats.folderLinks, folderKey, eagleFolderUrl(api, folderId));
       ids.push(folderId);
     }
     return ids;
@@ -481,7 +484,8 @@ function emptyImportStats(): EagleImportStats {
     duplicateSkipped: 0,
     failed: 0,
     folders: [],
-    links: [],
+    folderLinks: [],
+    itemLinks: [],
     skippedItems: [],
     failures: [],
   };
@@ -520,9 +524,13 @@ export function eagleFolderTemplateForImport(value: unknown): string {
   return template;
 }
 
-function recordResultLink(stats: EagleImportStats, label: string, url: string): void {
-  if (stats.links.some(link => link.url === url || link.label === label)) return;
-  stats.links.push({ label, url });
+export function eagleImportResultLinks(stats: Pick<EagleImportStats, "imported" | "folderLinks" | "itemLinks">): EagleImportResultLink[] {
+  return stats.imported === 1 ? [...stats.itemLinks, ...stats.folderLinks] : stats.folderLinks;
+}
+
+function recordUniqueLink(links: EagleImportResultLink[], label: string, url: string): void {
+  if (links.some(link => link.url === url || link.label === label)) return;
+  links.push({ label, url });
 }
 
 function eagleFolderUrl(api: EagleWebApi, folderId: string): string {
