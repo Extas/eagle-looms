@@ -125,6 +125,54 @@ describe('Eagle downloader duplicate checks', () => {
     expect(hasPlannedAssetKey({ ...second, originUrl: 'https://images.anime-pictures.net/pictures/other.jpg' }, plannedKeys)).toBe(false);
   });
 
+  it('checks Eagle duplicates with bounded concurrency and visible progress', async () => {
+    clearSessionImportedAssets();
+    ADAPTER.conf = defaultConf();
+    const panel = { setImportProgress: vi.fn() };
+    const downloader = Object.assign(Object.create(EagleDownloader.prototype), { panel }) as EagleDownloader;
+    let active = 0;
+    let maxActive = 0;
+    const api = {
+      queryItems: vi.fn(async () => {
+        active += 1;
+        maxActive = Math.max(maxActive, active);
+        await new Promise(resolve => setTimeout(resolve, 5));
+        active -= 1;
+        return [];
+      }),
+    };
+    const jobs = Array.from({ length: 6 }, (_, index) => ({
+      asset: {
+        ...eagleAsset(`image-${index}.jpg`),
+        sourceUrl: `https://example.test/posts/${index}`,
+        originUrl: `https://img.example.test/${index}.jpg`,
+      },
+    }));
+
+    const result = await (downloader as any).preflightJobs(api, jobs);
+
+    expect(result).toEqual({ writable: 6, sessionSkipped: 0, duplicateSkipped: 0, failed: 0 });
+    expect(maxActive).toBe(4);
+    expect(panel.setImportProgress).toHaveBeenLastCalledWith(i18n.eagleImportCheckingEagle.get(), 6, 6);
+  });
+
+  it('skips repeated assets in one plan before querying Eagle', async () => {
+    clearSessionImportedAssets();
+    ADAPTER.conf = defaultConf();
+    const panel = { setImportProgress: vi.fn() };
+    const downloader = Object.assign(Object.create(EagleDownloader.prototype), { panel }) as EagleDownloader;
+    const api = { queryItems: vi.fn().mockResolvedValue([]) };
+    const repeated = eagleAsset('same.jpg');
+    const jobs = [{ asset: repeated }, { asset: { ...repeated } }];
+
+    const result = await (downloader as any).preflightJobs(api, jobs);
+
+    expect(result).toEqual({ writable: 1, sessionSkipped: 1, duplicateSkipped: 0, failed: 0 });
+    expect(api.queryItems).toHaveBeenCalledTimes(4);
+    expect(jobs[1].asset).toBeDefined();
+    expect((jobs[1] as any).skipReason).toBe('session');
+  });
+
   it('imports only fetched images that match the upstream DONE-and-data contract', () => {
     const data = new Uint8Array([1]);
 

@@ -18,9 +18,11 @@ import { eaglePlanCompactParts, eaglePlanCompactSummary, eaglePlanHeadline, eagl
 import { createEagleItemName, localDatePrefix, normalizeEagleItemNameWithDatePrefix } from "./naming";
 import { i18n } from "../utils/i18n";
 import { eagleAnnotationForAsset } from "./annotation";
+import pLimit from "p-limit";
 
 const FILENAME_INVALIDCHAR = /[\\/:*?"<>|\n\t]/g;
 const METADATA_FOLDER_TOKENS = ["copyright", "character", "author"] as const;
+const EAGLE_DUPLICATE_CHECK_CONCURRENCY = 4;
 
 type EagleImportStats = EagleImportSummaryStats & {
   folders: string[];
@@ -367,24 +369,47 @@ export class EagleDownloader extends Downloader {
   private async preflightJobs(api: EagleWebApi, jobs: EagleImportJob[]): Promise<EagleImportPreflight> {
     const preflight: EagleImportPreflight = { writable: 0, sessionSkipped: 0, duplicateSkipped: 0, failed: 0 };
     const plannedKeys = new Set<string>();
+    const candidates: EagleImportJob[] = [];
+    let checked = 0;
+    const reportProgress = () => this.panel.setImportProgress(i18n.eagleImportCheckingEagle.get(), checked, jobs.length);
+
     for (const job of jobs) {
       job.preflightChecked = true;
+      if (hasPlannedAssetKey(job.asset, plannedKeys) || isSessionImported(job.asset)) {
+        job.skipReason = "session";
+        preflight.sessionSkipped += 1;
+        checked += 1;
+      } else {
+        markPlannedAssetKey(job.asset, plannedKeys);
+        candidates.push(job);
+      }
+    }
+    reportProgress();
+
+    if (!ADAPTER.conf.eagleSkipDuplicates) {
+      preflight.writable = candidates.length;
+      checked += candidates.length;
+      reportProgress();
+      return preflight;
+    }
+
+    const limit = pLimit(EAGLE_DUPLICATE_CHECK_CONCURRENCY);
+    await Promise.all(candidates.map(job => limit(async () => {
       try {
-        if (hasPlannedAssetKey(job.asset, plannedKeys) || isSessionImported(job.asset)) {
-          job.skipReason = "session";
-          preflight.sessionSkipped += 1;
-        } else if (ADAPTER.conf.eagleSkipDuplicates && await this.isDuplicate(api, job.asset)) {
+        if (await this.isDuplicate(api, job.asset)) {
           job.skipReason = "duplicate";
           preflight.duplicateSkipped += 1;
         } else {
-          markPlannedAssetKey(job.asset, plannedKeys);
           preflight.writable += 1;
         }
       } catch (error) {
         job.preflightError = error;
         preflight.failed += 1;
+      } finally {
+        checked += 1;
+        reportProgress();
       }
-    }
+    })));
     return preflight;
   }
 

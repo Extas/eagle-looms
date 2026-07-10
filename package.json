@@ -1,6 +1,6 @@
 {
   "name": "eagle-looms",
-  "version": "1.0.49",
+  "version": "1.0.50",
   "private": true,
   "type": "module",
   "scripts": {
@@ -32,6 +32,7 @@
     "@ffmpeg/util": "^0.12.2",
     "@zip.js/zip.js": "^2.8.26",
     "file-saver": "^2.0.5",
+    "p-limit": "^7.3.0",
     "pica": "^9.0.1"
   }
 }
