@@ -16,7 +16,9 @@ export function normalizeEagleTags(required: string[], source: string[], maxSour
 }
 
 export function normalizeEagleItemTags(source: string[], maxSourceTags: number): string[] {
-  return normalizeEagleTags([], semanticSourceTags(source), maxSourceTags);
+  const semantic = semanticSourceTags(source);
+  const metadata = semantic.filter(isSourcePublishedTag);
+  return normalizeEagleTags(metadata, semantic.filter(tag => !isSourcePublishedTag(tag)), maxSourceTags);
 }
 
 export function semanticSourceTags(tags: string[]): string[] {
@@ -92,6 +94,10 @@ function sourceTagPriority(tag: string): number {
   if (tag.startsWith("character:")) return 1;
   if (tag.startsWith("author:")) return 2;
   return 3;
+}
+
+function isSourcePublishedTag(tag: string): boolean {
+  return tag.trim().toLowerCase().startsWith("source:published:");
 }
 
 function isInfrastructureTag(tag: string): boolean {

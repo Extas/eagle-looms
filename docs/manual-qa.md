@@ -80,6 +80,7 @@ Eagle import preview shows batch limit and duplicate policy
 Eagle import preview shows confirmation policy, including auto threshold, always, or never
 Eagle import preview explains source fields: website stores the source page, url stores the original image, duplicate checks use source/original URL and legacy keys
 Eagle import preview explains visible tag priority: copyright:/character:/author: first, then other source tags within the cap
+Eagle import preview explains that source:published:* is retained independently of the source tag cap
 Eagle import preview shows whether the current tab uses global settings, inherits global Eagle settings, or overrides specific Eagle fields
 switching between global and site config keeps exactly one Eagle import preview
 settings persist after reload
@@ -143,7 +144,7 @@ Default settings:
 Eagle API URL: http://localhost:41595
 Folder template: Eagle Looms/{site}/{date}
 Import limit: 100
-Source tag limit: 20
+Source tag limit: 20 additional tags; source:published:* is retained when available
 Confirmation mode: auto
 Auto confirmation threshold: 3
 Skip duplicates: enabled

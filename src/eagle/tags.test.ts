@@ -53,6 +53,16 @@ describe('Eagle tags', () => {
     expect(sourcePublishedAtTags('not a date')).toEqual([]);
     expect(semanticSourceTags(['site:example.test', 'source:published:2025-07-08'])).toEqual(['source:published:2025-07-08']);
     expect(normalizeEagleItemTags(['source:published:2025-07-08'], 10)).toEqual(['source:published:2025-07-08']);
+    expect(normalizeEagleItemTags([
+      'blue eyes',
+      'source:published:2025-07-08',
+      'copyright:project sekai',
+    ], 0)).toEqual(['source:published:2025-07-08']);
+    expect(normalizeEagleItemTags([
+      'blue eyes',
+      'source:published:2025-07-08',
+      'copyright:project sekai',
+    ], 1)).toEqual(['source:published:2025-07-08', 'copyright:project sekai']);
   });
 
   it('deduplicates, trims, and keeps unnamespaced source tags', () => {
