@@ -53,7 +53,7 @@ export const EAGLE_FOLDER_PRESET_TEMPLATES: Record<Exclude<EagleFolderPreset, "c
 
 export const EAGLE_FOLDER_PRESET_OPTIONS: { value: EagleFolderPreset; display: string }[] = [
   { value: "custom", display: "Custom path" },
-  { value: "date", display: "Site / Date" },
+  { value: "date", display: "Site / Import date" },
   { value: "copyright", display: "Site / Copyright" },
   { value: "gallery", display: "Site / Gallery" },
   { value: "chapter", display: "Site / Gallery / Chapter" },

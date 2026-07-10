@@ -33,7 +33,7 @@ Supported path tokens:
 Built-in presets:
 
 ```text
-Site / Date            Eagle Looms/{site}/{date}
+Site / Import date     Eagle Looms/{site}/{date}
 Site / Copyright       Eagle Looms/{site}/{copyright}
 Site / Gallery         Eagle Looms/{site}/{gallery}
 Site / Gallery / Chapter
@@ -48,7 +48,8 @@ Folder token rules:
 sanitize unsafe folder characters
 omit missing token segments
 resolve folder tokens from uncapped source metadata
-default {date} uses source publish/upload date when available, otherwise local import date
+{date} always uses the local date captured when the import starts
+source publication date stays in source:published:* and can optionally prefix item names
 choose the shortest normalized copyright when multiple copyright tags exist
 for the optional Site / Copyright preset, fall back to gallery, author, chapter, then Unsorted when copyright is missing
 expand multiple distinct characters into multiple Eagle folders only when the template uses {character}
@@ -60,7 +61,7 @@ search/list pages use source taxonomy labels, such as danbooru-search-bang_dream
 
 The default stays at site/date level to avoid creating too many taxonomy-derived subfolders. Tags carry copyright, character, author, and other source semantics for search. Users can opt into copyright, gallery, author, or character folders when they want that browsing model.
 
-Older saved built-in folder presets from Eagle Looms 1.0.7 and earlier are migrated to `Site / Date`. New explicit preset choices are kept after that migration.
+Older saved built-in folder presets from Eagle Looms 1.0.7 and earlier are migrated to `Site / Import date`. New explicit preset choices are kept after that migration.
 
 Import plan messages report copyright fallback only when the optional Site / Copyright preset is selected. Custom templates still report missing metadata so users can decide whether to change the template.
 

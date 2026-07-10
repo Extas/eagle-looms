@@ -186,7 +186,7 @@ Folder-token behavior:
 ```text
 folder tokens resolve from uncapped source metadata even when visible source tag limit is low
 multiple copyright values choose the shortest normalized folder value
-default Site / Date preset uses source date when available and import date otherwise
+default Site / Import date preset uses the local date captured when import starts, even when source publication metadata exists
 optional Site / Copyright preset falls back to gallery, author, chapter, then Unsorted when copyright is missing
 templates using {character} add the same image to multiple character folders when distinct characters exist
 longer outfit-style character variants fold into the shorter character name

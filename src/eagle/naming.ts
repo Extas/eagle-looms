@@ -111,6 +111,14 @@ export function sourceDatePrefix(value: unknown): string {
   return dateToPrefix(new Date(time));
 }
 
+export function localDatePrefix(date = new Date()): string {
+  return datePartsToPrefix(
+    String(date.getFullYear()),
+    String(date.getMonth() + 1),
+    String(date.getDate()),
+  );
+}
+
 function normalizeNameCore(rawTitle: string): string {
   return decodePercentEncoded(decodeHtmlEntities(candidateFromRawTitle(String(rawTitle || ""))))
     .normalize("NFKC")

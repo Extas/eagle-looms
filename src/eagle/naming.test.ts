@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   buildStructuredEagleName,
   createEagleItemName,
+  localDatePrefix,
   normalizeEagleItemName,
   normalizeEagleItemNameWithDatePrefix,
   parseStructuredEagleName,
@@ -9,6 +10,10 @@ import {
 } from './naming';
 
 describe('Eagle item naming', () => {
+  it('formats folder dates in local calendar time', () => {
+    expect(localDatePrefix(new Date(2026, 5, 16, 23, 30))).toBe('2026-06-16');
+  });
+
   it('keeps source identity names without adding Comic Looms order prefixes', () => {
     const used = new Set<string>();
 

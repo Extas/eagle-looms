@@ -1,5 +1,6 @@
 import { Config, ConfigBooleanType, ConfigTextType, ConfigItem, ConfigItems, ConfigNumberType, ConfigSelectType, defaultConf, resetConf } from "../config";
 import { EagleWebApi } from "../eagle/eagle-web-api";
+import { localDatePrefix } from "../eagle/naming";
 import { resolveEagleFolderPaths } from "../eagle/options";
 import { ADAPTER } from "../platform/adapt";
 import { I18nValue, i18n } from "../utils/i18n";
@@ -264,7 +265,7 @@ function eagleConfigPreviewHTML(): string {
   const site = ADAPTER.matcher?.name || location.hostname || "site";
   const samplePaths = resolveEagleFolderPaths(conf.eagleFolderPath, {
     site,
-    date: "2026-05-31",
+    date: localDatePrefix(),
     gallery: "gallery",
     chapter: "chapter",
     copyright: "series",

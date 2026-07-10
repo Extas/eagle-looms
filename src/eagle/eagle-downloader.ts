@@ -15,7 +15,7 @@ import { duplicateQueries, hasPlannedAssetKey, isDuplicateItem, isSessionImporte
 import { normalizeEagleItemTags, normalizeEagleTags, semanticSourceTags, sourcePublishedAtTags, sourceTagsFromGalleryMeta } from "./tags";
 import { isReadyForEagleImport } from "./import-readiness";
 import { eaglePlanCompactParts, eaglePlanCompactSummary, eaglePlanHeadline, eaglePlanSummaryParts, eagleSummaryParts, eagleToastSummary, EagleImportSummaryStats, shouldConfirmImportPlan } from "./import-summary";
-import { createEagleItemName, normalizeEagleItemNameWithDatePrefix } from "./naming";
+import { createEagleItemName, localDatePrefix, normalizeEagleItemNameWithDatePrefix } from "./naming";
 import { i18n } from "../utils/i18n";
 import { eagleAnnotationForAsset } from "./annotation";
 
@@ -663,14 +663,6 @@ function folderTokenValues(tokens: EagleFolderTokens, token: typeof METADATA_FOL
 
 function usesCopyrightFolderFallback(folderTemplate: string): boolean {
   return normalizeEagleFolderTemplate(folderTemplate) === EAGLE_FOLDER_PRESET_TEMPLATES.copyright;
-}
-
-function localDatePrefix(date = new Date()): string {
-  return [
-    date.getFullYear(),
-    String(date.getMonth() + 1).padStart(2, "0"),
-    String(date.getDate()).padStart(2, "0"),
-  ].join("-");
 }
 
 function limitImportJobs(jobs: EagleImportJob[], value: number): { jobs: EagleImportJob[]; limit: number; selected: number; omittedByLimit: number } {

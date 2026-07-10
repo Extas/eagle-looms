@@ -2,7 +2,7 @@
 project: Eagle Looms
 status: 1.0 implementation
 type: userscript-eagle-import-bridge
-updated: 2026-05-31
+updated: 2026-07-11
 primary_language: zh-CN
 ---
 
@@ -28,7 +28,7 @@ Eagle Looms 不绕过 Comic Looms 的采集链路，也不让 Eagle 后台直接
 ```text
 default Eagle API URL: http://localhost:41595
 default folder template: Eagle Looms/{site}/{date}
-default folder date: source publish/upload date when available, otherwise local import date
+default folder date: local date when the import starts
 default import limit: 100
 default visible source tag limit: 20
 duplicate skip: enabled by default
