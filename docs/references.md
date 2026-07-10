@@ -37,6 +37,8 @@ base URL: http://localhost:41595/api/v2/
 Web API V2 requires Eagle 4.0 Build 21+
 localhost access does not require a token
 list endpoints are paginated; default limit 50, max limit 1000
+library/info returns the currently open library name and path
+remote API tokens must be kept private and should not be echoed in normal UI status text
 item/add accepts base64, url, path, or bookmarkURL plus name, tags, folders, annotation, website
 userscripts should use GM_xmlHttpRequest when page-context fetch is blocked by CORS
 ```

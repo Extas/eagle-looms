@@ -66,7 +66,7 @@ describe("ConfigPanel Eagle preview", () => {
   });
 
   it("tests the configured Eagle connection from the preview", async () => {
-    probeMock.mockResolvedValue({ app: { version: "4.0.0" }, library: {} });
+    probeMock.mockResolvedValue({ app: { version: "4.0.0" }, library: { name: "Test Library" } });
     const panel = createPanel();
     const button = panel.panel.querySelector<HTMLButtonElement>("#eagle-config-test-connection")!;
     const status = panel.panel.querySelector<HTMLElement>("#eagle-config-connection-status")!;
@@ -78,6 +78,7 @@ describe("ConfigPanel Eagle preview", () => {
     expect(probeMock).toHaveBeenCalledTimes(1);
     expect(status.textContent).toBe(i18n.eagleConfigTestOk.get()
       .replace("{version}", "4.0.0")
+      .replace("{library}", "Test Library")
       .replace("{url}", ADAPTER.globalConf.eagleBaseUrl));
     expect(status.classList.contains("eagle-config-connection-ok")).toBe(true);
     expect(button.textContent).toBe(i18n.eagleConfigTestConnection.get());
@@ -97,6 +98,24 @@ describe("ConfigPanel Eagle preview", () => {
     expect(status.textContent).toContain(ADAPTER.globalConf.eagleBaseUrl);
     expect(status.textContent).toContain("connection refused");
     expect(status.classList.contains("eagle-config-connection-error")).toBe(true);
+  });
+
+  it("keeps Eagle API tokens out of connection preview and test results", async () => {
+    ADAPTER.globalConf.eagleBaseUrl = "http://192.168.1.20:41595?token=secret-value";
+    ADAPTER.conf = { ...ADAPTER.globalConf };
+    probeMock.mockResolvedValue({ app: { version: "4.0.0" }, library: { name: "Remote Library" } });
+    const panel = createPanel();
+    const status = panel.panel.querySelector<HTMLElement>("#eagle-config-connection-status")!;
+
+    expect(status.textContent).toContain("token=***");
+    expect(status.textContent).not.toContain("secret-value");
+    panel.panel.querySelector<HTMLButtonElement>("#eagle-config-test-connection")!.click();
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(status.textContent).toContain("Remote Library");
+    expect(status.textContent).toContain("token=***");
+    expect(status.textContent).not.toContain("secret-value");
   });
 
   it("makes visible tag namespace priority clear in the preview", () => {

@@ -78,6 +78,8 @@ Folder preset dropdown uses the current UI language instead of raw internal pres
 Config panel labels the former download concurrency setting as import loading threads
 Eagle import preview appears under the Eagle settings
 Eagle import preview has a Test Eagle action that reports connection success or failure for the configured Web API URL
+successful connection tests identify the currently open Eagle library by name
+connection preview and test results mask API token values
 Eagle connection test result stays visible when unrelated non-Eagle settings change
 Eagle import preview updates after changing folder preset/path or source tag limit
 Eagle import preview shows folder preset, saved folder rule, and example resolved folders as separate rows

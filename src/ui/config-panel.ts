@@ -1,7 +1,7 @@
 import { clearSiteConfigKeys, Config, ConfigBooleanType, ConfigTextType, ConfigItem, ConfigItems, ConfigNumberType, ConfigSelectType, defaultConf, resetConf } from "../config";
 import { EagleWebApi } from "../eagle/eagle-web-api";
 import { localDatePrefix } from "../eagle/naming";
-import { findUnknownEagleFolderTokens, hasMalformedEagleFolderTokenSyntax, resolveEagleFolderPaths, tryNormalizeEagleBaseUrl } from "../eagle/options";
+import { displayEagleBaseUrl, findUnknownEagleFolderTokens, hasMalformedEagleFolderTokenSyntax, resolveEagleFolderPaths, tryNormalizeEagleBaseUrl } from "../eagle/options";
 import { ADAPTER } from "../platform/adapt";
 import { I18nValue, i18n } from "../utils/i18n";
 import q from "../utils/query-element";
@@ -210,11 +210,12 @@ export class ConfigPanel {
         const result = await api.probe();
         status.textContent = i18n.eagleConfigTestOk.get()
           .replace("{version}", eagleVersion(result.app))
-          .replace("{url}", api.baseUrl);
+          .replace("{library}", eagleLibraryName(result.library))
+          .replace("{url}", displayEagleBaseUrl(api.baseUrl));
         status.classList.add("eagle-config-connection-ok");
       } catch (error) {
         status.textContent = i18n.eagleConfigTestFailed.get()
-          .replace("{url}", api.baseUrl)
+          .replace("{url}", displayEagleBaseUrl(api.baseUrl))
           .replace("{message}", errorMessage(error));
         status.classList.add("eagle-config-connection-error");
       } finally {
@@ -353,7 +354,7 @@ function eagleConfigPreviewHTML(): string {
 <div id="eagle-config-preview" class="eagle-config-preview">
   <div class="eagle-config-preview-title"><span>${escapeHTML(i18n.eagleConfigPreview.get())}</span><span class="eagle-config-preview-actions">${useGlobalButton}<button type="button" id="eagle-config-test-connection" class="ehvp-custom-btn ehvp-custom-btn-plain">${escapeHTML(i18n.eagleConfigTestConnection.get())}</button></span></div>
   <div><b>${escapeHTML(i18n.eagleConfigPreviewScope.get())}</b><span>${escapeHTML(eagleConfigScopeText())}</span></div>
-  <div><b>${escapeHTML(i18n.eagleConfigPreviewConnection.get())}</b><span id="eagle-config-connection-status">${escapeHTML(conf.eagleBaseUrl)}</span></div>
+  <div><b>${escapeHTML(i18n.eagleConfigPreviewConnection.get())}</b><span id="eagle-config-connection-status">${escapeHTML(displayEagleBaseUrl(conf.eagleBaseUrl))}</span></div>
   <div><b>${escapeHTML(i18n.eagleConfigPreviewPreset.get())}</b><span>${escapeHTML(eagleFolderPresetLabel(conf.eagleFolderPreset))}</span></div>
   <div><b>${escapeHTML(i18n.eagleConfigPreviewFolderTemplate.get())}</b><code>${escapeHTML(conf.eagleFolderPath)}</code></div>
   ${folderWarning}
@@ -471,6 +472,12 @@ function eagleVersion(value: unknown): string {
   if (!value || typeof value !== "object") return "unknown";
   const data = value as { version?: unknown; data?: { version?: unknown } };
   return String(data.version || data.data?.version || "unknown");
+}
+
+function eagleLibraryName(value: unknown): string {
+  if (!value || typeof value !== "object") return i18n.eagleConfigUnknownLibrary.get();
+  const data = value as { name?: unknown; data?: { name?: unknown } };
+  return String(data.name || data.data?.name || i18n.eagleConfigUnknownLibrary.get());
 }
 
 function errorMessage(error: unknown): string {

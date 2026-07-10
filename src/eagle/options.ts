@@ -107,6 +107,12 @@ export function tryNormalizeEagleBaseUrl(value: unknown): string | undefined {
   }
 }
 
+export function displayEagleBaseUrl(value: unknown): string {
+  const normalized = normalizeEagleBaseUrl(value);
+  const url = new URL(normalized);
+  return url.searchParams.has("token") ? `${url.origin}?token=***` : url.origin;
+}
+
 export function normalizeEagleFolderTemplate(value: unknown): string {
   const raw = typeof value === "string" ? value : "";
   const segments = raw
