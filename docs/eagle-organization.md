@@ -269,10 +269,12 @@ Default duplicate checks are additive and conservative:
 ```text
 query exact stableKey, source URL, origin URL, and legacy stableKey
 match legacy raw records only when assetItemId exists and identity matches
-match URL-only duplicates only for single-file items
+when an origin URL exists, require exact origin or structured identity instead of source-page equality alone
+use source-page-only matches only when the asset has no stronger origin/subitem identity
 skip same-session and same-plan stable keys before creating folders
 do not query by display name or low-signal subitem filename alone
 never merge, delete, retag, or update existing items silently
 ```
 
 Multi-file subitems with the same origin URL are not treated as duplicates of each other unless their `itemKey` / stable raw identity also matches.
+Likewise, separate images sharing one gallery/post page do not suppress one another during a partial-import retry.

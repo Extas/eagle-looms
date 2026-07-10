@@ -32,13 +32,14 @@ export function duplicateQueries(asset: EagleDuplicateAsset): string[] {
 export function isDuplicateItem(item: EagleDuplicateCandidate, asset: EagleDuplicateAsset): boolean {
   const stableKey = stableKeyForAsset(asset);
   const legacyStableKey = legacyStableKeyForAsset(asset);
+  const sourceOnlyIdentity = !asset.itemKey && !asset.originUrl;
   const rawRecord = decodeEagleRawRecordAnnotation(item.annotation);
   if (rawRecord) return rawRecordMatchesAsset(rawRecord, asset, stableKey);
   const payload = parseAnnotationPayload(item.annotation);
   if (item.annotation?.includes(stableKey) || payload?.stableKey === stableKey) return true;
-  if (!asset.itemKey && (item.annotation?.includes(legacyStableKey) || payload?.stableKey === legacyStableKey)) return true;
+  if (sourceOnlyIdentity && (item.annotation?.includes(legacyStableKey) || payload?.stableKey === legacyStableKey)) return true;
   if (payload && payloadMatchesAsset(payload, asset)) return true;
-  if (!asset.itemKey && (item.website === asset.sourceUrl || item.url === asset.sourceUrl)) return true;
+  if (sourceOnlyIdentity && (item.website === asset.sourceUrl || item.url === asset.sourceUrl)) return true;
   if (asset.originUrl && !asset.itemKey && item.url === asset.originUrl) return true;
   if (asset.itemKey && asset.originUrl && item.url === asset.originUrl && candidateNameMatchesItemKey(item.name, asset.itemKey)) return true;
   return false;

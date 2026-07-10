@@ -85,14 +85,32 @@ describe('Eagle downloader duplicate checks', () => {
       '```',
     ].join('\n');
 
-    expect(isDuplicateItem({ website: asset.sourceUrl }, asset)).toBe(true);
-    expect(isDuplicateItem({ url: asset.sourceUrl }, asset)).toBe(true);
+    expect(isDuplicateItem({ website: asset.sourceUrl }, asset)).toBe(false);
+    expect(isDuplicateItem({ url: asset.sourceUrl }, asset)).toBe(false);
     expect(isDuplicateItem({ url: asset.originUrl }, asset)).toBe(true);
     expect(isDuplicateItem({ annotation }, asset)).toBe(true);
     expect(isDuplicateItem({ annotation: JSON.stringify({ sourceUrl: asset.sourceUrl, originUrl: asset.originUrl, stableKey: stableKeyForAsset(asset) }) }, asset)).toBe(true);
-    expect(isDuplicateItem({ annotation: 'stable eagle-looms:https://anime-pictures.net/posts/917184' }, asset)).toBe(true);
+    expect(isDuplicateItem({ annotation: 'stable eagle-looms:https://anime-pictures.net/posts/917184' }, asset)).toBe(false);
     expect(isDuplicateItem({ website: asset.sourceUrl }, { sourceUrl: asset.sourceUrl })).toBe(true);
+    expect(isDuplicateItem({ annotation: 'stable eagle-looms:https://anime-pictures.net/posts/917184' }, { sourceUrl: asset.sourceUrl })).toBe(true);
     expect(isDuplicateItem({ website: 'https://example.test/other' }, asset)).toBe(false);
+  });
+
+  it('does not let one image suppress siblings that share the same source page', () => {
+    const sibling = {
+      sourceUrl: asset.sourceUrl,
+      originUrl: 'https://images.anime-pictures.net/pictures/917185.jpg',
+    };
+    const firstAnnotation = JSON.stringify({
+      sourceUrl: asset.sourceUrl,
+      originUrl: asset.originUrl,
+      stableKey: stableKeyForAsset(asset),
+    });
+
+    expect(isDuplicateItem({ website: asset.sourceUrl, url: asset.originUrl }, sibling)).toBe(false);
+    expect(isDuplicateItem({ annotation: firstAnnotation, url: asset.sourceUrl }, sibling)).toBe(false);
+    expect(isDuplicateItem({ annotation: 'stable eagle-looms:https://anime-pictures.net/posts/917184' }, sibling)).toBe(false);
+    expect(isDuplicateItem({ url: sibling.originUrl }, sibling)).toBe(true);
   });
 
   it('does not treat one subitem origin URL match as every sibling subitem duplicate', () => {

@@ -232,6 +232,7 @@ same-session re-import skips before querying Eagle again
 same-plan duplicate stable keys are counted as session skips
 duplicate-only reruns do not create fresh empty destination folders
 multi-file subitems sharing an origin URL are not skipped unless itemKey/stable raw identity also matches
+normal images sharing a source page require an exact origin or structured identity, so a partial retry does not skip unimported siblings
 ```
 
 Folder naming behavior:
