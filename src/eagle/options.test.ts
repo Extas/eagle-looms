@@ -91,6 +91,13 @@ describe('Eagle options', () => {
     ]);
   });
 
+  it('folds a trailing variant qualifier into an already qualified base character', () => {
+    expect(collapseCharacterFolderValues([
+      'shimakaze_(kancolle)',
+      'shimakaze_(kancolle)_(cosplay)',
+    ])).toEqual(['shimakaze (kancolle)']);
+  });
+
   it('keeps the optional copyright folder preset useful when copyright metadata is missing', () => {
     expect(resolveEagleFolderPath('Eagle Looms/{site}/{copyright}', {
       site: 'pixiv.net',

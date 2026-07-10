@@ -256,7 +256,7 @@ function characterFolderKey(value: string): string {
 
 function qualifiedCharacterBaseKey(key: string): string {
   const base = key
-    .replace(/\s*(?:(?:\([^)]*\)|\[[^\]]*]|\{[^}]*})\s*)+$/g, "")
+    .replace(/\s*(?:\([^)]*\)|\[[^\]]*]|\{[^}]*})\s*$/, "")
     .trim();
   return base && base !== key ? base : "";
 }
