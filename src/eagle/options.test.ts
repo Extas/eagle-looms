@@ -5,6 +5,8 @@ describe('Eagle options', () => {
   it('normalizes Eagle API URL input to an origin', () => {
     expect(normalizeEagleBaseUrl('http://localhost:41595/api/v2/')).toBe('http://localhost:41595');
     expect(normalizeEagleBaseUrl('http://localhost:41595/?token=abc-123')).toBe('http://localhost:41595?token=abc-123');
+    expect(normalizeEagleBaseUrl('localhost:5000/api/v2?token=custom')).toBe('http://localhost:5000?token=custom');
+    expect(normalizeEagleBaseUrl('127.0.0.1:5001')).toBe('http://127.0.0.1:5001');
     expect(normalizeEagleBaseUrl('not a url')).toBe('http://localhost:41595');
   });
 

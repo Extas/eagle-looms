@@ -94,7 +94,7 @@ export function eagleFolderPresetForTemplate(value: unknown): EagleFolderPreset 
 export function normalizeEagleBaseUrl(value: unknown): string {
   const raw = typeof value === "string" && value.trim() ? value.trim() : DEFAULT_EAGLE_BASE_URL;
   try {
-    const url = new URL(raw);
+    const url = new URL(/^[a-z][a-z\d+.-]*:\/\//i.test(raw) ? raw : `http://${raw}`);
     if (!["http:", "https:"].includes(url.protocol)) return DEFAULT_EAGLE_BASE_URL;
     const token = url.searchParams.get("token")?.trim();
     return token ? `${url.origin}?token=${encodeURIComponent(token)}` : url.origin;
