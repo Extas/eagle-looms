@@ -2,6 +2,7 @@ import { i18n } from "../utils/i18n";
 import { DEFAULT_EAGLE_CONFIRM_THRESHOLD, normalizeEagleConfirmMode, normalizeEagleConfirmThreshold, type EagleConfirmMode } from "./options";
 
 export type EagleImportSummaryStats = {
+  libraryName?: string;
   planned: number;
   imported: number;
   skipped: number;
@@ -71,6 +72,7 @@ export function eagleSummaryParts(stats: EagleImportSummaryStats): string[] {
   const reasons = skippedReasons.length ? ` (${skippedReasons.join(", ")})` : "";
   const parts = [
     importOutcome(stats),
+    stats.libraryName ? format(i18n.eaglePlanLibrary.get(), { value: stats.libraryName }) : "",
     format(i18n.eagleSummaryPlanned.get(), { count: stats.planned }),
     format(i18n.eagleSummaryImported.get(), { count: stats.imported }),
     format(i18n.eagleSummarySkipped.get(), { count: stats.skipped, reasons }),

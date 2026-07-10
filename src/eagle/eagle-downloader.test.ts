@@ -365,7 +365,7 @@ describe('Eagle downloader duplicate checks', () => {
     }) as any as EagleDownloader;
     ADAPTER.conf = defaultConf();
     eagleProbeMock.mockReset();
-    eagleProbeMock.mockResolvedValue({});
+    eagleProbeMock.mockResolvedValue({ library: { name: 'Test Library' } });
 
     await downloader.importOne(0, 0);
 
@@ -378,6 +378,11 @@ describe('Eagle downloader duplicate checks', () => {
       job,
       expect.objectContaining({ planned: 1 }),
       expect.any(Set)
+    );
+    expect(panel.showEagleImportResult).toHaveBeenCalledWith(
+      expect.arrayContaining(['library Test Library']),
+      false,
+      [],
     );
   });
 

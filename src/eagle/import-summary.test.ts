@@ -4,6 +4,7 @@ import { eaglePlanCompactParts, eaglePlanCompactSummary, eaglePlanHeadline, eagl
 describe('Eagle import summary', () => {
   it('includes counts, destination folders, and bounded failure details', () => {
     const stats = {
+      libraryName: 'Test Library',
       planned: 5,
       imported: 2,
       skipped: 2,
@@ -14,8 +15,9 @@ describe('Eagle import summary', () => {
       skippedItems: ['duplicate: 2025-07-08 anime-pictures-908175.png', 'session: 2025-07-08 anime-pictures-908176.png'],
       failures: ['001.jpg: 403 Forbidden', '002.jpg: timeout', '002.jpg: timeout', '003.jpg: invalid'],
     };
-    expect(eagleSummary(stats)).toBe('Eagle import: planned 5, imported 2, skipped 2 (duplicates 1, session 1), failed 2, folders Eagle Looms/site/a | Eagle Looms/site/b, first skipped duplicate: 2025-07-08 anime-pictures-908175.png | session: 2025-07-08 anime-pictures-908176.png, first failures 001.jpg: 403 Forbidden | 002.jpg: timeout | 003.jpg: invalid.');
+    expect(eagleSummary(stats)).toBe('Eagle import: library Test Library, planned 5, imported 2, skipped 2 (duplicates 1, session 1), failed 2, folders Eagle Looms/site/a | Eagle Looms/site/b, first skipped duplicate: 2025-07-08 anime-pictures-908175.png | session: 2025-07-08 anime-pictures-908176.png, first failures 001.jpg: 403 Forbidden | 002.jpg: timeout | 003.jpg: invalid.');
     expect(eagleSummaryParts(stats)).toEqual([
+      'library Test Library',
       'planned 5',
       'imported 2',
       'skipped 2 (duplicates 1, session 1)',

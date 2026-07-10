@@ -139,6 +139,7 @@ Cancel closes the confirmation without writing new Eagle items
 clicking either import button again while import/confirmation/write is active stops the pending import and closes the confirmation
 Write to Eagle creates image items only, plus the destination folders required by those items
 final summary reports planned, imported, skipped, failed, and destination folders
+final result panel and copied diagnostics retain the target Eagle library name after the transient plan notification closes
 imports that actually create exactly one item include its direct Eagle item link, even when other planned items were duplicates or failed
 all-skipped duplicate imports show No new items / 没有新项目 instead of Imported / 导入完成
 right click / context menu Import current to Eagle shows the same confirmation, running, and No new items / Imported / Failed end states as bulk import

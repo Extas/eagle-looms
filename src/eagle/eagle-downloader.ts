@@ -149,6 +149,7 @@ export class EagleDownloader extends Downloader {
       this.panel.setImportProgress(i18n.eagleImportCheckingEagle.get());
       const connection = await api.probe();
       const libraryName = extractEagleLibraryName(connection.library) || i18n.eagleConfigUnknownLibrary.get();
+      stats.libraryName = libraryName;
       if (ADAPTER.conf.eagleSkipDuplicates && jobs.length > 1) {
         EBUS.emit("notify-message", "info", i18n.eagleImportCheckingDuplicates.get(), 4000);
       }
@@ -256,6 +257,7 @@ export class EagleDownloader extends Downloader {
       this.panel.setImportProgress(i18n.eagleImportCheckingEagle.get());
       const connection = await api.probe();
       const libraryName = extractEagleLibraryName(connection.library) || i18n.eagleConfigUnknownLibrary.get();
+      stats.libraryName = libraryName;
       const chapterTitle = safeTitle(titleToString(chapter.title));
       const singleChapter = this.pageFetcher.chapters.length === 1;
       const importDate = localDatePrefix();
