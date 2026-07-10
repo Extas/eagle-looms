@@ -103,6 +103,14 @@ describe("ConfigPanel Eagle preview", () => {
     expect(preview.textContent).toContain(String(ADAPTER.globalConf.eagleMaxSourceTags));
   });
 
+  it("gives long Eagle URL and folder path settings the expandable text layout", () => {
+    const panel = createPanel();
+
+    expect(panel.panel.querySelector("#eagleBaseUrlConfigItem")?.classList.contains("eagle-config-text-item")).toBe(true);
+    expect(panel.panel.querySelector("#eagleFolderPathConfigItem")?.classList.contains("eagle-config-text-item")).toBe(true);
+    expect(panel.panel.querySelector("#eagleImportLimitConfigItem")?.classList.contains("eagle-config-text-item")).toBe(false);
+  });
+
   it("shows the Eagle confirmation policy in the preview", () => {
     ADAPTER.globalConf.eagleConfirmMode = "auto";
     ADAPTER.globalConf.eagleConfirmThreshold = 3;

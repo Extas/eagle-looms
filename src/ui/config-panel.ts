@@ -243,7 +243,8 @@ function createOption(item: ConfigItem) {
 
   }
   const [start, end] = item.gridColumnRange ? item.gridColumnRange : [1, 11];
-  return `<div id="${item.key}ConfigItem" class="config-panel-item" style="grid-column-start: ${start}; grid-column-end: ${end}; padding-left: 5px;${display ? "" : " display: none;"}"><label class="p-label"><span><span>${i18nValue.get()}</span><span class="p-tooltip">${i18nValueTooltip ? " ?:" : " :"}<span class="p-tooltiptext">${i18nValueTooltip?.get() || ""}</span></span></span>${input}</label></div>`;
+  const eagleInputClass = isEaglePreviewConfigKey(item.key) && item.typ === "input" ? " eagle-config-text-item" : "";
+  return `<div id="${item.key}ConfigItem" class="config-panel-item${eagleInputClass}" style="grid-column-start: ${start}; grid-column-end: ${end}; padding-left: 5px;${display ? "" : " display: none;"}"><label class="p-label"><span><span>${i18nValue.get()}</span><span class="p-tooltip">${i18nValueTooltip ? " ?:" : " :"}<span class="p-tooltiptext">${i18nValueTooltip?.get() || ""}</span></span></span>${input}</label></div>`;
 }
 
 function escapeAttr(value: string): string {

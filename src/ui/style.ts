@@ -51,6 +51,19 @@ export function styleCSS() {
   width: 10em;
   cursor: auto;
 }
+.eagle-config-text-item label {
+  gap: 0.75em;
+}
+.eagle-config-text-item label > span:last-child {
+  flex: 1 1 18em;
+  min-width: 8em;
+  max-width: 70%;
+}
+.eagle-config-text-item input.text-input {
+  width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
 .ehvp-root-collapse {
   height: 0;
 }
