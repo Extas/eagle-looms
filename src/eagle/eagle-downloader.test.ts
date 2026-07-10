@@ -47,6 +47,22 @@ const asset = {
 };
 
 describe('Eagle downloader duplicate checks', () => {
+  it('logs sanitized failures from the loaded-image import action', async () => {
+    const error = new Error('403 https://eagle.test/api/v2/item/add?token=secret-value');
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    const downloader = Object.assign(Object.create(EagleDownloader.prototype), {
+      downloading: false,
+      pageFetcher: { chapters: [] },
+      download: vi.fn().mockRejectedValue(error),
+    }) as any;
+
+    await downloader.importLoaded();
+
+    expect(consoleError).toHaveBeenCalledWith('[Eagle Looms]', expect.stringContaining('token=***'));
+    expect(consoleError.mock.calls.flat().join(' ')).not.toContain('secret-value');
+    expect(downloader.downloading).toBe(false);
+  });
+
   it('uses simple exact queries instead of relying on Eagle search OR syntax', () => {
     expect(duplicateQueries(asset)).toEqual([
       '"eagle-looms:v2:https://anime-pictures.net/posts/917184|https://images.anime-pictures.net/pictures/917184.jpg|"',

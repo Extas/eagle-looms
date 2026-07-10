@@ -29,7 +29,6 @@ export class ConfigPanel {
       const value = (event.target as HTMLElement).getAttribute("data-value");
       if (value) {
         ADAPTER.conf.selectedSiteNameConfig = value === "global" ? undefined : value;
-        console.log("ADAPTER.conf.selectedSiteNameConfig: ", ADAPTER.conf.selectedSiteNameConfig);
         Array.from(this.configSelect.querySelectorAll(".b-main-option")).forEach((element) => {
           if (element.getAttribute("data-value") === ADAPTER.conf.selectedSiteNameConfig) {
             element.classList.add("b-main-option-selected");

@@ -101,7 +101,7 @@ export class EagleDownloader extends Downloader {
     try {
       await this.download(this.pageFetcher.chapters);
     } catch (error) {
-      console.error(error);
+      console.error("[Eagle Looms]", eagleImportErrorMessage(error));
     } finally {
       this.downloading = false;
     }

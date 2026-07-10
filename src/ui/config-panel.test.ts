@@ -279,6 +279,7 @@ describe("ConfigPanel Eagle preview", () => {
   });
 
   it("keeps exactly one Eagle preview after switching config scope", () => {
+    const consoleLog = vi.spyOn(console, "log").mockImplementation(() => undefined);
     const panel = createPanel();
     const siteTab = panel.configSelect.querySelector<HTMLElement>('[data-value="test-site"]')!;
     const globalTab = panel.configSelect.querySelector<HTMLElement>('[data-value="global"]')!;
@@ -292,6 +293,7 @@ describe("ConfigPanel Eagle preview", () => {
     globalTab.click();
     expect(panel.panel.querySelectorAll("#eagle-config-preview")).toHaveLength(1);
     expect(panel.panel.textContent).toContain(i18n.eagleConfigPreviewGlobalScope.get());
+    expect(consoleLog).not.toHaveBeenCalled();
   });
 
   it("uses localized labels for folder preset options", () => {
