@@ -4,11 +4,12 @@ import { GalleryMeta } from '../download/gallery-meta';
 import { ADAPTER } from '../platform/adapt';
 import { i18n } from '../utils/i18n';
 import { clearSessionImportedAssets, duplicateQueries, hasPlannedAssetKey, isDuplicateItem, isSessionImported, markPlannedAssetKey, markSessionImported, stableKeyForAsset } from './duplicates';
-import { EagleDownloader, eagleFolderTemplateForImport, eagleImportEndStage, eagleImportErrorMessage, eagleImportResultLinks, toAddItemInput } from './eagle-downloader';
+import { assertEagleLibraryUnchanged, EagleDownloader, eagleFolderTemplateForImport, eagleImportEndStage, eagleImportErrorMessage, eagleImportResultLinks, toAddItemInput } from './eagle-downloader';
 import { EAGLE_IMPORT_DONE_STAGE, isReadyForEagleImport } from './import-readiness';
 import { EAGLE_RAW_RECORD_SCHEMA, type EagleRawRecord } from './raw-record';
 
 const eagleProbeMock = vi.hoisted(() => vi.fn());
+const eagleLibraryInfoMock = vi.hoisted(() => vi.fn());
 
 vi.mock("$", () => ({
   GM: { xmlHttpRequest: vi.fn() },
@@ -18,6 +19,7 @@ vi.mock("$", () => ({
 
 vi.mock("./eagle-web-api", () => ({
   extractEagleLibraryName: (value: any) => value?.name || value?.data?.name || '',
+  extractEagleLibraryPath: (value: any) => value?.path || value?.data?.path || '',
   EagleWebApi: class EagleWebApi {
     readonly baseUrl: string;
 
@@ -26,6 +28,7 @@ vi.mock("./eagle-web-api", () => ({
     }
 
     probe = eagleProbeMock;
+    libraryInfo = eagleLibraryInfoMock;
   },
 }));
 
@@ -229,6 +232,17 @@ describe('Eagle downloader duplicate checks', () => {
     );
   });
 
+  it('stops before writing when Eagle switches libraries during preflight', async () => {
+    const api = {
+      libraryInfo: vi.fn().mockResolvedValue({ name: 'Library B', path: 'D:/B.library', folders: [] }),
+    };
+
+    await expect(assertEagleLibraryUnchanged(api as any, {
+      name: 'Library A',
+      path: 'D:/A.library',
+    })).rejects.toThrow('Library A');
+  });
+
   it('writes collected author URLs into Eagle item annotations', () => {
     const input = toAddItemInput({
       ...eagleAsset('artist.jpg'),
@@ -365,7 +379,9 @@ describe('Eagle downloader duplicate checks', () => {
     }) as any as EagleDownloader;
     ADAPTER.conf = defaultConf();
     eagleProbeMock.mockReset();
-    eagleProbeMock.mockResolvedValue({ library: { name: 'Test Library' } });
+    eagleProbeMock.mockResolvedValue({ library: { name: 'Test Library', path: 'D:/Test.library' } });
+    eagleLibraryInfoMock.mockReset();
+    eagleLibraryInfoMock.mockResolvedValue({ name: 'Test Library', path: 'D:/Test.library', folders: [] });
 
     await downloader.importOne(0, 0);
 

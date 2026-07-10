@@ -7,7 +7,7 @@ import { FetchState, IMGFetcher } from "../img-fetcher";
 import type ImageNode from "../img-node";
 import { SubData } from "../platform/platform";
 import EBUS from "../event-bus";
-import { EagleWebApi, AddItemInput, extractEagleLibraryName } from "./eagle-web-api";
+import { EagleWebApi, AddItemInput, extractEagleLibraryName, extractEagleLibraryPath } from "./eagle-web-api";
 import { ensureFolderPath } from "./folders";
 import { arrayBufferToBase64 } from "./transport";
 import { cleanFolderTagValue, collapseCharacterFolderValues, EAGLE_FOLDER_PRESET_TEMPLATES, EagleFolderTokens, hasMalformedEagleFolderTokenSyntax, normalizeEagleBaseUrl, normalizeEagleFolderTemplate, normalizeEagleImportLimit, resolveEagleFolderPaths } from "./options";
@@ -186,6 +186,7 @@ export class EagleDownloader extends Downloader {
           return;
         }
       }
+      if (preflight.writable > 0) await assertEagleLibraryUnchanged(api, connection.library);
 
       let writeIndex = 0;
       for (const job of jobs) {
@@ -297,6 +298,7 @@ export class EagleDownloader extends Downloader {
           return;
         }
       }
+      if (preflight.writable > 0) await assertEagleLibraryUnchanged(api, connection.library);
       let writeIndex = 0;
       for (const job of jobs) {
         if (!this.downloading || this.importStopRequested) {
@@ -528,6 +530,21 @@ export function eagleFolderTemplateForImport(value: unknown): string {
     throw new Error(i18n.eagleImportMalformedFolderRule.get());
   }
   return template;
+}
+
+export async function assertEagleLibraryUnchanged(api: EagleWebApi, initial: unknown): Promise<void> {
+  const initialPath = extractEagleLibraryPath(initial);
+  const initialName = extractEagleLibraryName(initial);
+  if (!initialPath && !initialName) return;
+  const current = await api.libraryInfo();
+  const changed = initialPath && current.path
+    ? initialPath !== current.path
+    : Boolean(initialName && current.name && initialName !== current.name);
+  if (!changed) return;
+  throw new Error(format(i18n.eagleImportLibraryChanged.get(), {
+    before: initialName || i18n.eagleConfigUnknownLibrary.get(),
+    after: current.name || i18n.eagleConfigUnknownLibrary.get(),
+  }));
 }
 
 export function eagleImportResultLinks(stats: Pick<EagleImportStats, "imported" | "folderLinks" | "itemLinks">): EagleImportResultLink[] {

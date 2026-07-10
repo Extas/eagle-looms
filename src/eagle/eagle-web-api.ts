@@ -28,6 +28,12 @@ export interface AddItemInput {
   website?: string;
 }
 
+export interface EagleLibraryInfo {
+  name?: string;
+  path?: string;
+  folders: EagleFolder[];
+}
+
 export class EagleWebApi {
   readonly baseUrl: string;
 
@@ -43,9 +49,9 @@ export class EagleWebApi {
     return { app, library };
   }
 
-  async libraryInfo(): Promise<{ folders: EagleFolder[] }> {
-    const data = await this.get<{ folders?: EagleFolder[] }>('/api/v2/library/info');
-    return { folders: data.folders || [] };
+  async libraryInfo(): Promise<EagleLibraryInfo> {
+    const data = await this.get<{ name?: string; path?: string; folders?: EagleFolder[] }>('/api/v2/library/info');
+    return { name: data.name, path: data.path, folders: data.folders || [] };
   }
 
   async getFolders(): Promise<EagleFolder[]> {
@@ -196,4 +202,11 @@ export function extractEagleLibraryName(payload: unknown): string {
   const value = payload as { name?: unknown; data?: unknown };
   if (typeof value.name === 'string' && value.name.trim()) return value.name.trim();
   return value.data ? extractEagleLibraryName(value.data) : '';
+}
+
+export function extractEagleLibraryPath(payload: unknown): string {
+  if (!payload || typeof payload !== 'object') return '';
+  const value = payload as { path?: unknown; data?: unknown };
+  if (typeof value.path === 'string' && value.path.trim()) return value.path.trim();
+  return value.data ? extractEagleLibraryPath(value.data) : '';
 }

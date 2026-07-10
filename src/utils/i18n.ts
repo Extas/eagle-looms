@@ -698,6 +698,12 @@ pero desactivará la lupa y la capacidad de arrastrar y mover imágenes.`,
     'Eagle folder rule has unmatched or nested braces. Correct Eagle Folder Path in Config before importing.',
     'La regla de carpeta tiene llaves sin pareja o anidadas. Corrige la ruta Eagle antes de importar.',
   ],
+  eagleImportLibraryChanged: [
+    'Eagle library changed from {before} to {after} during preflight. Import stopped; review the target library and retry.',
+    '预检查期间 Eagle 资料库从 {before} 切换为 {after}。导入已停止；请确认目标资料库后重试。',
+    'Eagle library changed from {before} to {after} during preflight. Import stopped; review the target library and retry.',
+    'La biblioteca Eagle cambio de {before} a {after} durante la comprobacion. Importacion detenida; revisa y reintenta.',
+  ],
   eagleConfigPreviewNames: [
     'Item names',
     '文件名',

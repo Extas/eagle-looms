@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { eagleApiRequestUrl, extractEagleItemId, extractEagleItemIds, extractEagleLibraryName } from './eagle-web-api';
+import { eagleApiRequestUrl, extractEagleItemId, extractEagleItemIds, extractEagleLibraryName, extractEagleLibraryPath } from './eagle-web-api';
 
 describe('Eagle Web API response helpers', () => {
   it('keeps V2 API tokens on every request URL', () => {
@@ -27,5 +27,7 @@ describe('Eagle Web API response helpers', () => {
     expect(extractEagleLibraryName({ name: 'My Library' })).toBe('My Library');
     expect(extractEagleLibraryName({ data: { name: 'Nested Library' } })).toBe('Nested Library');
     expect(extractEagleLibraryName({})).toBe('');
+    expect(extractEagleLibraryPath({ path: 'D:/Library.library' })).toBe('D:/Library.library');
+    expect(extractEagleLibraryPath({ data: { path: 'D:/Nested.library' } })).toBe('D:/Nested.library');
   });
 });
