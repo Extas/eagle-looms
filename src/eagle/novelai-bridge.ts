@@ -1,5 +1,5 @@
 import type { EagleItem } from "../types";
-import { EagleWebApi, type AddItemInput } from "./eagle-web-api";
+import { EagleWebApi, redactEagleApiSecrets, type AddItemInput } from "./eagle-web-api";
 import { normalizeEagleBaseUrl } from "./options";
 import { arrayBufferToBase64, requestArrayBuffer } from "./transport";
 import { buildStructuredEagleName } from "./naming";
@@ -1989,7 +1989,7 @@ function isTextEntryElement(element: HTMLElement): boolean {
 }
 
 function errorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : String(error);
+  return redactEagleApiSecrets(error instanceof Error ? error.message : String(error));
 }
 
 function delay(ms: number): Promise<void> {

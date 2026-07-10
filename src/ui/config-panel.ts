@@ -1,5 +1,5 @@
 import { clearSiteConfigKeys, Config, ConfigBooleanType, ConfigTextType, ConfigItem, ConfigItems, ConfigNumberType, ConfigSelectType, defaultConf, resetConf } from "../config";
-import { classifyEagleApiError, EagleWebApi, extractEagleLibraryName } from "../eagle/eagle-web-api";
+import { classifyEagleApiError, EagleWebApi, extractEagleLibraryName, redactEagleApiSecrets } from "../eagle/eagle-web-api";
 import { localDatePrefix } from "../eagle/naming";
 import { displayEagleBaseUrl, findUnknownEagleFolderTokens, hasMalformedEagleFolderTokenSyntax, resolveEagleFolderPaths, tryNormalizeEagleBaseUrl } from "../eagle/options";
 import { ADAPTER } from "../platform/adapt";
@@ -479,7 +479,7 @@ function eagleLibraryName(value: unknown): string {
 }
 
 function errorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : String(error || "unknown error");
+  return redactEagleApiSecrets(error instanceof Error ? error.message : String(error || "unknown error"));
 }
 
 function eagleConnectionErrorMessage(error: unknown): string {

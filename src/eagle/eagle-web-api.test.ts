@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { classifyEagleApiError, eagleApiRequestUrl, extractEagleItemId, extractEagleItemIds, extractEagleLibraryName, extractEagleLibraryPath } from './eagle-web-api';
+import { classifyEagleApiError, eagleApiRequestUrl, extractEagleItemId, extractEagleItemIds, extractEagleLibraryName, extractEagleLibraryPath, redactEagleApiSecrets } from './eagle-web-api';
 
 describe('Eagle Web API response helpers', () => {
   it('keeps V2 API tokens on every request URL', () => {
@@ -38,5 +38,11 @@ describe('Eagle Web API response helpers', () => {
     expect(classifyEagleApiError(new Error('request timed out'))).toBe('timeout');
     expect(classifyEagleApiError(new Error('Failed to fetch'))).toBe('connection');
     expect(classifyEagleApiError(new Error('bad request'))).toBe('other');
+  });
+
+  it('redacts V2 tokens from API error text without hiding the endpoint', () => {
+    expect(redactEagleApiSecrets('Request failed: https://eagle.test/api/v2/item/get?token=secret-value&limit=1'))
+      .toBe('Request failed: https://eagle.test/api/v2/item/get?token=***&limit=1');
+    expect(redactEagleApiSecrets('Forbidden token=secret-value')).toBe('Forbidden token=***');
   });
 });

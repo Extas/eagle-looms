@@ -7,7 +7,7 @@ import { FetchState, IMGFetcher } from "../img-fetcher";
 import type ImageNode from "../img-node";
 import { SubData } from "../platform/platform";
 import EBUS from "../event-bus";
-import { classifyEagleApiError, EagleWebApi, AddItemInput, extractEagleLibraryName, extractEagleLibraryPath } from "./eagle-web-api";
+import { classifyEagleApiError, EagleWebApi, AddItemInput, extractEagleLibraryName, extractEagleLibraryPath, redactEagleApiSecrets } from "./eagle-web-api";
 import { ensureFolderPath } from "./folders";
 import { arrayBufferToBase64 } from "./transport";
 import { cleanFolderTagValue, collapseCharacterFolderValues, EAGLE_FOLDER_PRESET_TEMPLATES, EagleFolderTokens, findUnknownEagleFolderTokens, hasMalformedEagleFolderTokenSyntax, normalizeEagleBaseUrl, normalizeEagleFolderTemplate, normalizeEagleImportLimit, resolveEagleFolderPaths } from "./options";
@@ -553,7 +553,7 @@ export function isPartialImportResult(stats: Pick<EagleImportSummaryStats, "plan
 }
 
 export function eagleImportErrorMessage(error: unknown): string {
-  const message = error instanceof Error ? error.message : String(error || "unknown error");
+  const message = redactEagleApiSecrets(error instanceof Error ? error.message : String(error || "unknown error"));
   const kind = classifyEagleApiError(error);
   if (kind === "authorization") {
     return format(i18n.eagleImportApiUnauthorized.get(), { message });

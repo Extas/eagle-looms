@@ -28,6 +28,7 @@ vi.mock("./eagle-web-api", () => ({
   },
   extractEagleLibraryName: (value: any) => value?.name || value?.data?.name || '',
   extractEagleLibraryPath: (value: any) => value?.path || value?.data?.path || '',
+  redactEagleApiSecrets: (value: string) => value.replace(/(\btoken=)[^&#\s"'<>]+/gi, '$1***'),
   EagleWebApi: class EagleWebApi {
     readonly baseUrl: string;
 
@@ -267,6 +268,8 @@ describe('Eagle downloader duplicate checks', () => {
     expect(eagleImportErrorMessage(new Error('request timed out'))).toContain('Eagle Web API timed out');
     expect(eagleImportErrorMessage(new Error('403 Forbidden'))).toContain('API token');
     expect(eagleImportErrorMessage(new Error('Eagle API returned invalid JSON'))).toContain('API URL');
+    expect(eagleImportErrorMessage(new Error('403 https://eagle.test/api/v2/item/get?token=secret-value'))).toContain('token=***');
+    expect(eagleImportErrorMessage(new Error('403 https://eagle.test/api/v2/item/get?token=secret-value'))).not.toContain('secret-value');
   });
 
   it('rejects malformed or unknown folder rules before Eagle can create literal brace folders', () => {

@@ -21,6 +21,7 @@ vi.mock("../eagle/eagle-web-api", () => ({
     return "other";
   },
   extractEagleLibraryName: (value: any) => value?.name || value?.data?.name || "",
+  redactEagleApiSecrets: (value: string) => value.replace(/(\btoken=)[^&#\s"'<>]+/gi, "$1***"),
   EagleWebApi: class EagleWebApi {
     readonly baseUrl: string;
 
@@ -118,6 +119,19 @@ describe("ConfigPanel Eagle preview", () => {
 
     expect(status.textContent).toContain("API token");
     expect(status.textContent).toContain("403 Forbidden");
+  });
+
+  it("redacts tokens echoed by Eagle connection errors", async () => {
+    probeMock.mockRejectedValue(new Error("403 https://eagle.test/api/v2/app/info?token=secret-value"));
+    const panel = createPanel();
+    const status = panel.panel.querySelector<HTMLElement>("#eagle-config-connection-status")!;
+
+    panel.panel.querySelector<HTMLButtonElement>("#eagle-config-test-connection")!.click();
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(status.textContent).toContain("token=***");
+    expect(status.textContent).not.toContain("secret-value");
   });
 
   it("identifies a non-Eagle or proxy HTML response as an API URL problem", async () => {

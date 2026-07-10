@@ -222,3 +222,7 @@ export function classifyEagleApiError(error: unknown): EagleApiErrorKind {
   if (/failed to fetch|networkerror|network error|connection refused|econnrefused|could not connect/.test(normalized)) return 'connection';
   return 'other';
 }
+
+export function redactEagleApiSecrets(value: string): string {
+  return value.replace(/(\btoken=)[^&#\s"'<>]+/gi, '$1***');
+}
