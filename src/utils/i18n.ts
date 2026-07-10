@@ -602,6 +602,12 @@ pero desactivará la lupa y la capacidad de arrastrar y mover imágenes.`,
     'Use global Eagle settings',
     'Usar ajustes globales de Eagle',
   ],
+  eagleConfigUseGlobalConfirm: [
+    'Remove Eagle overrides for {site} and use global values?',
+    '清除 {site} 的 Eagle 覆盖设置并使用全局值？',
+    'Remove Eagle overrides for {site} and use global values?',
+    'Eliminar ajustes Eagle de {site} y usar los valores globales?',
+  ],
   eagleConfigTestChecking: [
     'Testing...',
     '测试中...',

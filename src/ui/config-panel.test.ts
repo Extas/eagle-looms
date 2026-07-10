@@ -60,6 +60,8 @@ describe("ConfigPanel Eagle preview", () => {
   });
 
   afterEach(() => {
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
     document.body.innerHTML = "";
   });
 
@@ -328,14 +330,32 @@ describe("ConfigPanel Eagle preview", () => {
     ADAPTER.siteConf = getSiteConfig("test-site");
     ADAPTER.conf = { ...ADAPTER.globalConf, ...ADAPTER.siteConf, selectedSiteNameConfig: "test-site" } as typeof ADAPTER.conf;
     const panel = createPanel();
+    const confirm = vi.fn().mockReturnValue(true);
+    vi.stubGlobal("confirm", confirm);
 
     panel.panel.querySelector<HTMLButtonElement>("#eagle-config-use-global")!.click();
 
+    expect(confirm).toHaveBeenCalledWith(i18n.eagleConfigUseGlobalConfirm.get().replace("{site}", "test-site"));
     expect(ADAPTER.siteConf?.eagleFolderPath).toBeUndefined();
     expect(ADAPTER.siteConf?.eagleFolderPreset).toBeUndefined();
     expect(ADAPTER.siteConf?.colCount).toBe(9);
     expect(ADAPTER.conf.eagleFolderPath).toBe(ADAPTER.globalConf.eagleFolderPath);
     expect(panel.panel.querySelector("#eagle-config-use-global")).toBeNull();
     expect(panel.panel.textContent).toContain(i18n.eagleConfigPreviewInheritsGlobal.get());
+  });
+
+  it("keeps site Eagle overrides when global-setting confirmation is canceled", () => {
+    saveConf({ eagleFolderPath: "Eagle Looms/{site}/{author}" }, "test-site");
+    ADAPTER.conf.selectedSiteNameConfig = "test-site";
+    ADAPTER.siteConf = getSiteConfig("test-site");
+    ADAPTER.conf = { ...ADAPTER.globalConf, ...ADAPTER.siteConf, selectedSiteNameConfig: "test-site" } as typeof ADAPTER.conf;
+    const panel = createPanel();
+    vi.stubGlobal("confirm", vi.fn().mockReturnValue(false));
+
+    panel.panel.querySelector<HTMLButtonElement>("#eagle-config-use-global")!.click();
+
+    expect(ADAPTER.siteConf?.eagleFolderPath).toBe("Eagle Looms/{site}/{author}");
+    expect(getSiteConfig("test-site").eagleFolderPath).toBe("Eagle Looms/{site}/{author}");
+    expect(panel.panel.querySelector("#eagle-config-use-global")).not.toBeNull();
   });
 });

@@ -179,6 +179,7 @@ export class ConfigPanel {
     useGlobalButton?.addEventListener("click", () => {
       const siteName = ADAPTER.conf.selectedSiteNameConfig;
       if (!siteName) return;
+      if (!confirm(i18n.eagleConfigUseGlobalConfirm.get().replace("{site}", siteName))) return;
       ADAPTER.siteConf = clearSiteConfigKeys(siteName, EAGLE_PREVIEW_CONFIG_KEYS);
       ADAPTER.conf = {
         ...ADAPTER.globalConf,
