@@ -221,6 +221,21 @@ describe("ConfigPanel Eagle preview", () => {
     ]);
   });
 
+  it("shows the auto confirmation threshold only when auto mode uses it", () => {
+    const panel = createPanel(createEvents({
+      modSelectConfigEvent: vi.fn((key: string) => {
+        if (key === "eagleConfirmMode") ADAPTER.globalConf.eagleConfirmMode = "always";
+      }) as any,
+    }));
+    const mode = panel.panel.querySelector<HTMLSelectElement>("#eagleConfirmModeSelect")!;
+    const threshold = panel.panel.querySelector<HTMLElement>("#eagleConfirmThresholdConfigItem")!;
+
+    expect(threshold.hidden).toBe(false);
+    mode.value = "always";
+    mode.dispatchEvent(new Event("change"));
+    expect(threshold.hidden).toBe(true);
+  });
+
   it("shows when the selected site inherits global Eagle settings", () => {
     ADAPTER.conf.selectedSiteNameConfig = "test-site";
     ADAPTER.siteConf = {};

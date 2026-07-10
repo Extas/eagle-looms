@@ -102,6 +102,7 @@ export class ConfigPanel {
         case "select":
           q(`#${item.key}Select`, this.panel).addEventListener("change", () => {
             events.modSelectConfigEvent(item.key as ConfigSelectType);
+            this.syncEagleDependentFields();
             this.refreshEagleConfigPreviewFor(item.key);
           });
           break;
@@ -114,6 +115,7 @@ export class ConfigPanel {
       }
     });
     this.insertEagleConfigPreview();
+    this.syncEagleDependentFields();
     this.bindEagleConfigPreview();
     // tooltip hovering
     this.panel.querySelectorAll<HTMLElement>(".p-tooltip").forEach(element => {
@@ -145,6 +147,12 @@ export class ConfigPanel {
 
   private refreshEagleConfigPreviewFor(key: ConfigItem["key"]) {
     if (isEaglePreviewConfigKey(key)) this.refreshEagleConfigPreview();
+  }
+
+  private syncEagleDependentFields() {
+    const conf = ADAPTER.conf.selectedSiteNameConfig ? ADAPTER.conf : ADAPTER.globalConf;
+    const threshold = this.panel.querySelector<HTMLElement>("#eagleConfirmThresholdConfigItem");
+    if (threshold) threshold.hidden = conf.eagleConfirmMode !== "auto";
   }
 
   private bindEagleConfigPreview() {

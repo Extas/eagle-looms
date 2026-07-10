@@ -91,16 +91,16 @@ base      git merge-base HEAD upstream/master
 
 ## Versioning
 
-Automated validation is expensive, so small iterations are versioned and validated on a fixed cadence.
+Automated validation is expensive, so small iterations are versioned and validated on a fixed cadence. `package.json` is the source of truth for the current version.
 
-Current version starts at `0.1.1`. For each small feature iteration, increment the last number by one:
+For each small feature iteration, increment the last number by one:
 
 ```text
-0.1.1 -> 0.1.2 -> ... -> 0.1.100
-0.1.100 -> 0.2.1
+1.0.58 -> 1.0.59 -> ... -> 1.0.100
+1.0.100 -> 1.1.1
 ```
 
-Only run the full automated validation gate when the middle version number changes, i.e. once every 100 small iterations (`0.2.1`, `0.3.1`, ...). For ordinary small-version bumps, prefer targeted local checks or manual review unless a risky change requires more.
+Only run the full automated validation gate when the middle version number changes, i.e. once every 100 small iterations (`1.1.1`, `1.2.1`, ...). For ordinary small-version bumps, prefer targeted local checks or manual review unless a risky change requires more.
 
 ## Validation
 

@@ -70,6 +70,7 @@ status reset actions say Mark loaded as missing / 已加载改为未加载 and R
 Config panel contains Eagle API URL, folder preset, folder path, import limit, source tag limit, skip duplicates
 Eagle API URL and folder path inputs expand across the available settings row instead of truncating to the upstream short text-input width
 Config panel contains Eagle confirmation mode and auto confirmation threshold
+Auto confirmation threshold is visible only while confirmation mode is Auto
 Folder preset dropdown uses the current UI language instead of raw internal preset names
 Config panel labels the former download concurrency setting as import loading threads
 Eagle import preview appears under the Eagle settings
