@@ -57,6 +57,7 @@ describe('Eagle downloader duplicate checks', () => {
     ].join('\n');
 
     expect(isDuplicateItem({ website: asset.sourceUrl }, asset)).toBe(true);
+    expect(isDuplicateItem({ url: asset.sourceUrl }, asset)).toBe(true);
     expect(isDuplicateItem({ url: asset.originUrl }, asset)).toBe(true);
     expect(isDuplicateItem({ annotation }, asset)).toBe(true);
     expect(isDuplicateItem({ annotation: JSON.stringify({ sourceUrl: asset.sourceUrl, originUrl: asset.originUrl, stableKey: stableKeyForAsset(asset) }) }, asset)).toBe(true);
@@ -75,6 +76,7 @@ describe('Eagle downloader duplicate checks', () => {
     });
 
     expect(isDuplicateItem({ url: asset.originUrl }, subitem)).toBe(false);
+    expect(isDuplicateItem({ url: asset.sourceUrl }, subitem)).toBe(false);
     expect(isDuplicateItem({ website: asset.sourceUrl }, subitem)).toBe(false);
     expect(isDuplicateItem({ url: asset.originUrl, name: '917184 - frame-002.png' }, subitem)).toBe(true);
     expect(isDuplicateItem({ url: asset.originUrl, name: '917184 - frame-001.png' }, subitem)).toBe(false);
