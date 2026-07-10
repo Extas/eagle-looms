@@ -10,7 +10,7 @@ import EBUS from "../event-bus";
 import { EagleWebApi, AddItemInput } from "./eagle-web-api";
 import { ensureFolderPath } from "./folders";
 import { arrayBufferToBase64 } from "./transport";
-import { collapseCharacterFolderValues, EAGLE_FOLDER_PRESET_TEMPLATES, EagleFolderTokens, normalizeEagleBaseUrl, normalizeEagleFolderTemplate, normalizeEagleImportLimit, resolveEagleFolderPaths } from "./options";
+import { cleanFolderTagValue, collapseCharacterFolderValues, EAGLE_FOLDER_PRESET_TEMPLATES, EagleFolderTokens, normalizeEagleBaseUrl, normalizeEagleFolderTemplate, normalizeEagleImportLimit, resolveEagleFolderPaths } from "./options";
 import { duplicateQueries, hasPlannedAssetKey, isDuplicateItem, isSessionImported, markPlannedAssetKey, markSessionImported } from "./duplicates";
 import { normalizeEagleItemTags, normalizeEagleTags, semanticSourceTags, sourcePublishedAtTags, sourceTagsFromGalleryMeta } from "./tags";
 import { isReadyForEagleImport } from "./import-readiness";
@@ -601,7 +601,7 @@ function eagleFolderTokens(tags: string[], meta: GalleryMeta, chapter: Chapter, 
 function tagValues(tags: string[], prefix: "copyright" | "character" | "author"): string[] {
   const values = tags
     .filter(tag => tag.startsWith(`${prefix}:`))
-    .map(tag => safeTitle(tag.slice(prefix.length + 1)))
+    .map(tag => cleanFolderTagValue(tag.slice(prefix.length + 1)))
     .filter(Boolean)
     .sort((a, b) => a.length - b.length || a.localeCompare(b));
   return [...new Set(values)];

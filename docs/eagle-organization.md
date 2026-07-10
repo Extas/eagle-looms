@@ -46,6 +46,7 @@ Folder token rules:
 
 ```text
 sanitize unsafe folder characters
+render booru-style underscores as spaces in copyright, character, and author folder names
 omit missing token segments
 resolve folder tokens from uncapped source metadata
 {date} always uses the local date captured when the import starts

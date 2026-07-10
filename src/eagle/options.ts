@@ -228,8 +228,12 @@ export function cleanFolderName(value: string): string {
     .slice(0, 120);
 }
 
+export function cleanFolderTagValue(value: string): string {
+  return cleanFolderName(value.replace(/_+/g, " "));
+}
+
 export function collapseCharacterFolderValues(values: string[]): string[] {
-  const normalized = [...new Set(values.map(value => cleanFolderName(value.replace(/_+/g, " "))).filter(Boolean))]
+  const normalized = [...new Set(values.map(cleanFolderTagValue).filter(Boolean))]
     .sort((a, b) => a.length - b.length || a.localeCompare(b));
   const kept: string[] = [];
   for (const value of normalized) {

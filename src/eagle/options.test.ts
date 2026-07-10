@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { collapseCharacterFolderValues, DEFAULT_EAGLE_FOLDER_TEMPLATE, eagleFolderPresetForTemplate, eagleFolderTemplateForPreset, normalizeEagleBaseUrl, normalizeEagleBoolean, normalizeEagleConfigPatch, normalizeEagleConfirmMode, normalizeEagleConfirmThreshold, normalizeEagleFolderPreset, normalizeEagleFolderTemplate, normalizeEagleImportLimit, normalizeEagleMaxSourceTags, resolveEagleFolderPath, resolveEagleFolderPaths } from './options';
+import { cleanFolderTagValue, collapseCharacterFolderValues, DEFAULT_EAGLE_FOLDER_TEMPLATE, eagleFolderPresetForTemplate, eagleFolderTemplateForPreset, normalizeEagleBaseUrl, normalizeEagleBoolean, normalizeEagleConfigPatch, normalizeEagleConfirmMode, normalizeEagleConfirmThreshold, normalizeEagleFolderPreset, normalizeEagleFolderTemplate, normalizeEagleImportLimit, normalizeEagleMaxSourceTags, resolveEagleFolderPath, resolveEagleFolderPaths } from './options';
 
 describe('Eagle options', () => {
   it('normalizes Eagle API URL input to an origin', () => {
@@ -18,6 +18,12 @@ describe('Eagle options', () => {
       copyright: 'bang dream',
       author: 'soha/blan',
     })).toEqual(['Eagle Looms', 'anime-pictures.net', 'bang dream', 'soha blan', 'bad bang dream mygo']);
+  });
+
+  it('keeps taxonomy folder values readable across all source namespaces', () => {
+    expect(cleanFolderTagValue('project_sekai')).toBe('project sekai');
+    expect(cleanFolderTagValue('soha_blan')).toBe('soha blan');
+    expect(cleanFolderTagValue('hakurei_reimu_(pc-98)')).toBe('hakurei reimu (pc-98)');
   });
 
   it('falls back to the default folder template when input has no valid segments', () => {
