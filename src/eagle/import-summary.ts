@@ -128,6 +128,7 @@ export function eaglePlanHeadline(plan: EagleImportPlan): string {
 
 export function eaglePlanSummaryParts(plan: EagleImportPlan): string[] {
   const parts = [];
+  const writable = plan.writable ?? plan.planned ?? 0;
   if (plan.libraryName) parts.push(format(i18n.eaglePlanLibrary.get(), { value: plan.libraryName }));
   if (plan.selected !== undefined && plan.planned !== undefined && plan.selected !== plan.planned) {
     parts.push(format(i18n.eaglePlanSelected.get(), { count: plan.selected }));
@@ -152,37 +153,39 @@ export function eaglePlanSummaryParts(plan: EagleImportPlan): string[] {
   }
   if (plan.preflightFailed) parts.push(format(i18n.eaglePlanPreflightFailed.get(), { count: plan.preflightFailed }));
   const folders = unique(plan.folders || []).slice(0, MAX_SUMMARY_FOLDERS);
-  if (folders.length) {
-    const more = unique(plan.folders || []).length - folders.length;
-    parts.push(format(i18n.eagleSummaryFolders.get(), { value: `${folders.join(" | ")}${more > 0 ? ` (+${more})` : ""}` }));
-  } else {
-    parts.push(format(i18n.eaglePlanTarget.get(), { value: plan.folderTemplate }));
+  if (writable > 0) {
+    if (folders.length) {
+      const more = unique(plan.folders || []).length - folders.length;
+      parts.push(format(i18n.eagleSummaryFolders.get(), { value: `${folders.join(" | ")}${more > 0 ? ` (+${more})` : ""}` }));
+    } else {
+      parts.push(format(i18n.eaglePlanTarget.get(), { value: plan.folderTemplate }));
+    }
   }
-  if ((plan.writable ?? plan.planned ?? 0) > 0) {
+  if (writable > 0) {
     parts.push(i18n.eaglePlanWritesImageItemsOnly.get());
   }
   const itemNames = unique(plan.itemNameSamples || []).slice(0, MAX_SUMMARY_ITEM_NAMES).map(shortNameValue);
-  if (itemNames.length) {
+  if (writable > 0 && itemNames.length) {
     const more = unique(plan.itemNameSamples || []).length - itemNames.length;
     parts.push(format(i18n.eaglePlanItemNames.get(), { value: `${itemNames.join(" | ")}${more > 0 ? ` (+${more})` : ""}` }));
   }
-  if (plan.itemNamePolicy) parts.push(format(i18n.eaglePlanNamePolicy.get(), { value: plan.itemNamePolicy }));
+  if (writable > 0 && plan.itemNamePolicy) parts.push(format(i18n.eaglePlanNamePolicy.get(), { value: plan.itemNamePolicy }));
   const missingTokens = Object.entries(plan.missingFolderTokens || {})
     .filter(([, count]) => count > 0)
     .map(([token, count]) => `${token} ${count}`);
-  if (missingTokens.length) parts.push(format(i18n.eaglePlanMissingFolderMetadata.get(), { value: missingTokens.join(", ") }));
+  if (writable > 0 && missingTokens.length) parts.push(format(i18n.eaglePlanMissingFolderMetadata.get(), { value: missingTokens.join(", ") }));
   const fallbackTokens = Object.entries(plan.fallbackFolderTokens || {})
     .filter(([, count]) => count > 0)
     .map(([token, count]) => `${token} ${count}`);
-  if (fallbackTokens.length) parts.push(format(i18n.eaglePlanFolderFallback.get(), {
+  if (writable > 0 && fallbackTokens.length) parts.push(format(i18n.eaglePlanFolderFallback.get(), {
     value: fallbackTokens.join(", "),
     fallback: plan.fallbackFolderTokens?.copyright ? i18n.eaglePlanCopyrightFallback.get() : "",
   }));
   const tokenSamples = Object.entries(plan.folderTokenSamples || {})
     .map(([token, values]) => tokenSample(token, values))
     .filter(Boolean);
-  if (tokenSamples.length) parts.push(format(i18n.eaglePlanFolderMetadata.get(), { value: tokenSamples.join("; ") }));
-  parts.push(format(i18n.eaglePlanVisibleTagsMax.get(), { count: plan.sourceTagLimit }));
+  if (writable > 0 && tokenSamples.length) parts.push(format(i18n.eaglePlanFolderMetadata.get(), { value: tokenSamples.join("; ") }));
+  if (writable > 0) parts.push(format(i18n.eaglePlanVisibleTagsMax.get(), { count: plan.sourceTagLimit }));
   parts.push(format(i18n.eaglePlanDuplicates.get(), { policy: plan.skipDuplicates ? i18n.eaglePlanDuplicatesSkipped.get() : i18n.eaglePlanDuplicatesAllowed.get() }));
   return parts;
 }
@@ -193,11 +196,13 @@ export function eaglePlanCompactParts(plan: EagleImportPlan): string[] {
   const writable = plan.writable ?? plan.planned ?? 0;
   parts.push(format(i18n.eaglePlanWillWrite.get(), { count: writable }));
   const folders = unique(plan.folders || []).slice(0, MAX_COMPACT_FOLDERS);
-  if (folders.length) {
-    const more = unique(plan.folders || []).length - folders.length;
-    parts.push(format(i18n.eaglePlanDestination.get(), { value: `${folders.join(" | ")}${more > 0 ? ` (+${more})` : ""}` }));
-  } else {
-    parts.push(format(i18n.eaglePlanDestination.get(), { value: plan.folderTemplate }));
+  if (writable > 0) {
+    if (folders.length) {
+      const more = unique(plan.folders || []).length - folders.length;
+      parts.push(format(i18n.eaglePlanDestination.get(), { value: `${folders.join(" | ")}${more > 0 ? ` (+${more})` : ""}` }));
+    } else {
+      parts.push(format(i18n.eaglePlanDestination.get(), { value: plan.folderTemplate }));
+    }
   }
   const preflightSkipped = skippedCount(plan);
   if (preflightSkipped > 0) {

@@ -134,6 +134,7 @@ result toast stays short after writing, such as Imported 2 images to Eagle, and 
 confirmation panel, toast, and final result summary use the current UI language for fixed import-summary labels
 confirmation panel uses user-facing wording such as additional source tags max, duplicates skipped, and will skip before writing
 confirmation panel says writes image items only when new items will be written, and does not show that line for all-skipped duplicate imports
+all-skipped plans do not show a destination folder or naming policy because no folder or item will be written
 confirmation panel can copy the import plan before writing without confirming the import
 long confirmation details scroll inside the body while Copy plan, Cancel, and Write remain visible
 confirmation panel focuses the write button, keeps Tab focus inside the panel, restores focus after close, Enter confirms, Escape cancels, and keyboard shortcuts do not trigger page actions while focused inside the panel

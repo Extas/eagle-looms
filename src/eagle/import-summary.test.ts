@@ -205,7 +205,7 @@ describe('Eagle import summary', () => {
   });
 
   it('does not promise writes when the preflight will skip every item', () => {
-    expect(eaglePlanSummaryParts({
+    const plan = {
       folderTemplate: 'Eagle Looms/{site}/{copyright}',
       sourceTagLimit: 20,
       skipDuplicates: true,
@@ -213,7 +213,23 @@ describe('Eagle import summary', () => {
       writable: 0,
       duplicateSkipped: 2,
       folders: ['Eagle Looms/site/a'],
-    })).not.toContain('writes image items only');
+      itemNameSamples: ['skipped.jpg'],
+      itemNamePolicy: 'date prefix when source date exists',
+      missingFolderTokens: { copyright: 2 },
+      fallbackFolderTokens: { copyright: 2 },
+      folderTokenSamples: { copyright: ['old work'] },
+    };
+
+    expect(eaglePlanSummaryParts(plan)).toEqual([
+      'planned 2',
+      'will write 0',
+      'will skip before writing 2 (duplicates 2)',
+      'duplicates skipped',
+    ]);
+    expect(eaglePlanCompactParts(plan)).toEqual([
+      'will write 0',
+      'skipped before writing 2 (duplicates 2)',
+    ]);
   });
 
   it('localizes the import plan summary through the shared i18n table', async () => {
