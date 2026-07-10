@@ -142,6 +142,8 @@ export class EagleDownloader extends Downloader {
       if (selectedJobs.length === 0) {
         throw new Error(i18n.eagleImportNoFetchedImages.get());
       }
+      stats.selected = selectedJobs.length;
+      stats.planned = selectedJobs.length;
       const api = new EagleWebApi(normalizeEagleBaseUrl(ADAPTER.conf.eagleBaseUrl));
       this.panel.setImportProgress(i18n.eagleImportCheckingEagle.get());
       const connection = await api.probe();
@@ -182,7 +184,6 @@ export class EagleDownloader extends Downloader {
         const confirmed = await this.panel.confirmEagleImportPlan(eaglePlanCompactParts(plan), eaglePlanHeadline(plan), eaglePlanSummaryParts(plan));
         if (!confirmed) {
           cancelled = true;
-          EBUS.emit("notify-message", "info", i18n.eagleImportCanceledBeforeWriting.get(), 4000);
           return;
         }
       }
@@ -213,7 +214,7 @@ export class EagleDownloader extends Downloader {
       throw error;
     } finally {
       const stopped = cancelled || this.importStopRequested;
-      if (stopped) this.showPartialCancellation(stats);
+      if (stopped) this.showCancellationResult(stats);
       this.abort(stopped ? "downloadStart" : endStage);
     }
   }
@@ -234,6 +235,8 @@ export class EagleDownloader extends Downloader {
     }
 
     const stats = emptyImportStats();
+    stats.selected = 1;
+    stats.planned = 1;
     let cancelled = false;
     let endStage: EagleImportEndStage = "downloadFailed";
     this.done = false;
@@ -267,6 +270,7 @@ export class EagleDownloader extends Downloader {
       const folderIds = new Map<string, string>();
       const folderNames = new Map<string, Set<string>>();
       const assets = this.assetsForChapter(chapter, { picked: current => current === index }, singleChapter ? "" : chapterTitle, this.meta(chapter), importDate);
+      stats.selected = assets.length;
       stats.planned = assets.length;
       if (assets.length === 0) throw new Error(i18n.eagleImportCurrentNotReady.get());
       const jobs = assets.map(asset => this.jobForAsset(folderTemplate, asset));
@@ -294,7 +298,6 @@ export class EagleDownloader extends Downloader {
         const confirmed = await this.panel.confirmEagleImportPlan(eaglePlanCompactParts(plan), eaglePlanHeadline(plan), eaglePlanSummaryParts(plan));
         if (!confirmed) {
           cancelled = true;
-          EBUS.emit("notify-message", "info", i18n.eagleImportCanceledBeforeWriting.get(), 4000);
           return;
         }
       }
@@ -325,7 +328,7 @@ export class EagleDownloader extends Downloader {
       EBUS.emit("notify-message", "error", format(i18n.eagleImportFailedToast.get(), { message: eagleImportErrorMessage(error) }), 8000);
     } finally {
       const stopped = cancelled || this.importStopRequested;
-      if (stopped) this.showPartialCancellation(stats);
+      if (stopped) this.showCancellationResult(stats);
       this.abort(stopped ? "downloadStart" : endStage);
     }
   }
@@ -442,15 +445,19 @@ export class EagleDownloader extends Downloader {
     if (this.importStopRequested) throw new Error("abort");
   }
 
-  private showPartialCancellation(stats: EagleImportStats): void {
-    if (!isPartialImportResult(stats)) return;
+  private showCancellationResult(stats: EagleImportStats): void {
+    if (!hasIncompleteImportResult(stats)) return;
     stats.canceled = true;
     this.panel.showEagleImportResult(eagleSummaryParts(stats), stats.failed > 0, eagleImportResultLinks(stats));
-    EBUS.emit("notify-message", "info", format(i18n.eagleImportStoppedPartial.get(), {
-      imported: stats.imported,
-      skipped: stats.skipped,
-      failed: stats.failed,
-    }), 8000);
+    const handled = stats.imported + stats.skipped + stats.failed;
+    const message = handled > 0
+      ? format(i18n.eagleImportStoppedPartial.get(), {
+        imported: stats.imported,
+        skipped: stats.skipped,
+        failed: stats.failed,
+      })
+      : i18n.eagleImportCanceledBeforeWriting.get();
+    EBUS.emit("notify-message", "info", message, handled > 0 ? 8000 : 4000);
   }
 
   private async writeJob(api: EagleWebApi, folderIds: Map<string, string>, job: EagleImportJob, stats: EagleImportStats, usedNames: Set<string>): Promise<void> {
@@ -547,9 +554,9 @@ export function eagleImportEndStage(stats: Pick<EagleImportSummaryStats, "failed
   return "importNoNewItems";
 }
 
-export function isPartialImportResult(stats: Pick<EagleImportSummaryStats, "planned" | "imported" | "skipped" | "failed">): boolean {
+export function hasIncompleteImportResult(stats: Pick<EagleImportSummaryStats, "planned" | "imported" | "skipped" | "failed">): boolean {
   const handled = stats.imported + stats.skipped + stats.failed;
-  return handled > 0 && handled < stats.planned;
+  return handled < stats.planned;
 }
 
 export function eagleImportErrorMessage(error: unknown): string {

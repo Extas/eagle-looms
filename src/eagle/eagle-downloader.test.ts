@@ -4,7 +4,7 @@ import { GalleryMeta } from '../download/gallery-meta';
 import { ADAPTER } from '../platform/adapt';
 import { i18n } from '../utils/i18n';
 import { clearSessionImportedAssets, duplicateQueries, hasPlannedAssetKey, isDuplicateItem, isSessionImported, markPlannedAssetKey, markSessionImported, stableKeyForAsset } from './duplicates';
-import { assertEagleLibraryUnchanged, EagleDownloader, eagleFolderTemplateForImport, eagleImportEndStage, eagleImportErrorMessage, eagleImportResultLinks, isPartialImportResult, limitWritableImportJobs, toAddItemInput } from './eagle-downloader';
+import { assertEagleLibraryUnchanged, EagleDownloader, eagleFolderTemplateForImport, eagleImportEndStage, eagleImportErrorMessage, eagleImportResultLinks, hasIncompleteImportResult, limitWritableImportJobs, toAddItemInput } from './eagle-downloader';
 import { EAGLE_IMPORT_DONE_STAGE, isReadyForEagleImport } from './import-readiness';
 import { EAGLE_RAW_RECORD_SCHEMA, type EagleRawRecord } from './raw-record';
 
@@ -246,10 +246,11 @@ describe('Eagle downloader duplicate checks', () => {
     expect(eagleImportEndStage({ failed: 0, imported: 0 })).toBe('importNoNewItems');
   });
 
-  it('distinguishes partial cancellation from a fully handled import', () => {
-    expect(isPartialImportResult({ planned: 5, imported: 2, skipped: 1, failed: 0 })).toBe(true);
-    expect(isPartialImportResult({ planned: 3, imported: 2, skipped: 1, failed: 0 })).toBe(false);
-    expect(isPartialImportResult({ planned: 3, imported: 0, skipped: 0, failed: 0 })).toBe(false);
+  it('distinguishes incomplete cancellation from a fully handled import', () => {
+    expect(hasIncompleteImportResult({ planned: 5, imported: 2, skipped: 1, failed: 0 })).toBe(true);
+    expect(hasIncompleteImportResult({ planned: 3, imported: 2, skipped: 1, failed: 0 })).toBe(false);
+    expect(hasIncompleteImportResult({ planned: 3, imported: 0, skipped: 0, failed: 0 })).toBe(true);
+    expect(hasIncompleteImportResult({ planned: 0, imported: 0, skipped: 0, failed: 0 })).toBe(false);
   });
 
   it('keeps a persistent result when cancellation follows successful writes', () => {
@@ -268,13 +269,40 @@ describe('Eagle downloader duplicate checks', () => {
       failures: [],
     };
 
-    downloader.showPartialCancellation(stats);
+    downloader.showCancellationResult(stats);
 
     expect(stats.canceled).toBe(true);
     expect(panel.showEagleImportResult).toHaveBeenCalledWith(
       expect.arrayContaining(['stopped before completion', 'imported 1']),
       false,
       [...stats.itemLinks, ...stats.folderLinks],
+    );
+  });
+
+  it('keeps a persistent result when cancellation happens before any write', () => {
+    const panel = { showEagleImportResult: vi.fn() };
+    const downloader = Object.assign(Object.create(EagleDownloader.prototype), { panel }) as any;
+    const stats = {
+      canceled: false,
+      selected: 3,
+      planned: 3,
+      imported: 0,
+      skipped: 0,
+      failed: 0,
+      folders: [],
+      folderLinks: [],
+      itemLinks: [],
+      skippedItems: [],
+      failures: [],
+    };
+
+    downloader.showCancellationResult(stats);
+
+    expect(stats.canceled).toBe(true);
+    expect(panel.showEagleImportResult).toHaveBeenCalledWith(
+      expect.arrayContaining(['stopped before completion', 'planned 3', 'imported 0']),
+      false,
+      [],
     );
   });
 
