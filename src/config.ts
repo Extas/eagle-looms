@@ -1,7 +1,9 @@
 import { GM_getValue, GM_setValue } from "$";
-import { AppEventIDInBigImgFrame, AppEventIDInFullViewGrid, AppEventIDInMain } from "./ui/event";
+import type { AppEventIDInBigImgFrame, AppEventIDInFullViewGrid, AppEventIDInMain } from "./ui/event";
 import { i18n } from "./utils/i18n";
 import { b64EncodeUnicode, uuid } from "./utils/random";
+import { DEFAULT_EAGLE_BASE_URL, DEFAULT_EAGLE_CONFIRM_MODE, DEFAULT_EAGLE_CONFIRM_THRESHOLD, DEFAULT_EAGLE_FOLDER_PRESET, DEFAULT_EAGLE_FOLDER_TEMPLATE, DEFAULT_EAGLE_IMPORT_LIMIT, DEFAULT_EAGLE_MAX_SOURCE_TAGS, DEFAULT_EAGLE_NAME_DATE_PREFIX, EAGLE_CONFIRM_MODES, EAGLE_FOLDER_PRESET_OPTIONS, EAGLE_FOLDER_PRESET_TEMPLATES, eagleFolderPresetForTemplate, normalizeEagleBaseUrl, normalizeEagleBoolean, normalizeEagleConfirmMode, normalizeEagleConfirmThreshold, normalizeEagleFolderPreset, normalizeEagleFolderTemplate, normalizeEagleImportLimit, normalizeEagleMaxSourceTags } from "./eagle/options";
+import type { EagleConfirmMode, EagleFolderPreset } from "./eagle/options";
 
 export const IS_MOBILE = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|Mobile/i.test(navigator.userAgent);
 
@@ -131,6 +133,15 @@ export type Config = {
   imgNodeActions: ImageActionDesc[],
   /** minRatio indicates the minimum ratio of thumbnail display to prevent the thumbnail from being too thin. */
   minRatio: number,
+  eagleBaseUrl: string,
+  eagleFolderPreset: EagleFolderPreset,
+  eagleFolderPath: string,
+  eagleImportLimit: number,
+  eagleMaxSourceTags: number,
+  eagleNameDatePrefix: boolean,
+  eagleSkipDuplicates: boolean,
+  eagleConfirmMode: EagleConfirmMode,
+  eagleConfirmThreshold: number,
 };
 
 function defaultColumns() {
@@ -205,10 +216,27 @@ export function defaultConf(): Config {
     filterTags: [],
     imgNodeActions: [],
     minRatio: 0.5,
+    eagleBaseUrl: DEFAULT_EAGLE_BASE_URL,
+    eagleFolderPreset: DEFAULT_EAGLE_FOLDER_PRESET,
+    eagleFolderPath: DEFAULT_EAGLE_FOLDER_TEMPLATE,
+    eagleImportLimit: DEFAULT_EAGLE_IMPORT_LIMIT,
+    eagleMaxSourceTags: DEFAULT_EAGLE_MAX_SOURCE_TAGS,
+    eagleNameDatePrefix: DEFAULT_EAGLE_NAME_DATE_PREFIX,
+    eagleSkipDuplicates: true,
+    eagleConfirmMode: DEFAULT_EAGLE_CONFIRM_MODE,
+    eagleConfirmThreshold: DEFAULT_EAGLE_CONFIRM_THRESHOLD,
   };
 }
 
 const CONF_VERSION = "4.4.0";
+const CURRENT_CONFIG_PATCH_VERSION = 22;
+const LEGACY_BUILT_IN_EAGLE_FOLDER_TEMPLATES = [
+  "Eagle Looms/{site}/{copyright}",
+  EAGLE_FOLDER_PRESET_TEMPLATES.gallery,
+  EAGLE_FOLDER_PRESET_TEMPLATES.chapter,
+  EAGLE_FOLDER_PRESET_TEMPLATES.copyrightAuthor,
+  EAGLE_FOLDER_PRESET_TEMPLATES.copyrightCharacter,
+].map(normalizeEagleFolderTemplate);
 export const signal = { first: true };
 
 const CONFIG_KEY = "ehvh_cfg_";
@@ -252,7 +280,9 @@ export function getConf(): Config {
 export function getSiteConfig(name: string): SiteConfig {
   const cfgStr = storage.getItem(getConfigKey(name));
   if (!cfgStr) return {}
-  return JSON.parse(cfgStr);
+  const cfg = JSON.parse(cfgStr) as SiteConfig;
+  if (patchSiteConfig(cfg)) saveConf(cfg, name);
+  return cfg;
 }
 
 function confHealthCheck(cf: Config): Config {
@@ -301,6 +331,56 @@ function confHealthCheck(cf: Config): Config {
     cf.filterTags = [];
     changed = true;
   }
+  const normalizedEagleBaseUrl = normalizeEagleBaseUrl(cf.eagleBaseUrl);
+  if (cf.eagleBaseUrl !== normalizedEagleBaseUrl) {
+    cf.eagleBaseUrl = normalizedEagleBaseUrl;
+    changed = true;
+  }
+  const normalizedEagleFolderPreset = normalizeEagleFolderPreset(cf.eagleFolderPreset);
+  if (cf.eagleFolderPreset !== normalizedEagleFolderPreset) {
+    cf.eagleFolderPreset = normalizedEagleFolderPreset;
+    changed = true;
+  }
+  const normalizedEagleFolderPath = normalizeEagleFolderTemplate(cf.eagleFolderPath);
+  if (cf.eagleFolderPath !== normalizedEagleFolderPath) {
+    cf.eagleFolderPath = normalizedEagleFolderPath;
+    changed = true;
+  }
+  const inferredEagleFolderPreset = eagleFolderPresetForTemplate(cf.eagleFolderPath);
+  if (cf.eagleFolderPreset !== inferredEagleFolderPreset) {
+    cf.eagleFolderPreset = inferredEagleFolderPreset;
+    changed = true;
+  }
+  const normalizedEagleImportLimit = normalizeEagleImportLimit(cf.eagleImportLimit);
+  if (cf.eagleImportLimit !== normalizedEagleImportLimit) {
+    cf.eagleImportLimit = normalizedEagleImportLimit;
+    changed = true;
+  }
+  const normalizedEagleMaxSourceTags = normalizeEagleMaxSourceTags(cf.eagleMaxSourceTags);
+  if (cf.eagleMaxSourceTags !== normalizedEagleMaxSourceTags) {
+    cf.eagleMaxSourceTags = normalizedEagleMaxSourceTags;
+    changed = true;
+  }
+  const normalizedEagleNameDatePrefix = normalizeEagleBoolean(cf.eagleNameDatePrefix, DEFAULT_EAGLE_NAME_DATE_PREFIX);
+  if (cf.eagleNameDatePrefix !== normalizedEagleNameDatePrefix) {
+    cf.eagleNameDatePrefix = normalizedEagleNameDatePrefix;
+    changed = true;
+  }
+  const normalizedEagleSkipDuplicates = normalizeEagleBoolean(cf.eagleSkipDuplicates, true);
+  if (cf.eagleSkipDuplicates !== normalizedEagleSkipDuplicates) {
+    cf.eagleSkipDuplicates = normalizedEagleSkipDuplicates;
+    changed = true;
+  }
+  const normalizedEagleConfirmMode = normalizeEagleConfirmMode(cf.eagleConfirmMode);
+  if (cf.eagleConfirmMode !== normalizedEagleConfirmMode) {
+    cf.eagleConfirmMode = normalizedEagleConfirmMode;
+    changed = true;
+  }
+  const normalizedEagleConfirmThreshold = normalizeEagleConfirmThreshold(cf.eagleConfirmThreshold);
+  if (cf.eagleConfirmThreshold !== normalizedEagleConfirmThreshold) {
+    cf.eagleConfirmThreshold = normalizedEagleConfirmThreshold;
+    changed = true;
+  }
 
   const newCf = patchConfig(cf);
   if (newCf) {
@@ -327,7 +407,88 @@ function patchConfig(cf: Config): Config | null {
     cf.customStyle = "";
     changed = true;
   }
+  if (cf.configPatchVersion < 11) {
+    changed = migrateLegacyEagleFolderTemplate(cf) || changed;
+    cf.configPatchVersion = 11;
+    changed = true;
+  }
+  if (cf.configPatchVersion < 12) {
+    changed = migrateLegacyEagleFolderTemplate(cf) || changed;
+    cf.configPatchVersion = 12;
+    changed = true;
+  }
+  if (cf.configPatchVersion < 13) {
+    changed = migrateLegacyEagleFolderTemplate(cf) || changed;
+    cf.configPatchVersion = 13;
+    changed = true;
+  }
+  if (cf.configPatchVersion < 14) {
+    changed = migrateLegacyEagleFolderTemplate(cf) || changed;
+    cf.configPatchVersion = 14;
+    changed = true;
+  }
+  if (cf.configPatchVersion < 15) {
+    changed = migrateLegacyEagleFolderTemplate(cf) || changed;
+    cf.configPatchVersion = 15;
+    changed = true;
+  }
+  if (cf.configPatchVersion < 16) {
+    changed = migrateLegacyEagleFolderTemplate(cf) || changed;
+    cf.configPatchVersion = 16;
+    changed = true;
+  }
+  if (cf.configPatchVersion < 17) {
+    changed = migrateLegacyEagleFolderTemplate(cf) || changed;
+    cf.configPatchVersion = 17;
+    changed = true;
+  }
+  if (cf.configPatchVersion < 18) {
+    changed = migrateLegacyEagleFolderTemplate(cf) || changed;
+    cf.configPatchVersion = 18;
+    changed = true;
+  }
+  if (cf.configPatchVersion < 19) {
+    changed = migrateLegacyEagleFolderTemplate(cf) || changed;
+    cf.configPatchVersion = 19;
+    changed = true;
+  }
+  if (cf.configPatchVersion < 20) {
+    changed = migrateLegacyEagleFolderTemplate(cf) || changed;
+    cf.configPatchVersion = 20;
+    changed = true;
+  }
+  if (cf.configPatchVersion < 21) {
+    changed = migrateLegacyEagleFolderTemplate(cf) || changed;
+    cf.configPatchVersion = 21;
+    changed = true;
+  }
+  if (cf.configPatchVersion < 22) {
+    changed = migrateLegacyEagleFolderTemplate(cf) || changed;
+    cf.configPatchVersion = 22;
+    changed = true;
+  }
   return changed ? cf : null;
+}
+
+function patchSiteConfig(cf: SiteConfig): boolean {
+  let changed = false;
+  const version = Number(cf.configPatchVersion || 0);
+  if (version < CURRENT_CONFIG_PATCH_VERSION) {
+    changed = migrateLegacyEagleFolderTemplate(cf) || changed;
+    if (cf.configPatchVersion !== undefined || changed) {
+      cf.configPatchVersion = CURRENT_CONFIG_PATCH_VERSION;
+      changed = true;
+    }
+  }
+  return changed;
+}
+
+function migrateLegacyEagleFolderTemplate(cf: Pick<SiteConfig, "eagleFolderPath" | "eagleFolderPreset">): boolean {
+  if (cf.eagleFolderPath === undefined) return false;
+  if (!LEGACY_BUILT_IN_EAGLE_FOLDER_TEMPLATES.includes(normalizeEagleFolderTemplate(cf.eagleFolderPath))) return false;
+  cf.eagleFolderPath = DEFAULT_EAGLE_FOLDER_TEMPLATE;
+  cf.eagleFolderPreset = DEFAULT_EAGLE_FOLDER_PRESET;
+  return true;
 }
 
 export function resetConf(name?: string) {
@@ -350,7 +511,9 @@ export function saveConf(c: SiteConfig, name?: string) {
   if (name) {
     ["keyboards", "siteProfiles"].forEach(key => delete config[key]);
   }
-  storage.setItem(configKey, JSON.stringify({ ...config, ...c }));
+  const next = { ...config, ...c };
+  if (name) next.configPatchVersion = CURRENT_CONFIG_PATCH_VERSION;
+  storage.setItem(configKey, JSON.stringify(next));
 }
 
 function getConfigKey(name?: string) {
@@ -364,6 +527,9 @@ function getConfigKey(name?: string) {
 export const transient = { imgSrcCSP: false, originalPolicy: "" };
 
 export type ConfigNumberType = "colCount"
+  | "eagleImportLimit"
+  | "eagleMaxSourceTags"
+  | "eagleConfirmThreshold"
   | "rowHeight"
   | "threads"
   | "maxIdleThreads"
@@ -392,8 +558,12 @@ export type ConfigBooleanType = "fetchOriginal"
   | "dragImageOut"
   | "excludeVideo"
   | "smartScrolling"
+  | "eagleNameDatePrefix"
+  | "eagleSkipDuplicates"
   ;
 export type ConfigSelectType = "readMode"
+  | "eagleFolderPreset"
+  | "eagleConfirmMode"
   | "gridMode"
   | "minifyPageHelper"
   | "hitomiFormat"
@@ -403,6 +573,8 @@ export type ConfigSelectType = "readMode"
   ;
 export type ConfigTextType = "pixivMirrorHost"
   | "ehentaiMirrorHost"
+  | "eagleBaseUrl"
+  | "eagleFolderPath"
   ;
 
 type OptionValue = {
@@ -422,6 +594,20 @@ export type ConfigItem = {
 }
 
 export const ConfigItems: ConfigItem[] = [
+  { key: "eagleBaseUrl", typ: "input", gridColumnRange: [1, 11], placeholder: DEFAULT_EAGLE_BASE_URL },
+  { key: "eagleFolderPreset", typ: "select", gridColumnRange: [1, 11], options: EAGLE_FOLDER_PRESET_OPTIONS },
+  { key: "eagleFolderPath", typ: "input", gridColumnRange: [1, 11], placeholder: DEFAULT_EAGLE_FOLDER_TEMPLATE },
+  { key: "eagleImportLimit", typ: "number", gridColumnRange: [1, 11] },
+  {
+    key: "eagleConfirmMode", typ: "select", gridColumnRange: [1, 11], options: EAGLE_CONFIRM_MODES.map(value => ({
+      value,
+      display: value[0].toUpperCase() + value.slice(1),
+    }))
+  },
+  { key: "eagleConfirmThreshold", typ: "number", gridColumnRange: [1, 11] },
+  { key: "eagleMaxSourceTags", typ: "number", gridColumnRange: [1, 11] },
+  { key: "eagleNameDatePrefix", typ: "boolean", gridColumnRange: [1, 11] },
+  { key: "eagleSkipDuplicates", typ: "boolean", gridColumnRange: [1, 11] },
   { key: "colCount", typ: "number" },
   { key: "rowHeight", typ: "number" },
   { key: "maxIdleThreads", typ: "number" },

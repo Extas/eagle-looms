@@ -1,4 +1,5 @@
 import { GalleryMeta } from "../../download/gallery-meta";
+import { doubanAuthorUrls, doubanPublishedAt, doubanSourceTags } from "../../eagle/adapters/douban";
 import ImageNode from "../../img-node";
 import { Chapter } from "../../page-fetcher";
 import { ADAPTER } from "../adapt";
@@ -15,13 +16,21 @@ type DoubanAlbum = {
   "path": string,
   "photo_count": number,
   "date": string,
+  "owner_name": string,
+  "owner_url": string,
+}
+
+type DoubanPageSource = {
+  doc: Document,
+  album: DoubanAlbum,
 }
 
 let DP = new DOMParser();
 
-class DoubanMatcher extends BaseMatcher<Document> {
+class DoubanMatcher extends BaseMatcher<DoubanPageSource> {
   chapterCount: number = 0;
   meta?: GalleryMeta;
+  albumsByPath: Record<string, DoubanAlbum> = {};
 
   galleryMeta(chapter: Chapter): GalleryMeta {
     return this.meta ?? super.galleryMeta(chapter);
@@ -63,6 +72,8 @@ class DoubanMatcher extends BaseMatcher<Document> {
         "path": x.querySelector<HTMLElement>('.album_photo')!.getAttribute('href')!,
         "photo_count": +(t![1]),
         "date": t![2],
+        "owner_name": page.owner_name,
+        "owner_url": page.path,
       }
     })
   }
@@ -76,6 +87,7 @@ class DoubanMatcher extends BaseMatcher<Document> {
       for (const album of albums) {
         const chapters: Chapter[] = [];
         chapterCount += 1;
+        this.albumsByPath[album.path] = album;
         chapters.push(new Chapter(
           chapterCount,
           album["title"],
@@ -88,15 +100,23 @@ class DoubanMatcher extends BaseMatcher<Document> {
     }
   }
 
-  async *fetchPagesSource(ch: Chapter): AsyncGenerator<Result<Document>> {
+  async *fetchPagesSource(ch: Chapter): AsyncGenerator<Result<DoubanPageSource>> {
     let next_page = ch.source
+    const album = this.albumsByPath[ch.source] || {
+      title: Array.isArray(ch.title) ? ch.title.join(" ") : ch.title,
+      path: ch.source,
+      photo_count: 0,
+      date: "",
+      owner_name: "",
+      owner_url: window.location.href,
+    };
 
     while (next_page) {
       let doc = await fetch(next_page)
         .then(resp => resp.text())
         .then(text => DP.parseFromString(text, 'text/html'))
 
-      yield Result.ok(doc)
+      yield Result.ok({ doc, album })
 
       next_page = doc.querySelector<HTMLAnchorElement>(
         '#content  div.article  div.paginator span.next > a',
@@ -104,8 +124,8 @@ class DoubanMatcher extends BaseMatcher<Document> {
     }
   }
 
-  async parseImgNodes(doc: Document): Promise<ImageNode[]> {
-    return Array.from(doc.querySelectorAll<HTMLImageElement>('.photo_wrap img')).map(
+  async parseImgNodes(source: DoubanPageSource): Promise<ImageNode[]> {
+    return Array.from(source.doc.querySelectorAll<HTMLImageElement>('.photo_wrap img')).map(
       img => {
         // https://img3.doubanio.com/view/photo/m/public/p999999.webp
         // https://img3.doubanio.com/view/photo/l/public/p999999.webp
@@ -116,13 +136,17 @@ class DoubanMatcher extends BaseMatcher<Document> {
           "$1/l/$3.webp",
         )
         const title = (img.alt? img.alt + "_" : "") + orig_src.replace( /.*\/(.+)/, "$1")
-        return new ImageNode(
+        const node = new ImageNode(
           img.src,
           (img.parentNode! as HTMLAnchorElement).href,
           title,
           undefined,
           orig_src,
         )
+        node.setTags(...doubanSourceTags(source.album));
+        node.setAuthorUrls(...doubanAuthorUrls(source.album));
+        node.setPublishedAt(doubanPublishedAt(source.album));
+        return node;
       })
   }
 

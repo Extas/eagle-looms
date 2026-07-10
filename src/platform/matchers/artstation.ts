@@ -4,21 +4,28 @@ import ImageNode from "../../img-node";
 import { evLog } from "../../utils/ev-log";
 import { batchFetch } from "../../utils/query";
 import { ADAPTER } from "../adapt";
+import { artStationAuthorTag, artStationAuthorUrl, normalizeArtStationTags } from "../../eagle/adapters/artstation";
+import { galleryTitle } from "../gallery-title";
 import { BaseMatcher, OriginMeta, Result } from "../platform";
 
 class ArtStationMatcher extends BaseMatcher<ArtStationProject[]> {
   pageData: Map<string, ArtStationProject[]> = new Map();
-  info: { username: string, projects: number, assets: number } = { username: "", projects: 0, assets: 0 };
+  info: { username: string, fullName: string, permalink: string, projects: number, assets: number } = { username: "", fullName: "", permalink: "", projects: 0, assets: 0 };
   tags: Record<string, string[]> = {};
   galleryMeta(): GalleryMeta {
-    const meta = new GalleryMeta(window.location.href, `artstaion-${this.info.username}-w${this.info.projects}-p${this.info.assets}`);
-    meta.tags = this.tags;
+    const meta = new GalleryMeta(window.location.href, galleryTitle(["artstation", this.info.username || document.title]));
+    meta.tags = {
+      author: [this.info.username || this.info.fullName].filter(Boolean),
+      ...this.tags,
+    };
     return meta;
   }
   async *fetchPagesSource(): AsyncGenerator<Result<ArtStationProject[]>> {
     // find artist id;
-    const { id, username } = await this.fetchArtistInfo();
+    const { id, username, full_name, permalink } = await this.fetchArtistInfo();
     this.info.username = username;
+    this.info.fullName = full_name;
+    this.info.permalink = permalink;
     let page = 0;
     while (true) {
       page++;
@@ -43,7 +50,11 @@ class ArtStationMatcher extends BaseMatcher<ArtStationProject[]> {
         continue;
       }
       this.info.projects++;
-      this.tags[asset.slug] = asset.tags;
+      const sourceTags = [
+        artStationAuthorTag({ username: this.info.username, full_name: this.info.fullName }),
+        ...normalizeArtStationTags(asset.tags),
+      ].filter(Boolean);
+      this.tags[asset.slug] = sourceTags;
       for (let i = 0; i < asset.assets.length; i++) {
         const a = asset.assets[i];
         if (a.asset_type === "cover") continue;
@@ -56,7 +67,11 @@ class ArtStationMatcher extends BaseMatcher<ArtStationProject[]> {
           originSrc = a.player_embedded;
         }
         this.info.assets++;
-        ret.push(new ImageNode(thumb, asset.permalink, title, undefined, originSrc, { w: a.width, h: a.height }));
+        const node = new ImageNode(thumb, asset.permalink, title, undefined, originSrc, { w: a.width, h: a.height });
+        node.setTags(...sourceTags);
+        node.setAuthorUrls(artStationAuthorUrl({ username: this.info.username, permalink: this.info.permalink }));
+        node.setPublishedAt(asset.published_at || asset.updated_at);
+        ret.push(node);
       }
     }
     return ret;
@@ -133,6 +148,8 @@ type ArtStationAsset = {
   cover_url: string,
   permalink: string,
   slug: string,
+  published_at?: string,
+  updated_at?: string,
 }
 ADAPTER.addSetup({
   name: "Art Station",

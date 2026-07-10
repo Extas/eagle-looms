@@ -4,7 +4,9 @@ import { Chapter } from "../../page-fetcher";
 import { evLog } from "../../utils/ev-log";
 import { GM_XHR } from "../../utils/query";
 import { transactionId, uuid } from "../../utils/random";
+import { twitterItemAuthorUrls, twitterItemPublishedAt, twitterItemSourceTags } from "../../eagle/adapters/twitter";
 import { ADAPTER } from "../adapt";
+import { cleanGalleryTitlePart, datedGalleryTitle } from "../gallery-title";
 import { BaseMatcher, OriginMeta, Result } from "../platform";
 
 type Size = {
@@ -38,8 +40,10 @@ type Media = {
   video_info?: VideoInfo,
 }
 type Legacy = {
+  created_at?: string,
   entities: {
     media: Media[],
+    hashtags?: { text?: string }[],
   },
   id_str: string,
   full_text: string,
@@ -366,6 +370,9 @@ class TwitterMatcher extends BaseMatcher<Item[]> {
     const list: ImageNode[] = [];
     for (const item of items) {
       const [mediaList, tweetID] = checkoutMedias(item);
+      const sourceTags = twitterItemSourceTags(item);
+      const authorUrls = twitterItemAuthorUrls(item);
+      const publishedAt = twitterItemPublishedAt(item);
       if (mediaList.length === 0) {
         const user = item.itemContent?.tweet_results?.result?.core?.user_results?.result?.legacy?.screen_name ?? item.itemContent?.tweet_results?.result?.core?.user_results?.result?.core?.screen_name;
         const rest_id = item.itemContent.tweet_results.result.rest_id;
@@ -418,6 +425,9 @@ class TwitterMatcher extends BaseMatcher<Item[]> {
         const title = `${media.id_str}-${baseSrc.split("/").pop()}.${ext}`
         const wh = { w: media.sizes.small.w, h: media.sizes.small.h };
         const node = new ImageNode(src, href, title, undefined, largeSrc, wh);
+        node.setTags(...sourceTags);
+        node.setAuthorUrls(...authorUrls);
+        node.setPublishedAt(publishedAt);
         if (actionLike) node.actions.push(actionLike);
         if (actionBookmark) node.actions.push(actionBookmark);
 
@@ -444,10 +454,19 @@ class TwitterMatcher extends BaseMatcher<Item[]> {
   }
 
   galleryMeta(): GalleryMeta {
-    const userName = window.location.href.match(/(twitter|x).com\/(\w+)\/?/)?.[2];
-    return new GalleryMeta(window.location.href, `twitter-${userName || document.title}-${this.postCount}-${this.mediaCount}`);
+    return new GalleryMeta(window.location.href, twitterGalleryTitleFromURL(window.location.href, document.title));
   }
 
+}
+
+export function twitterGalleryTitleFromURL(href: string, fallbackTitle = "twitter", date = new Date()): string {
+  const url = new URL(href, "https://x.com/");
+  const path = url.pathname.replace(/\/+$/, "") || "/";
+  if (path === "/home") return datedGalleryTitle(["twitter", "home"], date);
+  const listId = path.match(/^\/i\/lists\/([^/]+)/)?.[1];
+  if (listId) return datedGalleryTitle(["twitter", "list", listId], date);
+  if (path.match(/^\/[^/]+/)) return datedGalleryTitle(["twitter", "user"], date);
+  return datedGalleryTitle(["twitter", cleanGalleryTitlePart(fallbackTitle)], date);
 }
 
 function getMyID(): string | undefined {
@@ -463,6 +482,7 @@ function getUserID(): string | undefined {
   const theBTN = followBTNs.find(btn => (btn.getAttribute("aria-label") ?? "").toLowerCase().includes(`@${userName.toLowerCase()}`)) || followBTNs[0];
   return theBTN.getAttribute("data-testid")!.match(/(\d+)/)?.[1];
 }
+
 // authorization: "Bearer AAAAAAAAAAAAAAAAAAAAANRILgAAAAAAnNwIzUejRCOuH5E6I8xnZz4puTs%3D1Zv7ttfk8LF81IUq16cHjhLTvJu4FA33AGWWjCpTnA"
 // "cache-control": "no-cache"
 // "content-type": "application/json"

@@ -1,9 +1,10 @@
 import { transient } from "../../config";
-import { GalleryMeta } from "../../download/gallery-meta";
+import type { GalleryMeta } from "../../download/gallery-meta";
 import EBUS from "../../event-bus";
 import ImageNode, { NodeAction } from "../../img-node";
 import { evLog } from "../../utils/ev-log";
 import { ADAPTER } from "../adapt";
+import { booruGalleryMetaFromState, booruPublishedAtFromDocument, extractBooruAuthorUrls, extractBooruSourceTags, normalizeBooruSourceTags } from "../../eagle/adapters/booru";
 import { BaseMatcher, OriginMeta, Result } from "../platform";
 
 
@@ -44,6 +45,8 @@ abstract class DanbooruMatcher extends BaseMatcher<Document> {
     if (cached) return cached;
     let url: string | null = null;
     const doc = await window.fetch(node.href).then((res) => res.text()).then((text) => new DOMParser().parseFromString(text, "text/html"));
+    node.setTags(...extractBooruSourceTags(doc, [...node.tags]));
+    node.setAuthorUrls(...extractBooruAuthorUrls(doc, node.href));
     if (ADAPTER.conf.fetchOriginal) {
       url = this.getOriginalURL(doc);
     }
@@ -51,6 +54,7 @@ abstract class DanbooruMatcher extends BaseMatcher<Document> {
       url = this.getNormalURL(doc);
     }
     if (!url) throw new Error("Cannot find origin image or video url");
+    const publishedAt = booruPublishedAtFromDocument(doc);
     let title: string | undefined;
     // extract ext from url
     const ext = url.split(".").pop()?.match(/^\w+/)?.[0];
@@ -59,7 +63,7 @@ abstract class DanbooruMatcher extends BaseMatcher<Document> {
     if (ext && id) {
       title = `${id}.${ext}`;
     }
-    return { url, title };
+    return { url, title, publishedAt };
   }
 
   cachedOriginMeta(_href: string): OriginMeta | null {
@@ -70,6 +74,11 @@ abstract class DanbooruMatcher extends BaseMatcher<Document> {
   abstract toImgNode(ele: HTMLElement): [ImageNode | null, string];
 
   async parseImgNodes(doc: Document): Promise<ImageNode[] | never> {
+    if (this.extractIDFromHref(window.location.href)) {
+      const detailNode = this.toDetailImgNode(doc);
+      return detailNode ? [detailNode] : [];
+    }
+
     const list: ImageNode[] = [];
     this.queryList(doc).forEach(ele => {
       const [imgNode, tags] = this.toImgNode(ele);
@@ -78,21 +87,41 @@ abstract class DanbooruMatcher extends BaseMatcher<Document> {
       if (tags !== "") {
         const tagList = tags.trim().replaceAll(": ", ":").split(" ").map(v => v.trim()).filter(v => v !== "");
         if (this.blacklistTags.findIndex(t => tagList.includes(t)) >= 0) return;
-        this.tags[imgNode.title.split(".")[0]] = tagList;
+        const sourceTags = normalizeBooruSourceTags(booruMetadataRoot(ele), tagList);
+        imgNode.setTags(...sourceTags);
+        this.tags[this.extractIDFromHref(imgNode.href) || imgNode.title.split(".")[0]] = sourceTags;
       }
       list.push(imgNode);
     });
     return list;
   }
 
+  protected toDetailImgNode(doc: Document): ImageNode | null {
+    const id = this.extractIDFromHref(window.location.href);
+    if (!id) return null;
+    let source: string | null = null;
+    try {
+      source = this.getNormalURL(doc) || this.getOriginalURL(doc);
+    } catch {
+      return null;
+    }
+    if (!source) return null;
+    this.count++;
+    const url = absoluteUrl(source);
+    const node = new ImageNode(url, window.location.href, `${id}.${extensionFromUrl(url) || "jpg"}`, undefined, undefined, imageSizeFromDocument(doc));
+    const sourceTags = extractBooruSourceTags(doc, []);
+    node.setTags(...sourceTags);
+    node.setAuthorUrls(...extractBooruAuthorUrls(doc, window.location.href));
+    node.setPublishedAt(booruPublishedAtFromDocument(doc));
+    this.tags[id] = sourceTags;
+    return node;
+  }
+
   abstract site(): string;
 
   galleryMeta(): GalleryMeta {
-    const url = new URL(window.location.href);
-    const tags = url.searchParams.get("tags")?.trim();
-    const meta = new GalleryMeta(window.location.href, `${this.site().toLowerCase().replace(" ", "-")}_${tags}_${this.count}`);
-    meta.tags = this.tags;
-    return meta;
+    const postId = this.extractIDFromHref(window.location.href);
+    return booruGalleryMetaFromState(this.site(), window.location.href, postId, this.tags);
   }
 }
 
@@ -126,10 +155,15 @@ class DanbooruDonmaiMatcher extends DanbooruMatcher {
       evLog("error", "warn: cannot find href", anchor);
       return [null, ""];
     }
-    return [new ImageNode(img.src, href, `${ele.getAttribute("data-id") || ele.id}.jpg`), ele.getAttribute("data-tags") || ""];
+    const node = new ImageNode(img.src, href, `${ele.getAttribute("data-id") || ele.id}.jpg`);
+    node.setPublishedAt(ele.getAttribute("data-created-at"));
+    return [node, ele.getAttribute("data-tags") || ""];
   }
   getOriginalURL(doc: Document): string | null {
-    return doc.querySelector<HTMLAnchorElement>("#image-resize-notice > a")?.href || null;
+    return doc.querySelector<HTMLAnchorElement>("#image-resize-notice > a")?.href
+      || doc.querySelector<HTMLElement>("#image")?.getAttribute("data-file-url")
+      || doc.querySelector<HTMLElement>("article[data-file-url]")?.getAttribute("data-file-url")
+      || null;
   }
   getNormalURL(doc: Document): string | null {
     return doc.querySelector<HTMLElement>("#image")?.getAttribute("src") || null;
@@ -209,7 +243,7 @@ class Rule34Matcher extends DanbooruMatcher {
   }
 }
 
-class GelBooruMatcher extends DanbooruMatcher {
+export class GelBooruMatcher extends DanbooruMatcher {
   site(): string {
     return "gelbooru";
   }
@@ -235,8 +269,11 @@ class GelBooruMatcher extends DanbooruMatcher {
       evLog("error", "warn: cannot find href", ele);
       return [null, ""];
     }
-    const node = new ImageNode(img.src, href, `${ele.id}.jpg`);
-    const id = href.match(/id=(\d+)/)?.[1];
+    const root = booruMetadataRoot(ele);
+    const id = root.getAttribute("data-id") || root.id.match(/\d+/)?.[0] || this.extractIDFromHref(href);
+    const ext = extensionFromUrl(root.getAttribute("data-file-url") || img.src) || "jpg";
+    const node = new ImageNode(img.src, href, `${id || ele.id || "post"}.${ext}`, undefined, undefined, imageSizeFromElement(root, img));
+    node.setPublishedAt(root.getAttribute("data-created-at") || root.querySelector<HTMLTimeElement>("time[datetime]")?.getAttribute("datetime"));
     if (id) {
       const addFav = new NodeAction("♥", "Add to favorites", async () => {
         fetch(`${window.location.origin}/index.php?page=post&s=vote&id=${id}&type=up`);
@@ -248,8 +285,6 @@ class GelBooruMatcher extends DanbooruMatcher {
       });
       node.actions.push(addFav);
     }
-    const tags = img.title.split(" ").map(t => t.trim()).filter(t => (t) && !(t.startsWith("score") || t.startsWith("rating"))).map(t => "tag:" + t);
-    node.setTags(...tags);
     return [node, img.getAttribute("alt") || ""];
   }
   getOriginalURL(doc: Document): string | null {
@@ -268,7 +303,7 @@ class GelBooruMatcher extends DanbooruMatcher {
 }
 
 class E621Matcher extends DanbooruMatcher {
-  cache: Map<string, { normal: string, original: string, id: string, fileExt?: string }> = new Map();
+  cache: Map<string, { normal: string, original: string, id: string, fileExt?: string, publishedAt?: string }> = new Map();
   nextPage(doc: Document): string | null {
     return doc.querySelector<HTMLAnchorElement>(".pagination #paginator-next")?.href ?? null;
   }
@@ -302,21 +337,24 @@ class E621Matcher extends DanbooruMatcher {
     const href = `${window.location.origin}/posts/${id}`;
     const width = ele.getAttribute("data-width");
     const height = ele.getAttribute("data-height");
+    const publishedAt = ele.getAttribute("data-created-at") || undefined;
     let wh = undefined;
     if (width && height) {
       wh = { w: parseInt(width), h: parseInt(height) };
     }
-    this.cache.set(href, { normal, original, id, fileExt });
-    return [new ImageNode(src, href, `${id}.jpg`, undefined, undefined, wh), tags || ""];
+    this.cache.set(href, { normal, original, id, fileExt, publishedAt });
+    const node = new ImageNode(src, href, `${id}.jpg`, undefined, undefined, wh);
+    node.setPublishedAt(publishedAt);
+    return [node, tags || ""];
   }
   cachedOriginMeta(href: string): OriginMeta | null {
     const cached = this.cache.get(href);
     if (!cached) throw new Error("miss origin meta: " + href);
     const ext = cached.fileExt ?? cached.original.split(".").pop() ?? "jpg";
     if (ADAPTER.conf.fetchOriginal || ["webm", "webp", "mp4"].includes(ext)) {
-      return { url: cached.original, title: `${cached.id}.${ext}` };
+      return { url: cached.original, title: `${cached.id}.${ext}`, publishedAt: cached.publishedAt };
     }
-    return { url: cached.normal, title: `${cached.id}.${cached.normal.split(".").pop()}` };
+    return { url: cached.normal, title: `${cached.id}.${cached.normal.split(".").pop()}`, publishedAt: cached.publishedAt };
   }
   site(): string {
     return "e621";
@@ -397,7 +435,7 @@ ADAPTER.addSetup({
 ADAPTER.addSetup({
   name: "gelbooru",
   workURLs: [
-    /gelbooru.com\/index.php\?page=post&s=list/
+    /gelbooru.com\/index.php\?(?=.*page=post)(?=.*s=(list|view))/
   ],
   match: ["https://gelbooru.com/*"],
   constructor: () => new GelBooruMatcher(),
@@ -406,7 +444,7 @@ ADAPTER.addSetup({
 ADAPTER.addSetup({
   name: "danbooru",
   workURLs: [
-    /danbooru.donmai.us\/(posts(?!\/)|$)/
+    /danbooru.donmai.us\/(posts(?:\/\d+)?(?:[?#]|$)|$)/
   ],
   match: ["https://danbooru.donmai.us/*"],
   constructor: () => new DanbooruDonmaiMatcher(),
@@ -420,3 +458,37 @@ ADAPTER.addSetup({
   match: ["https://booru.allthefallen.moe/*"],
   constructor: () => new ATFMatcher(),
 });
+
+function absoluteUrl(value: string): string {
+  try {
+    return new URL(value, window.location.href).href;
+  } catch {
+    return value;
+  }
+}
+
+function extensionFromUrl(value: string): string {
+  try {
+    return new URL(value, window.location.href).pathname.match(/\.([a-z0-9]+)$/i)?.[1]?.toLowerCase() || "";
+  } catch {
+    return "";
+  }
+}
+
+function imageSizeFromDocument(doc: Document): { w: number, h: number } | undefined {
+  const image = doc.querySelector<HTMLImageElement>("#image");
+  const article = doc.querySelector<HTMLElement>("article[data-width][data-height]");
+  const w = Number(image?.getAttribute("width") || image?.getAttribute("data-width") || article?.getAttribute("data-width"));
+  const h = Number(image?.getAttribute("height") || image?.getAttribute("data-height") || article?.getAttribute("data-height"));
+  return Number.isFinite(w) && Number.isFinite(h) && w > 0 && h > 0 ? { w, h } : undefined;
+}
+
+function booruMetadataRoot(ele: HTMLElement): HTMLElement {
+  return ele.closest<HTMLElement>("article, .thumbnail-preview, .post-preview") || ele;
+}
+
+function imageSizeFromElement(root: HTMLElement, image?: HTMLImageElement | null): { w: number, h: number } | undefined {
+  const w = Number(root.getAttribute("data-width") || image?.getAttribute("width") || image?.getAttribute("data-width"));
+  const h = Number(root.getAttribute("data-height") || image?.getAttribute("height") || image?.getAttribute("data-height"));
+  return Number.isFinite(w) && Number.isFinite(h) && w > 0 && h > 0 ? { w, h } : undefined;
+}

@@ -2,6 +2,7 @@ import { GalleryMeta } from "../../download/gallery-meta";
 import ImageNode from "../../img-node";
 import { Chapter } from "../../page-fetcher";
 import { ADAPTER } from "../adapt";
+import { ykmhGalleryMetaFromDocument } from "../../eagle/adapters/ykmh";
 import { BaseMatcher, OriginMeta, Result } from "../platform";
 
 class YKMHMatcher extends BaseMatcher<string> {
@@ -10,8 +11,7 @@ class YKMHMatcher extends BaseMatcher<string> {
 
   galleryMeta(): GalleryMeta {
     if (this.meta) return this.meta;
-    const title = document.querySelector(".comic_deCon h1")?.textContent ?? document.title;
-    this.meta = new GalleryMeta(window.location.href, title);
+    this.meta = ykmhGalleryMetaFromDocument(document, window.location.href);
     return this.meta;
   }
 

@@ -1,5 +1,5 @@
 import { saveConf } from "./config";
-import { Downloader } from "./download/downloader";
+import { EagleDownloader } from "./eagle/eagle-downloader";
 import EBUS from "./event-bus";
 import { IMGFetcherQueue } from "./fetcher-queue";
 import { IdleLoader } from "./idle-loader";
@@ -17,6 +17,7 @@ import { evLog } from "./utils/ev-log";
 import { Filter } from "./filter";
 import { ContextMenu } from "./ui/context-menu";
 import { ReadingProgress } from "./reading-progress";
+import { initNovelAiEagleBridge } from "./eagle/novelai-bridge";
 
 // Dynamically import the modules under ./platform/matchers, in which ADAPTER.addSetup will be executed
 const modules = import.meta.glob('./platform/matchers/*.ts', { eager: true });
@@ -34,7 +35,7 @@ function setup(): DestoryFunc {
   const IFQ: IMGFetcherQueue = IMGFetcherQueue.newQueue();
   const IL: IdleLoader = new IdleLoader(IFQ);
   const PF: PageFetcher = new PageFetcher(IFQ, MATCHER, FL);
-  const DL: Downloader = new Downloader(HTML, IFQ, IL, PF, MATCHER);
+  const DL = new EagleDownloader(HTML, IFQ, IL, PF, MATCHER);
 
   // UI Manager
   const PH: PageHelper = new PageHelper(HTML, () => PF.chapters, () => DL.downloading);
@@ -87,6 +88,9 @@ function setup(): DestoryFunc {
       sleep(20).then(cb);
     }
   });
+  EBUS.subscribe("eagle-import-one", (chapterIndex, index) => {
+    void DL.importOne(chapterIndex, index);
+  });
   const signal = { first: true };
   function entry(expand?: boolean) {
     if (HTML.pageHelper) {
@@ -130,6 +134,7 @@ function start() {
         evLog("error", "in iframe");
         return;
       }
+      if (initNovelAiEagleBridge()) return;
       if (document.querySelector(".ehvp-base")) return;
       ADAPTER.reset();
       ADAPTER.ready.then(() => {

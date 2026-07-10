@@ -1,5 +1,6 @@
 import ImageNode, { NodeAction } from "../../img-node";
 import { Chapter } from "../../page-fetcher";
+import { jandanPublishedAt, jandanSourceTags } from "../../eagle/adapters/jandan";
 import { sleep } from "../../utils/sleep";
 import { ADAPTER } from "../adapt";
 import { BaseMatcher, OriginMeta, Result } from "../platform";
@@ -9,7 +10,8 @@ type JandanComment = {
   post_id: number,
   author: string,
   // author_type: number,
-  // date_gmt: string,
+  date_gmt?: string,
+  date?: string,
   // user_id: number,
   // content: "<img src=\"https://img.toto.im/mw600/00745YaMgy1iaof1252izj30go0lc47b.jpg\" />",
   content: string,
@@ -128,6 +130,8 @@ class JandanMatcher extends BaseMatcher<JandanComment[]> {
         const img = images[i];
         const [thumb, origin, ext, isGIF] = this.parseURL(img);
         const node = new ImageNode(thumb, href, `${comment.id}-${i + 1}.${ext}`, undefined, origin);
+        node.setTags(...jandanSourceTags(comment));
+        node.setPublishedAt(jandanPublishedAt(comment));
         node.actions.push(ooAction);
         node.actions.push(xxAction);
         if (isGIF) {

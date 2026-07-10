@@ -1,4 +1,4 @@
-import { GalleryMeta } from "../../download/gallery-meta";
+import type { GalleryMeta } from "../../download/gallery-meta";
 import { evLog } from "../../utils/ev-log";
 import { BaseMatcher, OriginMeta, Result, SubData } from "../platform";
 import { FFmpegConvertor } from "../../utils/ffmpeg";
@@ -11,6 +11,8 @@ import { ADAPTER } from "../adapt";
 import { i18n } from "../../utils/i18n";
 import { HTMLUgoiraElement } from "../../utils/ugoira";
 import { replaceHost } from "../../utils/url";
+import { pixivEagleAuthorUrl, pixivEagleGalleryMetaFromState, pixivEagleSourceTags } from "../../eagle/adapters/pixiv";
+import { normalizePixivWorkTags } from "../pixiv-tags";
 
 type ArtistPIDs = {
   id?: string,
@@ -36,7 +38,12 @@ type Work = {
   illustType: 0 | 1 | 2,
   description: "",
   tags: string[],
+  userId?: string,
+  userName?: string,
+  userAccount?: string,
   pageCount: number,
+  createDate?: string,
+  uploadDate?: string,
 }
 
 type UgoiraMeta = {
@@ -216,9 +223,9 @@ class PixivArtistWorksAPI implements PixivAPI {
 
 const PID_EXTRACT = /\/(\d+)_([a-z]+)\d*\.\w*$/;
 type PageData = { error: boolean, message: string, body: Page[] };
-class PixivMatcher extends BaseMatcher<ArtistPIDs[]> {
+export class PixivMatcher extends BaseMatcher<ArtistPIDs[]> {
   api: PixivAPI;
-  meta: GalleryMeta;
+  meta?: GalleryMeta;
   pageCount: number = 0;
   works: Record<string, Work> = {};
   ugoiraMetas: Record<string, UgoiraMeta> = {};
@@ -228,7 +235,6 @@ class PixivMatcher extends BaseMatcher<ArtistPIDs[]> {
 
   constructor() {
     super();
-    this.meta = new GalleryMeta(window.location.href, "UNTITLE");
     if (/pixiv.net(\/en\/?|\/illustration)?$/.test(window.location.href)) {
       this.api = new PixivHomeAPI();
     } else {
@@ -273,11 +279,8 @@ class PixivMatcher extends BaseMatcher<ArtistPIDs[]> {
   }
 
   galleryMeta(): GalleryMeta {
-    this.meta.title = `pixiv_${this.api.title()}_w${Object.keys(this.works).length}_p${this.pageCount}` || "UNTITLE";
-    this.meta.tags = Object.entries(this.works).reduce<Record<string, string[]>>((tags, work) => {
-      tags[work[0]] = work[1].tags;
-      return tags;
-    }, {});
+    const sourceTitle = this.api.title();
+    this.meta = pixivEagleGalleryMetaFromState(window.location.href, sourceTitle, this.works);
     return this.meta;
   }
 
@@ -296,8 +299,13 @@ class PixivMatcher extends BaseMatcher<ArtistPIDs[]> {
             alt: w.alt,
             illustType: w.illustType,
             description: w.description,
-            tags: w.tags,
-            pageCount: w.pageCount
+            tags: normalizePixivWorkTags(w.tags),
+            userId: stringValue(w.userId) || artistID,
+            userName: stringValue(w.userName),
+            userAccount: stringValue(w.userAccount),
+            pageCount: w.pageCount,
+            createDate: w.createDate,
+            uploadDate: w.uploadDate,
           };
         })
         this.works = { ...this.works, ...works };
@@ -332,15 +340,18 @@ class PixivMatcher extends BaseMatcher<ArtistPIDs[]> {
   async parseImgNodes(aps: ArtistPIDs[]): Promise<ImageNode[]> {
     const list: ImageNode[] = [];
     if (aps.length === 0) return list;
-    // async function but no await, it will fetch tags in background
     const pids = [];
+    const tagFetches: Promise<void>[] = [];
+    const artistByPid: Record<string, string> = {};
     for (const ap of aps) {
       if (ap.id) {
-        this.fetchTagsByPids(ap.id, ap.pids);
+        tagFetches.push(this.fetchTagsByPids(ap.id, ap.pids));
+        ap.pids.forEach(pid => artistByPid[pid] = ap.id!);
       }
       pids.push(...ap.pids);
     }
     if (pids.length === 0) return list;
+    await Promise.all(tagFetches);
     if (ADAPTER.conf.pixivAscendWorks) {
       pids.sort((a, b) => parseInt(a) - parseInt(b));
     } else {
@@ -404,6 +415,12 @@ class PixivMatcher extends BaseMatcher<ArtistPIDs[]> {
           replaceHost(p.urls.original, ADAPTER.conf.pixivMirrorHost),
           { w: p.width, h: p.height }
         );
+        const artistId = artistByPid[pid];
+        const work = this.works[pid];
+        const authorUrl = pixivEagleAuthorUrl(work, artistId);
+        node.setTags(...pixivEagleSourceTags(work, artistId));
+        if (authorUrl) node.setAuthorUrls(authorUrl);
+        node.setPublishedAt(this.works[pid]?.createDate || this.works[pid]?.uploadDate);
         node.actions.push(actionLike);
         node.actions.push(actionBookmark);
         list.push(node);
@@ -429,6 +446,10 @@ class PixivMatcher extends BaseMatcher<ArtistPIDs[]> {
       return { url: node.originSrc! };
     }
   }
+}
+
+function stringValue(value: unknown): string | undefined {
+  return typeof value === "string" || typeof value === "number" ? String(value) : undefined;
 }
 
 

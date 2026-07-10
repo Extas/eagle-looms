@@ -2,6 +2,7 @@ import { GalleryMeta } from "../../download/gallery-meta";
 import { IMGFetcher } from "../../img-fetcher";
 import ImageNode from "../../img-node";
 import { Chapter } from "../../page-fetcher";
+import { hdoujinGalleryMeta, hdoujinPublishedAt } from "../../eagle/adapters/hdoujin";
 import { ADAPTER } from "../adapt";
 import { BaseMatcher, OriginMeta, Result } from "../platform";
 
@@ -12,6 +13,7 @@ type HDoujinImg = {
   width: number,
   height: number,
   title: string,
+  publishedAt?: number,
 }
 
 type HDoujinEntry = {
@@ -63,30 +65,8 @@ class HDoujinMatcher extends BaseMatcher<HDoujinImg[]> {
     return this.meta!;
   }
 
-  tagNamespace(namespace: number): string {
-    const map: Record<number, string> = {
-      1: "artist",
-      2: "cricle",
-      3: "parody",
-      7: "uploader",
-      8: "male_tags",
-      9: "female_tags",
-      11: "languages",
-    };
-    return map[namespace] ?? namespace.toString();
-  }
-
   createMeta(gallery: HDoujinGallery): GalleryMeta {
-    const meta = new GalleryMeta(window.location.href, gallery.title);
-    meta.originTitle = gallery.subtitle;
-    for (const tag of gallery.tags) {
-      const tagName = this.tagNamespace(tag.namespace);
-      if (!meta.tags[tagName]) {
-        meta.tags[tagName] = [];
-      }
-      meta.tags[tagName].push(tag.name)
-    }
-    return meta;
+    return hdoujinGalleryMeta(gallery, window.location.href);
   }
 
   async *fetchPagesSource(source: Chapter): AsyncGenerator<Result<HDoujinImg[]>> {
@@ -129,6 +109,7 @@ class HDoujinMatcher extends BaseMatcher<HDoujinImg[]> {
         width: entry.dimensions[0],
         height: entry.dimensions[1],
         title: (i + 1).toString().padStart(digits, "0") + "." + ext,
+        publishedAt: gallery.created_at,
       })
     }
     yield Result.ok(ret);
@@ -141,7 +122,9 @@ class HDoujinMatcher extends BaseMatcher<HDoujinImg[]> {
 
   async parseImgNodes(images: HDoujinImg[],): Promise<ImageNode[]> {
     return images.map(img => {
-      return new ImageNode(img.thumb, img.href, img.title, undefined, img.large, { w: img.width, h: img.height });
+      const node = new ImageNode(img.thumb, img.href, img.title, undefined, img.large, { w: img.width, h: img.height });
+      node.setPublishedAt(hdoujinPublishedAt(img));
+      return node;
     });
   }
   // headers(_node: ImageNode): Record<string, string> {

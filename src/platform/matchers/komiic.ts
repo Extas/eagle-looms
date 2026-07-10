@@ -2,6 +2,7 @@ import { GalleryMeta } from "../../download/gallery-meta";
 import ImageNode from "../../img-node";
 import { Chapter } from "../../page-fetcher";
 import { evLog } from "../../utils/ev-log";
+import { komiicGalleryMeta, komiicPublishedAt } from "../../eagle/adapters/komiic";
 import { ADAPTER } from "../adapt";
 import { BaseMatcher, OriginMeta, Result } from "../platform";
 
@@ -53,11 +54,13 @@ type KomiicComicInfo = {
 class KomiicMatcher extends BaseMatcher<KomiicImage[]> {
 
   chapterType: Record<string, { display: string, sort: number }>;
+  chapterDates: Record<string, string>;
   meta?: GalleryMeta;
 
   constructor() {
     super()
     this.chapterType = { chapter: { display: "话", sort: 1 }, book: { display: "卷", sort: 0 } };
+    this.chapterDates = {};
   }
 
   galleryMeta(_chapter: Chapter): GalleryMeta {
@@ -92,15 +95,18 @@ class KomiicMatcher extends BaseMatcher<KomiicImage[]> {
         "mode": "cors"
       }).then(res => res.json());
       const cInfo = comicInfoRes.data.comicById as KomiicComicInfo;
-      this.meta = new GalleryMeta(window.location.href, cInfo.title);
-      this.meta.tags.authors = cInfo.authors.map(a => a.name);
-      this.meta.tags.categories = cInfo.categories.map(a => a.name);
+      this.meta = komiicGalleryMeta(cInfo, window.location.href);
     } catch (err) {
       evLog("error", "fetch comic info error", err);
     }
 
     let chapters = data.data.chaptersByComicId as KomiicChapter[];
     chapters = chapters.sort((a, b) => this.chapterType[a.type].sort - this.chapterType[b.type].sort);
+    this.chapterDates = chapters.reduce<Record<string, string>>((dates, chapter) => {
+      const publishedAt = komiicPublishedAt(chapter);
+      if (publishedAt) dates[chapter.id] = publishedAt;
+      return dates;
+    }, {});
     yield chapters.map(c => new Chapter(parseInt(c.id), c.serial + this.chapterType[c.type].display, id + "/" + c.id))
   }
 
@@ -129,7 +135,9 @@ class KomiicMatcher extends BaseMatcher<KomiicImage[]> {
       const url = `${window.location.origin}/api/image/${img.kid}`;
       const name = (i + 1).toString().padStart(digits, "0");
       const href = `${window.location.origin}/comic/${img.comicId}/chapter/${img.chapterId}/page/1`;
-      return new ImageNode("", href, name + ".webp", undefined, url, { w: img.width, h: img.height });
+      const node = new ImageNode("", href, name + ".webp", undefined, url, { w: img.width, h: img.height });
+      node.setPublishedAt(this.chapterDates[img.chapterId]);
+      return node;
     })
   }
 

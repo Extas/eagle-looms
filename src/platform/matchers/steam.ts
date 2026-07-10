@@ -1,5 +1,6 @@
 import { GalleryMeta } from "../../download/gallery-meta";
 import ImageNode from "../../img-node";
+import { steamGalleryMetaFromUrl } from "../../eagle/adapters/steam";
 import { ADAPTER } from "../adapt";
 import { BaseMatcher, OriginMeta, Result } from "../platform";
 
@@ -71,17 +72,16 @@ class SteamMatcher extends BaseMatcher<string> {
     }
   }
 
-  parseGalleryMeta(): GalleryMeta {
-    const url = new URL(window.location.href);
-    const appid = url.searchParams.get("appid");
-    return new GalleryMeta(window.location.href, "steam-" + appid || "all");
+  galleryMeta(): GalleryMeta {
+    return steamGalleryMetaFromUrl(window.location.href, document.title);
   }
 
 }
+
 ADAPTER.addSetup({
   name: "Steam Screenshots",
   workURLs: [
-    /steamcommunity.com\/id\/[^/]+\/screenshots.*/
+    /steamcommunity.com\/(?:id|profiles)\/[^/]+\/screenshots.*/
   ],
   match: ["https://steamcommunity.com/*"],
   constructor: () => new SteamMatcher(),

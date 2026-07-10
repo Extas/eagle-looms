@@ -10,7 +10,7 @@ import EBUS from "../event-bus";
 import { DownloaderCanvas } from "../ui/downloader-canvas";
 import { Chapter, PageFetcher } from "../page-fetcher";
 import { evLog } from "../utils/ev-log";
-import { DownloaderPanel } from "../ui/downloader-panel";
+import { DownloaderPanel, type DownloaderPanelStage } from "../ui/downloader-panel";
 import { i18n } from "../utils/i18n";
 import { ADAPTER } from "../platform/adapt";
 import { generateConvertScript } from "../utils/ffmpeg";
@@ -68,12 +68,14 @@ export class Downloader {
     this.panel.initNotice([
       {
         btn: i18n.resetDownloaded.get(),
+        tooltip: i18n.resetDownloadedConfirm.get(),
         cb: () => {
           if (confirm(i18n.resetDownloadedConfirm.get())) this.queue.forEach(imf => (imf.stage === FetchState.DONE) && imf.resetStage());
         }
       },
       {
         btn: i18n.resetFailed.get(),
+        tooltip: i18n.resetFailedTooltip.get(),
         cb: () => {
           this.queue.forEach(imf => (imf.stage === FetchState.FAILED) && imf.resetStage());
           if (!this.downloading) this.idleLoader.abort(0, 100);
@@ -339,7 +341,7 @@ export class Downloader {
     }
   }
 
-  abort(stage: "downloadFailed" | "downloaded" | "downloadStart") {
+  abort(stage: Extract<DownloaderPanelStage, "downloadFailed" | "downloaded" | "downloadStart" | "importNoNewItems">) {
     this.downloading = false;
     this.panel.abort(stage);
     this.idleLoader.abort();

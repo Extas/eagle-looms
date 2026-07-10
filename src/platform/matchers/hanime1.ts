@@ -1,24 +1,18 @@
 import { GalleryMeta } from "../../download/gallery-meta";
 import ImageNode from "../../img-node";
 import { ADAPTER } from "../adapt";
+import { hanime1GalleryMetaFromDocument, hanime1PublishedAtFromDocument } from "../../eagle/adapters/hanime1";
 import { BaseMatcher, OriginMeta, Result } from "../platform";
 
 class Hanime1Matcher extends BaseMatcher<Document> {
   meta?: GalleryMeta;
+  publishedAt = "";
   galleryMeta(): GalleryMeta {
     return this.meta!;
   }
   parseMeta() {
-    const title = document.querySelector(".comics-panel-margin h3.title")?.textContent?.replaceAll(/\s/g, "");
-    const originTItle = document.querySelector(".comics-panel-margin h4.title")?.textContent?.replaceAll(/\s/g, "");
-    const meta = new GalleryMeta(window.location.href, title ?? document.title);
-    meta.originTitle = originTItle ?? undefined;
-    Array.from(document.querySelectorAll(".comics-panel-margin .comics-metadata-margin-top h5")).forEach(ele => {
-      let cat = ele.firstChild?.textContent ?? "misc";
-      cat = cat.trim().replace(/：:/, "");
-      const tags = Array.from(ele.querySelectorAll("a")).map(t => t.textContent?.trim()).filter(Boolean) as string[];
-      meta.tags[cat] = tags;
-    });
+    const meta = hanime1GalleryMetaFromDocument(document, window.location.href);
+    this.publishedAt = hanime1PublishedAtFromDocument(document);
     this.meta = meta;
   }
   async *fetchPagesSource(): AsyncGenerator<Result<Document>> {
@@ -49,7 +43,9 @@ class Hanime1Matcher extends BaseMatcher<Document> {
         ext = f[fk] ?? "jpg";
         src = `${prefix}${(index + 1)}.${ext}`;
       }
-      return new ImageNode(thumb, href, (index + 1).toString().padStart(digits, "0") + "." + ext, undefined, src);
+      const node = new ImageNode(thumb, href, (index + 1).toString().padStart(digits, "0") + "." + ext, undefined, src);
+      node.setPublishedAt(this.publishedAt);
+      return node;
     });
   }
 
@@ -69,6 +65,7 @@ class Hanime1Matcher extends BaseMatcher<Document> {
   }
 
 }
+
 ADAPTER.addSetup({
   name: "hanime1.me",
   workURLs: [

@@ -2,6 +2,7 @@ import { GalleryMeta } from "../../download/gallery-meta";
 import ImageNode from "../../img-node";
 import { Chapter } from "../../page-fetcher";
 import { ADAPTER } from "../adapt";
+import { wnacgGalleryMetaFromDocument } from "../../eagle/adapters/wnacg";
 import { BaseMatcher, OriginMeta, Result } from "../platform";
 
 class WnacgMatcher extends BaseMatcher<GalleryImage[]> {
@@ -56,12 +57,7 @@ class WnacgMatcher extends BaseMatcher<GalleryImage[]> {
   }
 
   private pasrseGalleryMeta(doc: Document): GalleryMeta {
-    const title = doc.querySelector<HTMLTitleElement>("#bodywrap > h2")?.textContent || "unknown";
-    const meta = new GalleryMeta(this.baseURL || window.location.href, title);
-    const tags = Array.from(doc.querySelectorAll(".asTB .tagshow")).map(ele => ele.textContent).filter(Boolean);
-    const description = Array.from(doc.querySelector(".asTB > .asTBcell.uwconn > p")?.childNodes || []).map(e => e.textContent).filter(Boolean) as string[];
-    meta.tags = { "tags": tags, "description": description }
-    return meta;
+    return wnacgGalleryMetaFromDocument(doc, this.baseURL || window.location.href);
   }
 
   private async requestGalleryImages(galleryURL: string): Promise<GalleryImage[]> {
@@ -125,6 +121,7 @@ type GalleryImage = {
   url: string;
   caption: string;
 }
+
 ADAPTER.addSetup({
   name: "绅士漫画",
   workURLs: [

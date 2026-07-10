@@ -1,0 +1,24 @@
+name: Watch Comic Looms upstream
+
+on:
+  schedule:
+    - cron: "17 3 * * 1"
+  workflow_dispatch:
+
+jobs:
+  upstream-status:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository history
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configure read-only upstream
+        run: git remote add upstream https://github.com/MapoMagpie/comic-looms.git
+
+      - name: Fetch upstream
+        run: npm run upstream:fetch
+
+      - name: Report pending upstream commits
+        run: npm run upstream:status -- --require-current

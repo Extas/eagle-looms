@@ -62,6 +62,7 @@ export class ContextMenu {
       ["scale-image-increase", "onBig", false],
       ["scale-image-decrease", "onBig", false],
       ["rotate-image", "onBig", false],
+      ["import-current-to-eagle", "onBig", true],
       ["step-image-prev", "onBig", false],
       ["step-image-next", "onBig", false],
     ];
@@ -69,6 +70,7 @@ export class ContextMenu {
     const inGridList: [AppEventIDInFullViewGrid, VisibleMode, boolean][] = [
       ["open-big-image-mode", "onGrid", true],
       ["open-in-new-tab", "onGrid", true],
+      ["import-current-to-eagle", "onGrid", true],
       ["toggle-auto-play", "alway", false],
       ["pause-auto-load-temporarily", "onGrid", true],
       ["resize-flow-vision", "onGrid", false],

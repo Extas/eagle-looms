@@ -3,6 +3,7 @@ import ImageNode from "../../img-node";
 import { Chapter } from "../../page-fetcher";
 import { evLog } from "../../utils/ev-log";
 import { ADAPTER } from "../adapt";
+import { comic18GalleryMetaFromDocument, comic18PublishedAtFromDocument } from "../../eagle/adapters/comic18";
 import { BaseMatcher, Result, OriginMeta } from "../platform";
 
 // TODO: don't reference the md5 on the page, to avoid errors when the script is not loaded
@@ -81,6 +82,7 @@ class Comic18Matcher extends BaseMatcher<string> {
 
   async parseImgNodes(source: string): Promise<ImageNode[]> {
     const list: ImageNode[] = [];
+    const publishedAt = comic18PublishedAtFromDocument(document);
     const raw = await window.fetch(source as string).then(resp => resp.text()).then(text => new DOMParser().parseFromString(text, "text/html")).catch(Error);
     if (raw instanceof Error) throw new Error("请求页面失败: " + source + "  " + raw.message, { cause: raw.cause });
     const elements = Array.from(raw.querySelectorAll<HTMLImageElement>(".owl-carousel-page > .center > img"));
@@ -92,7 +94,9 @@ class Comic18Matcher extends BaseMatcher<string> {
         continue;
       }
       const title = src.split("/").pop()!;
-      list.push(new ImageNode("", src, title, undefined, src));
+      const node = new ImageNode("", src, title, undefined, src);
+      node.setPublishedAt(publishedAt);
+      list.push(node);
     }
     return list;
   }
@@ -126,21 +130,7 @@ class Comic18Matcher extends BaseMatcher<string> {
 
   galleryMeta(): GalleryMeta {
     if (this.meta) return this.meta;
-    const title = document.querySelector(".panel-heading h2")?.textContent || document.title || "UNTITLE";
-    this.meta = new GalleryMeta(window.location.href, title);
-    this.meta.originTitle = title;
-    const tagTrList = document.querySelectorAll<HTMLElement>("div.tag-block > span");
-    const tags: Record<string, string[]> = {};
-    tagTrList.forEach((tr) => {
-      const cat = tr.getAttribute("data-type")?.trim();
-      if (cat) {
-        const values = Array.from(tr.querySelectorAll("a")).map(a => a.textContent!).filter(Boolean);
-        if (values.length > 0) {
-          tags[cat] = values;
-        }
-      }
-    });
-    this.meta.tags = tags;
+    this.meta = comic18GalleryMetaFromDocument(document);
     return this.meta;
   }
 
@@ -163,6 +153,7 @@ class Comic18Matcher extends BaseMatcher<string> {
     return { url: src };
   }
 }
+
 ADAPTER.addSetup({
   name: "禁漫",
   workURLs: [

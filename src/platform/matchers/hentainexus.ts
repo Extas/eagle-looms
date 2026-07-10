@@ -2,6 +2,8 @@ import { GalleryMeta } from "../../download/gallery-meta";
 import ImageNode from "../../img-node";
 import { Chapter } from "../../page-fetcher";
 import { ADAPTER } from "../adapt";
+import { extractGalleryAuthorUrls } from "../../eagle/adapters/gallery-author-urls";
+import { hentaiNexusPublishedAtFromDocument } from "../../eagle/adapters/hentainexus";
 import { BaseMatcher, OriginMeta, Result } from "../platform";
 
 type HNImageInfo = {
@@ -19,10 +21,12 @@ class HentaiNexusMatcher extends BaseMatcher<Document> {
   meta?: GalleryMeta;
   baseURL?: string;
   readerData?: HNImageInfo[];
+  publishedAt = "";
   // readDirection?: string;
 
   async *fetchPagesSource(): AsyncGenerator<Result<Document>> {
     this.meta = this.pasrseGalleryMeta(document);
+    this.publishedAt = hentaiNexusPublishedAtFromDocument(document);
     yield Result.ok(document);
   }
 
@@ -35,7 +39,9 @@ class HentaiNexusMatcher extends BaseMatcher<Document> {
       const num = li.href.split("/").pop() || i.toString();
       const ext = img.src.split(".").pop();
       const title = num + "." + ext;
-      result.push(new ImageNode(img.src, li.href, title));
+      const node = new ImageNode(img.src, li.href, title);
+      node.setPublishedAt(this.publishedAt);
+      result.push(node);
     });
     return result;
   }
@@ -80,6 +86,7 @@ class HentaiNexusMatcher extends BaseMatcher<Document> {
       }
       meta.tags[category] = values;
     });
+    meta.authorUrls = extractGalleryAuthorUrls(doc, ".view-page-details tr", ".viewcolumn", ".viewcolumn + td a[href]");
     return meta;
   }
 
@@ -146,6 +153,7 @@ class HentaiNexusMatcher extends BaseMatcher<Document> {
     this.readerData = JSON.parse(raw) as HNImageInfo[];
   }
 }
+
 ADAPTER.addSetup({
   name: "hentainexus",
   workURLs: [

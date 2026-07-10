@@ -1,10 +1,14 @@
 import { GalleryMeta } from "../../download/gallery-meta";
 import ImageNode from "../../img-node";
 import { ADAPTER } from "../adapt";
+import { asmHentaiGalleryMetaFromDocument, asmHentaiPublishedAtFromDocument } from "../../eagle/adapters/asmhentai";
 import { BaseMatcher, OriginMeta, Result } from "../platform";
 
 class AsmHentaiMatcher extends BaseMatcher<string> {
+  publishedAt = "";
+
   async *fetchPagesSource(): AsyncGenerator<Result<string>> {
+    this.publishedAt = asmHentaiPublishedAtFromDocument(document);
     const csrf = document.querySelector('meta[name="csrf-token"]')?.getAttribute("content");
     if (!csrf) throw new Error("cannot find csrf_token");
     const loadID = document.querySelector<HTMLInputElement>("#load_id")?.value;
@@ -29,7 +33,11 @@ class AsmHentaiMatcher extends BaseMatcher<string> {
   async parseImgNodes(raw: string): Promise<ImageNode[]> {
     const infos = Array.from(raw.matchAll(/<a href="(.*?)".*data-src="(.*?)"/g)).filter(m => m.length === 3).map(m => ([m[1], m[2]]));
     const digits = infos.length.toString().length;
-    return infos.map((info, i) => new ImageNode(info[1], window.location.origin + info[0], (i + 1).toString().padStart(digits, "0")));
+    return infos.map((info, i) => {
+      const node = new ImageNode(info[1], window.location.origin + info[0], (i + 1).toString().padStart(digits, "0"));
+      node.setPublishedAt(this.publishedAt);
+      return node;
+    });
   }
 
   async fetchOriginMeta(node: ImageNode): Promise<OriginMeta> {
@@ -45,25 +53,12 @@ class AsmHentaiMatcher extends BaseMatcher<string> {
   meta?: GalleryMeta;
   galleryMeta(): GalleryMeta {
     if (this.meta) return this.meta;
-    const title = document.querySelector(".right > .info > h1")?.textContent ?? document.title;
-    const meta = new GalleryMeta(window.location.href, title);
-    meta.originTitle = document.querySelector(".right > .info > h2")?.textContent ?? undefined;
-    Array.from(document.querySelectorAll<HTMLElement>(".right > .info > ul > .tags")).forEach(elem => {
-      const cate = elem.querySelector("h3")?.textContent?.trim().replace(":", "").toLowerCase();
-      if (cate) {
-        const tags = Array.from(elem.querySelectorAll<HTMLSpanElement>(".tag_list > a > span")).map(span =>
-          span.firstChild?.textContent ?? undefined
-        ).filter(Boolean) as string[];
-        if (tags.length > 0) {
-          meta.tags[cate] = tags;
-        }
-      }
-    });
-    this.meta = meta;
+    this.meta = asmHentaiGalleryMetaFromDocument(document, window.location.href);
     return this.meta;
   }
 
 }
+
 ADAPTER.addSetup({
   name: "AsmHentai",
   workURLs: [

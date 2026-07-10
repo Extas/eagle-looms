@@ -1,7 +1,8 @@
-import { GalleryMeta } from "../../download/gallery-meta";
+import type { GalleryMeta } from "../../download/gallery-meta";
 import ImageNode from "../../img-node";
 import { sleep } from "../../utils/sleep";
 import { ADAPTER } from "../adapt";
+import { nhentaiGalleryMetaFromApi, nhentaiGalleryMetaFromDocument, nhentaiPublishedAt, nhentaiPublishedAtFromDocument } from "../../eagle/adapters/nhentai";
 import { BaseMatcher, OriginMeta, Result } from "../platform";
 
 function nhParseExt(str: string): string {
@@ -30,6 +31,7 @@ type NHGalleryInfo = {
   id: number,
   media_id: string,
   num_pages: number,
+  upload_date?: string | number,
   tags: {
     id: number,
     type: string,
@@ -53,18 +55,7 @@ class NHMatcher extends BaseMatcher<Document> {
     return this.meta!;
   }
   createMeta(info: NHGalleryInfo) {
-    const meta = new GalleryMeta(window.location.href, info.title?.english || document.title);
-    meta.originTitle = info.title?.japanese;
-    if (info.tags && info.tags.length > 0) {
-      meta.tags = info.tags.reduce<Record<string, any[]>>((prev, curr) => {
-        if (!prev[curr.type]) {
-          prev[curr.type] = [];
-        }
-        prev[curr.type].push(curr.name);
-        return prev;
-      }, {});
-    }
-    this.meta = meta;
+    this.meta = nhentaiGalleryMetaFromApi(info, window.location.href, document.title);
   }
   async getImageServers() {
     const config = await window.fetch(`${window.origin}/api/v2/config`).then(res => res.json()).catch(Error);
@@ -92,6 +83,7 @@ class NHMatcher extends BaseMatcher<Document> {
     if (resp instanceof Error) throw resp;
     const data = resp as NHGalleryInfo;
     this.createMeta(data);
+    const publishedAt = nhentaiPublishedAt(data);
     const digits = data.pages.length.toString().length;
     const ret = [];
     for (let i = 0; i < data.pages.length; i++) {
@@ -104,7 +96,9 @@ class NHMatcher extends BaseMatcher<Document> {
       const thumbCDN = this.thumbCDNUrls[i % this.thumbCDNUrls.length];
       const thumbnail = `${thumbCDN}/${node.thumbnail}`;
       const wh = { w: node.thumbnail_width, h: node.thumbnail_height };
-      ret.push(new ImageNode(thumbnail, href, title + "." + ext, undefined, originSrc, wh));
+      const imageNode = new ImageNode(thumbnail, href, title + "." + ext, undefined, originSrc, wh);
+      imageNode.setPublishedAt(publishedAt);
+      ret.push(imageNode);
     }
     return ret;
   }
@@ -116,20 +110,13 @@ class NHMatcher extends BaseMatcher<Document> {
 
 class NHxxxMatcher extends BaseMatcher<Document> {
   meta?: GalleryMeta;
+  publishedAt = "";
   galleryMeta(): GalleryMeta {
     return this.meta!;
   }
   parseMeta() {
-    const title = document.querySelector(".info h1")?.textContent;
-    const originTItle = document.querySelector(".info h2")?.textContent;
-    const meta = new GalleryMeta(window.location.href, title ?? document.title);
-    meta.originTitle = originTItle ?? undefined;
-    Array.from(document.querySelectorAll(".info > ul > li.tags")).forEach(ele => {
-      let cat = ele.querySelector("span.text")?.textContent ?? "misc";
-      cat = cat.trim().replace(":", "");
-      const tags = Array.from(ele.querySelectorAll("a.tag_btn > .tag_name")).map(t => t.textContent?.trim()).filter(Boolean) as string[];
-      meta.tags[cat] = tags;
-    });
+    const meta = nhentaiGalleryMetaFromDocument(document, window.location.href);
+    this.publishedAt = nhentaiPublishedAtFromDocument(document);
     this.meta = meta;
   }
   async *fetchPagesSource(): AsyncGenerator<Result<Document>> {
@@ -159,7 +146,9 @@ class NHxxxMatcher extends BaseMatcher<Document> {
       if (splits.length === 3) {
         wh = { w: parseInt(splits[1].trim()), h: parseInt(splits[2].trim()) };
       }
-      ret.push(new ImageNode(thumbSrc, href + "/" + (i + 1), title + "." + nhParseExt(file[1]), undefined, originSrc, wh));
+      const imageNode = new ImageNode(thumbSrc, href + "/" + (i + 1), title + "." + nhParseExt(file[1]), undefined, originSrc, wh);
+      imageNode.setPublishedAt(this.publishedAt);
+      ret.push(imageNode);
     }
     return ret;
   }

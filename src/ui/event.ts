@@ -1,4 +1,6 @@
-import { ConfigBooleanType, ConfigTextType, ConfigNumberType, ConfigSelectType, ReadMode, saveConf } from "../config";
+import { saveConf } from "../config";
+import type { Config, ConfigBooleanType, ConfigTextType, ConfigNumberType, ConfigSelectType, ReadMode } from "../config";
+import { EAGLE_CONFIRM_THRESHOLD_RANGE, EAGLE_IMPORT_LIMIT_RANGE, EAGLE_MAX_SOURCE_TAGS_RANGE, eagleFolderPresetForTemplate, eagleFolderTemplateForPreset, normalizeEagleBaseUrl, normalizeEagleConfirmMode, normalizeEagleConfirmThreshold, normalizeEagleFolderPreset, normalizeEagleFolderTemplate, normalizeEagleImportLimit, normalizeEagleMaxSourceTags } from "../eagle/options";
 import EBUS from "../event-bus";
 import { IMGFetcherQueue } from "../fetcher-queue";
 import { IdleLoader } from "../idle-loader";
@@ -19,6 +21,7 @@ import icons from "../utils/icons";
 import { FullViewGridManager } from "./full-view-grid-manager";
 
 export type Events = ReturnType<typeof initEvents>;
+type SiteConfigPatch<K extends keyof Config> = Partial<Pick<Config, K>>;
 
 export type AppEventIDInBigImgFrame = "step-image-prev"
   | "step-image-next"
@@ -35,10 +38,12 @@ export type AppEventIDInBigImgFrame = "step-image-prev"
   | "rotate-image"
   | "cherry-pick-current"
   | "exclude-current"
+  | "import-current-to-eagle"
   | "go-prev-chapter"
   | "go-next-chapter";
 export type AppEventIDInFullViewGrid = "open-big-image-mode"
   | "open-in-new-tab"
+  | "import-current-to-eagle"
   | "cherry-pick-select"
   | "cherry-pick-select-range"
   | "cherry-pick-exclude"
@@ -77,11 +82,36 @@ export class AppEventDesc {
 }
 
 export function initEvents(HTML: Elements, BIFM: BigImageFrameManager, FVGM: FullViewGridManager, IFQ: IMGFetcherQueue, IL: IdleLoader, PH: PageHelper) {
+  function configName(siteName?: string) {
+    return siteName ?? ADAPTER.conf.selectedSiteNameConfig;
+  }
+
+  function configValue<K extends keyof Config>(key: K, siteName?: string): Config[K] {
+    return configName(siteName) ? ADAPTER.conf[key] : ADAPTER.globalConf[key];
+  }
+
+  function setConfigValue<K extends keyof Config>(key: K, value: Config[K], siteName?: string) {
+    const name = configName(siteName);
+    if (name) {
+      (ADAPTER.conf as any)[key] = value;
+      ADAPTER.siteConf = { ...(ADAPTER.siteConf || {}), [key]: value };
+    } else {
+      (ADAPTER.globalConf as any)[key] = value;
+      if (!ADAPTER.siteConf || !(key in ADAPTER.siteConf)) {
+        (ADAPTER.conf as any)[key] = value;
+      }
+    }
+    saveConf({ [key]: value } as SiteConfigPatch<K>, name);
+  }
+
   // modify config
   function modNumberConfigEvent(key: ConfigNumberType, data?: "add" | "minus", value?: number, siteName?: string) {
-    if (!value) {
+    if (value === undefined) {
       const range = {
         colCount: [1, 12],
+        eagleImportLimit: EAGLE_IMPORT_LIMIT_RANGE,
+        eagleMaxSourceTags: EAGLE_MAX_SOURCE_TAGS_RANGE,
+        eagleConfirmThreshold: EAGLE_CONFIRM_THRESHOLD_RANGE,
         rowHeight: [50, 4096],
         threads: [0, 10],
         maxIdleThreads: [0, 10],
@@ -94,19 +124,23 @@ export function initEvents(HTML: Elements, BIFM: BigImageFrameManager, FVGM: Ful
         scrollingSpeed: [1, 100],
       };
       let mod = 1;
+      const current = Number(configValue(key, siteName));
       if (key === "preventScrollPageTime" || key === "rowHeight" || key === "scrollingDelta") {
-        mod = ADAPTER.conf[key] < 1 ? 1 : ADAPTER.conf[key] === 1 ? 9 : 10;
+        mod = current < 1 ? 1 : current === 1 ? 9 : 10;
       };
       if (data === "add") {
-        value = Math.min(ADAPTER.conf[key] + mod, range[key][1]);
+        value = Math.min(current + mod, range[key][1]);
       } else if (data === "minus") {
-        value = Math.max(ADAPTER.conf[key] - mod, range[key][0]);
+        value = Math.max(current - mod, range[key][0]);
       }
     }
     if (value === undefined) return;
-    ADAPTER.conf[key] = value;
+    if (key === "eagleImportLimit") value = normalizeEagleImportLimit(value);
+    if (key === "eagleMaxSourceTags") value = normalizeEagleMaxSourceTags(value);
+    if (key === "eagleConfirmThreshold") value = normalizeEagleConfirmThreshold(value);
+    setConfigValue(key, value as Config[ConfigNumberType], siteName);
     const inputElement = q<HTMLInputElement>(`#${key}Input`, HTML.config.panel);
-    inputElement.value = ADAPTER.conf[key].toString();
+    inputElement.value = value.toString();
     if (key === "colCount" || key === "rowHeight") {
       EBUS.emit("fvg-layout-resize");
     }
@@ -118,7 +152,6 @@ export function initEvents(HTML: Elements, BIFM: BigImageFrameManager, FVGM: Ful
       }
       BIFM.setNow(IFQ[IFQ.currIndex]);
     }
-    saveConf({ [key]: value }, siteName ?? ADAPTER.conf.selectedSiteNameConfig);
   }
 
   // modify config
@@ -130,8 +163,7 @@ export function initEvents(HTML: Elements, BIFM: BigImageFrameManager, FVGM: Ful
       value = inputElement.checked || false;
     }
     if (value === undefined) return;
-    ADAPTER.conf[key] = value;
-    saveConf({ [key]: value }, ADAPTER.conf.selectedSiteNameConfig);
+    setConfigValue(key, value as Config[ConfigBooleanType]);
     if (key === "autoLoad") {
       IL.autoLoad = ADAPTER.conf.autoLoad;
       IL.abort(0, ADAPTER.conf.restartIdleLoader / 3);
@@ -146,12 +178,11 @@ export function initEvents(HTML: Elements, BIFM: BigImageFrameManager, FVGM: Ful
   }
 
   function changeReadModeEvent(value?: string, siteName?: string) {
-    if (value) ADAPTER.conf.readMode = value as any;
+    if (value) setConfigValue("readMode", value as ReadMode, siteName);
 
     BIFM.changeLayout();
 
-    ADAPTER.conf.autoPageSpeed = ADAPTER.conf.readMode === "pagination" ? 5 : 1;
-    saveConf({ readMode: ADAPTER.conf.readMode, autoPageSpeed: ADAPTER.conf.autoPageSpeed }, siteName ?? ADAPTER.conf.selectedSiteNameConfig);
+    setConfigValue("autoPageSpeed", ADAPTER.conf.readMode === "pagination" ? 5 : 1, siteName);
 
     q<HTMLInputElement>("#autoPageSpeedInput", HTML.config.panel).value = ADAPTER.conf.autoPageSpeed.toString();
     Array.from(HTML.readModeSelect.querySelectorAll(".b-main-option")).forEach((element) => {
@@ -177,12 +208,27 @@ export function initEvents(HTML: Elements, BIFM: BigImageFrameManager, FVGM: Ful
       value = inputElement.value;
     }
     if (!value) return;
-    (ADAPTER.conf[key] as any) = value;
     if (key === "readMode") {
-      changeReadModeEvent();
+      changeReadModeEvent(value);
       return;
     }
-    saveConf({ [key]: value }, ADAPTER.conf.selectedSiteNameConfig);
+    if (key === "eagleFolderPreset") {
+      const preset = normalizeEagleFolderPreset(value);
+      inputElement.value = preset;
+      setConfigValue("eagleFolderPreset", preset);
+      const template = eagleFolderTemplateForPreset(preset);
+      if (template) {
+        setConfigValue("eagleFolderPath", template);
+        const folderInput = HTML.config.panel.querySelector<HTMLInputElement>("#eagleFolderPathTextInput");
+        if (folderInput) folderInput.value = template;
+      }
+      return;
+    }
+    if (key === "eagleConfirmMode") {
+      value = normalizeEagleConfirmMode(value);
+      inputElement.value = value;
+    }
+    setConfigValue(key, value as any);
     if (key === "minifyPageHelper") {
       switch (ADAPTER.conf.minifyPageHelper) {
         case "always":
@@ -201,14 +247,22 @@ export function initEvents(HTML: Elements, BIFM: BigImageFrameManager, FVGM: Ful
 
   // modify config
   function modTextConfigEvent(key: ConfigTextType, value?: string) {
-    const inputElement = q<HTMLSelectElement>(`#${key}TextInput`, HTML.config.panel);
+    const inputElement = q<HTMLInputElement>(`#${key}TextInput`, HTML.config.panel);
     if (value) {
       inputElement.value = value;
     } else {
       value = inputElement.value;
     }
-    (ADAPTER.conf[key] as any) = value;
-    saveConf({ [key]: value }, ADAPTER.conf.selectedSiteNameConfig);
+    if (key === "eagleBaseUrl") value = normalizeEagleBaseUrl(value);
+    if (key === "eagleFolderPath") value = normalizeEagleFolderTemplate(value);
+    inputElement.value = value;
+    setConfigValue(key, value as Config[ConfigTextType]);
+    if (key === "eagleFolderPath") {
+      const preset = eagleFolderPresetForTemplate(value);
+      setConfigValue("eagleFolderPreset", preset);
+      const presetSelect = HTML.config.panel.querySelector<HTMLSelectElement>("#eagleFolderPresetSelect");
+      if (presetSelect) presetSelect.value = preset;
+    }
   }
 
   const cancelIDContext: Record<string, number> = {};
@@ -380,6 +434,11 @@ export function initEvents(HTML: Elements, BIFM: BigImageFrameManager, FVGM: Ful
         "EXCLUDE",
         () => BIFM.cherryPickCurrent(true), true
       ),
+      "import-current-to-eagle": new AppEventDesc(
+        ["shift+alt+e"],
+        icons.downloadIcon,
+        () => EBUS.emit("eagle-import-one", BIFM.chapterIndex, BIFM.currentIndex), true
+      ),
       "go-prev-chapter": new AppEventDesc(
         ["shift+alt+w"],
         icons.prevChapterIcon,
@@ -427,6 +486,17 @@ export function initEvents(HTML: Elements, BIFM: BigImageFrameManager, FVGM: Ful
           }
         }
         , false, true),
+      "import-current-to-eagle": new AppEventDesc(
+        ["shift+alt+e"],
+        icons.downloadIcon,
+        (event) => {
+          const index = event instanceof MouseEvent && event.relatedTarget
+            ? parseInt((event.relatedTarget as HTMLElement)?.getAttribute("data-index") ?? "")
+            : IFQ.currIndex;
+          if (isNaN(index) || index < 0) return;
+          EBUS.emit("eagle-import-one", FVGM.chapterIndex, index);
+        }
+      ),
       "cherry-pick-select": new AppEventDesc(
         [""],
         icons.cherryPickIcon,

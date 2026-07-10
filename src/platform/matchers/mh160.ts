@@ -1,7 +1,9 @@
+import { GalleryMeta } from "../../download/gallery-meta";
 import ImageNode from "../../img-node";
 import { Chapter } from "../../page-fetcher";
 import { b64DecodeUnicode } from "../../utils/random";
 import { ADAPTER } from "../adapt";
+import { mh160GalleryMetaFromDocument } from "../../eagle/adapters/mh160";
 import { BaseMatcher, OriginMeta, Result } from "../platform";
 
 class MH160Matcher extends BaseMatcher<string> {
@@ -14,7 +16,11 @@ class MH160Matcher extends BaseMatcher<string> {
   }
 
   title(): string {
-    return document.querySelector(".Introduct .h1")?.textContent ?? document.title;
+    return this.galleryMeta().title || "unknown";
+  }
+
+  galleryMeta(): GalleryMeta {
+    return mh160GalleryMetaFromDocument(document, window.location.href);
   }
 
   async *fetchChapters(): AsyncGenerator<Chapter[]> {

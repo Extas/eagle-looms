@@ -13,6 +13,7 @@ export type OriginMeta = {
   url: string,
   title?: string,
   href?: string,
+  publishedAt?: string,
 }
 
 export class Result<T> {

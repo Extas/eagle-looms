@@ -2,6 +2,7 @@ import { GalleryMeta } from "../../download/gallery-meta";
 import ImageNode from "../../img-node";
 import { Chapter } from "../../page-fetcher";
 import { evLog } from "../../utils/ev-log";
+import { hitomiPublishedAt } from "../../eagle/adapters/hitomi";
 import { ADAPTER } from "../adapt";
 import { BaseMatcher, OriginMeta, Result } from "../platform";
 
@@ -144,6 +145,7 @@ class HitomiMather extends BaseMatcher<GalleryInfo> {
   async parseImgNodes(info: GalleryInfo): Promise<ImageNode[]> {
     const files = info.files;
     const list: ImageNode[] = [];
+    const publishedAt = hitomiPublishedAt(info);
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
       let ext = this.formats.slice(this.formatIndex).find(format => ((file as any)["has" + format] === 1));
@@ -154,7 +156,9 @@ class HitomiMather extends BaseMatcher<GalleryInfo> {
       const title = file.name.replace(/\.\w+$/, "");
       const src = this.gg!.originURL(file.hash, ext);
       const { width, height } = file;
-      list.push(new ImageNode(this.gg!.thumbURL(files[i].hash), src, title + "." + ext, undefined, src, (width && height) ? { w: width, h: height } : undefined));
+      const node = new ImageNode(this.gg!.thumbURL(files[i].hash), src, title + "." + ext, undefined, src, (width && height) ? { w: width, h: height } : undefined);
+      node.setPublishedAt(publishedAt);
+      list.push(node);
     }
     return list;
   }
@@ -191,6 +195,7 @@ class HitomiMather extends BaseMatcher<GalleryInfo> {
   }
 
 }
+
 ADAPTER.addSetup({
   name: "hitomi",
   workURLs: [

@@ -1,6 +1,7 @@
 import { GalleryMeta } from "../../download/gallery-meta";
 import ImageNode from "../../img-node";
 import { transactionId } from "../../utils/random";
+import { yabaiPublishedAt } from "../../eagle/adapters/yabai";
 import { ADAPTER } from "../adapt";
 import { BaseMatcher, Result, OriginMeta } from "../platform";
 
@@ -34,11 +35,14 @@ class YabaiMatcher extends BaseMatcher<YabaiList> {
     }
     const meta = data.props?.post?.data as YabaiMeta;
     if (meta) this.meta = this.buildGalleryMeta(meta);
+    const publishedAt = meta ? yabaiPublishedAt(meta) : "";
     const ret: ImageNode[] = [];
     for (let i = 0; i < items.length; i++) {
       const item = items[i];
       const thumb = thumbnails[i];
-      ret.push(new ImageNode(thumb, item.url, `${item.name}.${item.ext}`, undefined, item.url));
+      const node = new ImageNode(thumb, item.url, `${item.name}.${item.ext}`, undefined, item.url);
+      node.setPublishedAt(publishedAt);
+      ret.push(node);
     }
     return ret;
   }
@@ -53,7 +57,6 @@ class YabaiMatcher extends BaseMatcher<YabaiList> {
     meta.tags = {
       flag: [data.flag],
       category: [data.category],
-      date: [data.date],
       ...data.tags,
     }
     return meta;

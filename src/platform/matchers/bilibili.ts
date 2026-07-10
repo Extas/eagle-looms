@@ -1,4 +1,5 @@
 import ImageNode from "../../img-node";
+import { bilibiliAuthorUrls, bilibiliPublishedAt, bilibiliSourceTags } from "../../eagle/adapters/bilibili";
 import { simpleFetch } from "../../utils/query";
 import { transactionId } from "../../utils/random";
 import { sleep } from "../../utils/sleep";
@@ -132,6 +133,9 @@ class BilibiliMatcher extends BaseMatcher<BiliBiliOpusItem[]> {
     if (items.length !== details.length) throw new Error(`fetch opus detail error, opus count: ${items.length}, detail count: ${details.length}`);
     return items.map((item, i) => {
       const detail = details[i];
+      const sourceTags = bilibiliSourceTags(detail);
+      const authorUrls = bilibiliAuthorUrls(detail);
+      const publishedAt = bilibiliPublishedAt(detail);
       const pictures = detail.modules.filter(modu => modu.module_type === "MODULE_TYPE_CONTENT" || modu.module_type === "MODULE_TYPE_TOP")
         .map(modu =>
           modu.module_top?.display.album.pics
@@ -141,7 +145,11 @@ class BilibiliMatcher extends BaseMatcher<BiliBiliOpusItem[]> {
       const digits = pictures.length.toString().length;
       return pictures.map((pic, j) => {
         const title = item.opus_id + "-" + (j + 1).toString().padStart(digits, "0");
-        return new ImageNode(j === 0 ? item.cover.url : "", item.jump_url, title, undefined, pic.url, { w: pic.width, h: pic.height });
+        const node = new ImageNode(j === 0 ? item.cover.url : "", item.jump_url, title, undefined, pic.url, { w: pic.width, h: pic.height });
+        node.setTags(...sourceTags);
+        node.setAuthorUrls(...authorUrls);
+        node.setPublishedAt(publishedAt);
+        return node;
       });
     }).flat();
   }
@@ -183,6 +191,7 @@ type BilibiliOPUSDetail = {
   id_str: string,
   modules: {
     module_type: string, // MODULE_TYPE_CONTENT
+    module_author?: BilibiliModuleAuthor,
     module_top?: {
       display: {
         album: {
@@ -213,6 +222,13 @@ type BilibiliOPUSDetail = {
       }[],
     }
   }[],
+}
+
+type BilibiliModuleAuthor = {
+  mid?: string | number,
+  name?: string,
+  pub_time?: string,
+  pub_ts?: string | number,
 }
 
 // type BilibiliOPUSDetailResponse = {

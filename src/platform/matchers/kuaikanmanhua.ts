@@ -1,5 +1,6 @@
 import ImageNode from "../../img-node";
 import { Chapter } from "../../page-fetcher";
+import { kuaiKanPublishedAt } from "../../eagle/adapters/kuaikanmanhua";
 import { ADAPTER } from "../adapt";
 import { BaseMatcher, OriginMeta, Result } from "../platform";
 
@@ -29,6 +30,7 @@ type KuaiKanComicImage = {
 }
 
 class KuaiKanMatcher extends BaseMatcher<string> {
+  chapterDates: Record<string, string> = {};
 
   async *fetchChapters(): AsyncGenerator<Chapter[]> {
     // change a element z-index
@@ -49,6 +51,7 @@ class KuaiKanMatcher extends BaseMatcher<string> {
     }
     if (!comics) throw new Error("无法找到此漫画的章节信息");
     const chapters = comics.map((c, i) => {
+      this.chapterDates[String(c.id)] = kuaiKanPublishedAt(c);
       return new Chapter(i, c.title, `${window.location.origin}/webs/comic-next/${c.id}`, c.cover_image_url);
     });
     yield chapters;
@@ -74,8 +77,12 @@ class KuaiKanMatcher extends BaseMatcher<string> {
     }
     if (!images || (images.length ?? 0) === 0) throw new Error("没有找到此章节的图片列表，可能是你没有购买，请点此确认: " + source);
     const digits = images.length.toString().length;
+    const chapterId = source.match(/\/comic-next\/(\d+)/)?.[1] || "";
+    const publishedAt = this.chapterDates[chapterId] || "";
     return images.map((img, i) => {
-      return new ImageNode("", img.url, (i + 1).toString().padStart(digits, "0"), undefined, img.url, { w: img.baseWidth, h: img.baseHeight });
+      const node = new ImageNode("", img.url, (i + 1).toString().padStart(digits, "0"), undefined, img.url, { w: img.baseWidth, h: img.baseHeight });
+      node.setPublishedAt(publishedAt);
+      return node;
     })
   }
 

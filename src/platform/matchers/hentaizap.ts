@@ -1,6 +1,7 @@
 import { GalleryMeta } from "../../download/gallery-meta";
 import ImageNode from "../../img-node";
 import { ADAPTER } from "../adapt";
+import { hentaizapGalleryMetaFromDocument, hentaizapPublishedAtFromDocument } from "../../eagle/adapters/hentaizap";
 import { BaseMatcher, OriginMeta, Result } from "../platform";
 
 type HentaiZapGalleryInfo = {
@@ -22,21 +23,16 @@ const HENTAIZAP_TYPE_MAP: Record<string, string> = {
 
 class HentaiZapMatcher extends BaseMatcher<HentaiZapGalleryInfo> {
   meta?: GalleryMeta;
+  publishedAt = "";
 
   galleryMeta(): GalleryMeta {
     if (this.meta) return this.meta;
-    const title = document.querySelector(".gp_top_right > h1")?.textContent ?? document.title;
-    this.meta = new GalleryMeta(window.location.href, title);
-    Array.from(document.querySelectorAll<HTMLElement>(".gp_top_right_info > ul")).forEach(ul => {
-      const category = ul.querySelector("span.info_txt")?.textContent?.replace(":", "")?.toLowerCase();
-      if (!category) return;
-      const tags = Array.from(ul.querySelectorAll<HTMLElement>("a.gp_btn_tag")).map(e => e.firstChild?.textContent).filter(Boolean) as string[];
-      this.meta!.tags[category] = tags;
-    });
+    this.meta = hentaizapGalleryMetaFromDocument(document);
     return this.meta;
   }
 
   async *fetchPagesSource(): AsyncGenerator<Result<HentaiZapGalleryInfo>> {
+    this.publishedAt = hentaizapPublishedAtFromDocument(document);
     const gthRaw = Array.from(document.querySelectorAll<HTMLScriptElement>("script"))
       .find(e => e.textContent?.trimStart()?.startsWith("var g_th"))
       ?.textContent?.match(/\('(\{.*\})'\)/)?.[1];
@@ -72,6 +68,7 @@ class HentaiZapMatcher extends BaseMatcher<HentaiZapGalleryInfo> {
       const origin = `https://${server}/${info.loadDir}/${info.loadID}/${i + 1}.${ext}`;
       const title = (i + 1).toString().padStart(digits, "0");
       const node = new ImageNode(thumb, href, `${title}.${ext}`, undefined, origin, { w: parseInt(w), h: parseInt(h) });
+      node.setPublishedAt(this.publishedAt);
       nodes.push(node);
     }
     return nodes;

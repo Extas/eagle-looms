@@ -1,10 +1,18 @@
 export function linkify(text: string): string {
   const urlRegex = /https?:\/\/[^\s<>"']+/g;
+  let ret = "";
+  let lastIndex = 0;
 
-  return text.replace(urlRegex, (url) => {
+  for (const match of text.matchAll(urlRegex)) {
+    const url = match[0];
+    const index = match.index ?? 0;
     const escapedUrl = escapeHtml(url);
-    return `<a target="_blank" href="${escapedUrl}">${escapedUrl}</a>`;
-  });
+    ret += escapeHtml(text.slice(lastIndex, index));
+    ret += `<a target="_blank" href="${escapedUrl}">${escapedUrl}</a>`;
+    lastIndex = index + url.length;
+  }
+
+  return ret + escapeHtml(text.slice(lastIndex));
 }
 
 function escapeHtml(str: string): string {

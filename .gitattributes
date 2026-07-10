@@ -1,8 +1,9 @@
-# Auto detect text files and perform LF normalization
-* text=auto
-# ignore .idea files
-.idea/**/* linguist-generated=true
-# set language to typescript
-*.ts linguist-language=TypeScript
-# do not count *.js files
-*.js linguist-vendored
+* text=auto eol=lf
+
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.webp binary
+*.ico binary
+*.svg text eol=lf

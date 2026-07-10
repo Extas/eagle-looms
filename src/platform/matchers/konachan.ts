@@ -1,25 +1,14 @@
-import { GalleryMeta } from "../../download/gallery-meta";
+import type { GalleryMeta } from "../../download/gallery-meta";
 import ImageNode from "../../img-node";
 import { evLog } from "../../utils/ev-log";
 import { ADAPTER } from "../adapt";
+import { MoebooruPostInfo, MoebooruTagTypes, moebooruAuthorUrlsFromTags, moebooruGalleryMetaFromState, moebooruPostIdFromUrl, normalizeMoebooruSourceTags, parseMoebooruPostInfos, parseMoebooruTagTypes } from "../../eagle/adapters/moebooru";
 import { BaseMatcher, OriginMeta, Result } from "../platform";
 
-const POST_INFO_REGEX = /Post\.register\((.*)\)/g;
-
-type YandereKonachanPostInfo = {
-  id: number,
-  md5: string,
-  file_ext?: string,
-  file_url: string,
-  preview_url: string,
-  sample_url: string,
-  jpeg_url: string,
-  width: number,
-  height: number,
-}
 export class KonachanMatcher extends BaseMatcher<Document> {
 
-  infos: Record<string, YandereKonachanPostInfo> = {};
+  infos: Record<string, MoebooruPostInfo> = {};
+  tagTypes: MoebooruTagTypes = {};
   count: number = 0;
 
   async *fetchPagesSource(): AsyncGenerator<Result<Document>> {
@@ -42,18 +31,21 @@ export class KonachanMatcher extends BaseMatcher<Document> {
     }
   }
   async parseImgNodes(doc: Document): Promise<ImageNode[]> {
-    const raw = doc.querySelector("body > script + script")?.textContent;
-    if (!raw) throw new Error("cannot find post list from script");
-    const matches = raw.matchAll(POST_INFO_REGEX);
+    this.tagTypes = parseMoebooruTagTypes(doc);
+    const postId = moebooruPostIdFromUrl(window.location.href);
+    const infos = parseMoebooruPostInfos(doc).filter(info => !postId || String(info.id) === postId);
+    if (infos.length === 0) throw new Error("cannot find post list from script");
     const ret = [];
-    for (const match of matches) {
-      if (!match || match.length < 2) continue;
+    for (const info of infos) {
       try {
-        const info = JSON.parse(match[1]) as YandereKonachanPostInfo;
         this.infos[info.id.toString()] = info;
         this.count++;
-        const ext = info.file_ext || info.file_url.split(".").pop();
-        ret.push(new ImageNode(info.preview_url, `${window.location.origin}/post/show/${info.id}`, `${info.id}.${ext}`));
+        const ext = info.file_ext || extensionFromUrl(info.file_url) || "jpg";
+        const node = new ImageNode(info.preview_url, `${window.location.origin}/post/show/${info.id}`, `${info.id}.${ext}`, undefined, undefined, imageSizeFromInfo(info));
+        node.setTags(...normalizeMoebooruSourceTags(info.tags, this.tagTypes));
+        node.setAuthorUrls(...moebooruAuthorUrlsFromTags(info.tags, this.tagTypes, window.location.href));
+        node.setPublishedAt(info.created_at);
+        ret.push(node);
       } catch (error) {
         evLog("error", "parse post info failed", error);
         continue;
@@ -76,23 +68,34 @@ export class KonachanMatcher extends BaseMatcher<Document> {
       throw new Error(`cannot find url for id ${id}`);
     }
 
-    return { url };
+    return { url, publishedAt: this.infos[id]?.created_at ? String(this.infos[id].created_at) : undefined };
   }
 
   galleryMeta(): GalleryMeta {
-    const url = new URL(window.location.href);
-    const tags = url.searchParams.get("tags")?.trim();
-    const meta = new GalleryMeta(window.location.href, `konachan_${tags}_${this.count}`);
-    (meta as any)["infos"] = this.infos;
-    return meta;
+    return moebooruGalleryMetaFromState("konachan", window.location.href, this.infos, this.tagTypes);
   }
 }
 
 ADAPTER.addSetup({
   name: "konachan",
   workURLs: [
-    /konachan.com\/post(?!\/show\/.*)/
+    /konachan.com\/post(?:$|[?#]|\/show\/)/
   ],
   match: ["https://konachan.com/*"],
   constructor: () => new KonachanMatcher(),
 });
+
+function imageSizeFromInfo(info: Pick<MoebooruPostInfo, "width" | "height">): { w: number, h: number } | undefined {
+  const w = Number(info.width);
+  const h = Number(info.height);
+  return Number.isFinite(w) && Number.isFinite(h) && w > 0 && h > 0 ? { w, h } : undefined;
+}
+
+function extensionFromUrl(value: string | undefined): string {
+  if (!value) return "";
+  try {
+    return new URL(value, window.location.href).pathname.match(/\.([a-z0-9]+)$/i)?.[1]?.toLowerCase() || "";
+  } catch {
+    return "";
+  }
+}

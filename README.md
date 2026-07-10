@@ -1,93 +1,121 @@
-# Comic Looms | [中文](./.assets/README_CN.md) | [한글](./.assets/README_KO.md) | [Spanish](./.assets/README_ES.md)
+---
+project: Eagle Looms
+status: 1.0 implementation
+type: userscript-eagle-import-bridge
+updated: 2026-05-31
+primary_language: zh-CN
+---
 
-**This Userscript enables quick and convenient browsing of galleries or artists' homepage on [certain sites](#multi-site-support), with batch download support, focusing on browsing experience and low site load.**
+# Eagle Looms
 
-## Index
+Eagle Looms 是基于 [MapoMagpie/comic-looms](https://github.com/MapoMagpie/comic-looms) 的 userscript fork。它保留 Comic Looms 的 matcher、章节、图片队列、懒加载、范围选择和控制栏 UI，把最终“下载成 zip”的保存落点扩展为“导入当前 Eagle 资料库”。
 
-- [Features](#features)
-- [Installation](#installation)
-- [Multi-site Support](#multi-site-support)
-- [Operates](#operates)
-- [Feedback](#feedback)
+## How It Works
 
-Preview (if you can't see the image, click [here](./.assets/preview.md)):
-![Preview](./.assets/eh-view-enhance-showcase4.avif 'Preview')
+```text
+Open supported source page
+-> Comic Looms matcher extracts chapters/images
+-> Comic Looms queue fetches original binary data in the browser session
+-> user selects ranges in the existing UI
+-> EagleDownloader writes base64 data URLs to Eagle Web API
+-> Eagle stores image items with folders, website/original URL, and semantic tags
+```
 
-## <a name="features">Features</a>
+Eagle Looms 不绕过 Comic Looms 的采集链路，也不让 Eagle 后台直接下载受保护图片 URL。图片二进制先在源页面浏览器会话中抓取，再通过 Eagle Web API 写入。
 
-- **`Seamless Browsing`**
-  - The script automatically loads all images in the gallery and presents them in a grid as thumbnails, allowing for quick browsing of the entire gallery while maintaining a low load on the site.
-- **`Big Image Viewing`**
-  - You can click on any thumbnail to start browsing from that point, with multiple viewing modes available: Pagination, Continuous, Magnification, etc.
-- **`Gallery Downloading`**
-  - Save all original images and gallery information for easy management later. Supports segmented downloading to bypass browser blob limits.
-- **`Keyboard Operation`**
-  - You can click the `keyboard` in the CONF panel to learn about and configure relevant keyboard operations.
-- **`Mobile Adaptation`**
-  - Requires a browser that supports script manager extensions, such as Firefox Android, Kiwi Browser.
+## Current Behavior
 
-## <a name="installation">Installation</a>
+```text
+default Eagle API URL: http://localhost:41595
+default folder template: Eagle Looms/{site}/{date}
+default folder date: source publish/upload date when available, otherwise local import date
+default import limit: 100
+default visible source tag limit: 20
+duplicate skip: enabled by default
+item names: source date prefix when available, then source identity
+config preview: shows config scope, resolved example folder, visible tag policy, and extra-asset policy
+bulk import: uses automatic confirmation for small clean batches and shows a compact plan for larger or exceptional batches
+result review: keeps the latest Eagle import result in the import panel until cleared
+```
 
-1. **`Prerequisites`**: Modern browser (Firefox\Chrome\Edge...)
-1. **`Prerequisites`**: Installed extension [`Violentmonkey`](https://violentmonkey.github.io/) | [`TamperMonkey`](https://www.tampermonkey.net/) 
-1. **`Prerequisites`**: click here to check if you can access [jsdelivr.net](https://cdn.jsdelivr.net) to ensure the script runs properly.
-1. **`Installation Link 1`**: [GreasyFork](https://greasyfork.org/scripts/397848-comic-looms)
-1. **`Installation Link 2`**: Direct install [here](https://github.com/MapoMagpie/comic-looms/releases/latest/download/comic-looms.user.js)
+导入项写入：
 
-## <a name="multi-site-support">Multi-site Support</a>
+```text
+name       source identity name, no 001_ zip order prefix
+website    source page URL
+url        original image URL when Eagle preserves it
+folders    resolved Eagle folder IDs; multiple folders are allowed
+tags       capped source semantic tags only
+```
 
-<details>
-  <summary>Currently supports</summary>
+普通图片 item 不强制写 `eagle-looms`、`site:*`、`gallery:*`、`chapter:*`、`ext:*`、`mime:*`、`post:*` 这类重复信息，也默认不写长 annotation。导入只创建正常图片资产和必要文件夹，不额外创建 `_eagle-looms` 这类 bookmark / raw record 资产污染资料库。旧版本 raw record 仍只读兼容，用于识别历史导入重复项。
 
-- [e-hentai.org](https://e-hentai.org) | [exhentai.org](https://exhentai.org) | [onion](http://exhentai55ld2wyap5juskbm67czulomrouspdacjamjeloj7ugjbsad.onion)
-- [Twitter|X: User's Media, Lists, For you, Following](https://x.com/NASA/media)
-- [Instagram User POSTS](https://www.instagram.com/nasa)
-- [Pinterest: Home feed, Search Pins, Pin detail](https://www.pinterest.com/search/pins/?q=illustration)
-- [ArtStation User Portfolio](https://www.artstation.com)
-- [pixiv.net: Artists' illust and manga, Your Homepage](https://pixiv.net)
-- [18comic.vip](https://18comic.vip) | [18comic.org](https://18comic.org) (supports multi-chapter selection, note: no thumbnails)
-- [nhentai.net](https://nhentai.net)
-- [hitomi.la](https://hitomi.la)
-- [rule34.xxx](https://rule34.xxx)
-- [imhentai.xxx](https://imhentai.xxx)
-- [danbooru.donmai.us](https://danbooru.donmai.us)
-- [gelbooru.com](https://gelbooru.com)
-- [yande.re](https://yande.re)
-- [konachan.com](https://konachan.com)
-- [Steam: Screenshots](https://steamcommunity.com/id/some/screenshots)
-- [wnacg.com](https://www.wnacg.com)
-- [hentainexus.com](https://hentainexus.com)
-- [niyaniya.moe(koharu.to)](https://niyaniya.moe)
-- [manhuagui.com](https://www.manhuagui.com/comic/7580)
-- [mangacopy.com](https://www.mangacopy.com) | [copymanga.tv](https://www.copymanga.tv)
-- [e621.net](https://e621.net)
-- [arca.live](https://arca.live)
-- [akuma.moe](https://akuma.moe)
-- [colamanga.com](https://www.colamanga.com) (suspend)
-- [yabai.si](https://yabai.si)
-- [hanime1.me](https://hanime1.me/comics)
-- [mycomic.com](https://mycomic.com)
-- [kemono.su](https://kemono.su)
-- [hentaizap.com](https://hentaizap.com)
-- [miniserve -p 41021](https://github.com/svenstaro/miniserve)
-- [mangapark.net](https://mangapark.net)
-- [hentai3.com](https://3hentai.net)
-- [asmhentai.com](https://asmhentai.com)
-- [eahentai.com](https://eahentai.com)
-- [bato.to v3x](https://bato.to/v3x)
+## Supported Highlights
 
-</details>
+```text
+anime-pictures:
+  /posts?page=0
+  /stars?page=0
+  /posts/{id}
+  legacy /pictures/view_posts and /pictures/view_post/{id}
+  excludes sidebar recommendation blocks such as Last stars
 
-## <a name="operates">Operates</a>
+booru / moebooru style sites:
+  Danbooru, Gelbooru, yande.re, konachan and similar categorized tag sources
 
-1. On the gallery or author homepage, click `<🎑>` at the bottom left to start browsing. You can drag this element to any position in the CONF panel.
-1. After a moment, the thumbnails will be displayed in a grid on the page. Click on any thumbnail to enter the big image viewing mode.
-1. More information can be found in `CONF` -> `Help` or [here](./.assets/HELP.md)
+other source metadata:
+  E-Hentai / ExHentai, Pixiv, Twitter / X where existing matchers expose reliable metadata
+```
 
-## <a name="feedback">Feedback</a>
+Target smoke page:
 
-If you want to add support for certain sites, please refer to [this guide](./.assets/CONTRIBUTING.md)
+```text
+https://anime-pictures.net/posts?page=0&search_tag=bang+dream!+it%27s+mygo!!!!!
+```
 
-If you encounter some issues, please report them here and be sure to describe your environment: https://github.com/MapoMagpie/comic-looms/issues
+## Project Docs
 
-If you like this script, please give it a `star`.
+```text
+docs/architecture.md
+  code boundaries, import flow, upstream workflow, site coverage
+
+docs/eagle-organization.md
+  folder, tag, naming, extra-asset, and duplicate policy
+
+docs/manual-qa.md
+  automated gates and focused manual checks
+
+docs/references.md
+  upstream, Eagle API, and source metadata references
+
+docs/upstream-workflow.md
+  upstream status, integration ownership, and verification workflow
+```
+
+## Build And Verify
+
+```powershell
+npm install
+npm run test:unit
+npm run build
+```
+
+Local Eagle read probe:
+
+```powershell
+npm run verify:eagle
+```
+
+Full local verification, including self-cleaning Eagle write/import smoke items:
+
+```powershell
+npm run verify:all
+```
+
+Build output:
+
+```text
+dist/eagle-looms.user.js
+```
+
+Install that userscript in Tampermonkey or Violentmonkey.

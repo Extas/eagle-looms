@@ -2,21 +2,17 @@ import { GalleryMeta } from "../../download/gallery-meta";
 import ImageNode from "../../img-node";
 import { Chapter, } from "../../page-fetcher";
 import { ADAPTER } from "../adapt";
+import { manhuaguiGalleryMetaFromDocument, manhuaguiPublishedAtFromDocument } from "../../eagle/adapters/manhuagui";
 import { BaseMatcher, OriginMeta, Result } from "../platform";
 
 class MHGMatcher extends BaseMatcher<string> {
   meta?: GalleryMeta;
   chapterCount: number = 0;
+  publishedAt = "";
   galleryMeta(): GalleryMeta {
     if (this.meta) return this.meta;
-    let title = document.querySelector(".book-title > h1")?.textContent ?? document.title;
-    title += "-c" + this.chapterCount;
-    const matches = document.querySelector(".detail-list .status")?.textContent?.match(STATUS_REGEX);
-    const date = matches?.[1];
-    title += date ? "-" + date : "";
-    const last = matches?.[2];
-    title += last ? "-" + last.trim() : "";
-    this.meta = new GalleryMeta(window.location.href, title);
+    this.publishedAt = manhuaguiPublishedAtFromDocument(document);
+    this.meta = manhuaguiGalleryMetaFromDocument(document, window.location.href);
     return this.meta;
   }
   async *fetchPagesSource(source: Chapter): AsyncGenerator<Result<string>> {
@@ -36,7 +32,9 @@ class MHGMatcher extends BaseMatcher<string> {
     return data.files.map((f, i) => {
       const src = `${server}/${data.path}/${f}?e=${data.sl.e}&m=${data.sl.m}}`;
       const href = `https://www.manhuagui.com/comic/${data.bid}/${data.cid}.html#p=${i + 1}`;
-      return new ImageNode("", href, f, undefined, src);
+      const node = new ImageNode("", href, f, undefined, src);
+      node.setPublishedAt(this.publishedAt || manhuaguiPublishedAtFromDocument(document));
+      return node;
     });
   }
   async fetchOriginMeta(node: ImageNode): Promise<OriginMeta> {
@@ -165,8 +163,8 @@ function getServer(): string {
   return `https://${prefix}.hamreus.com`;
 }
 
-const STATUS_REGEX = /\[(\d{4}-\d{2}-\d{2})\].*?\[(.*?)\]/;
 const IMG_DATA_PARAM_REGEX = /\('\w+\.\w+\((.*?)\).*?,(\d+),(\d+),'(.*?)'\[/;
+
 function decompressFromBase64(input: string): string {
   // @ts-ignore
   return LZString.decompressFromBase64(input);

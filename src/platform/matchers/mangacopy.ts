@@ -3,6 +3,7 @@ import ImageNode from "../../img-node";
 import { Chapter } from "../../page-fetcher";
 import { simpleFetch } from "../../utils/query";
 import { ADAPTER } from "../adapt";
+import { mangaCopyGalleryMetaFromDocument, mangaCopyPublishedAtFromDocument } from "../../eagle/adapters/mangacopy";
 import { BaseMatcher, OriginMeta, Result } from "../platform";
 
 class MangaCopyMatcher extends BaseMatcher<string> {
@@ -12,14 +13,8 @@ class MangaCopyMatcher extends BaseMatcher<string> {
   jojoKey?: string;
   galleryMeta(): GalleryMeta {
     if (this.meta) return this.meta;
-    let title = document.querySelector(".comicParticulars-title-right > ul > li > h6")?.textContent ?? document.title;
-    document.querySelectorAll(".comicParticulars-title-right > ul > li > span.comicParticulars-right-txt").forEach(ele => {
-      if (/^\d{4}-\d{2}-\d{2}$/.test(ele.textContent?.trim() || "")) {
-        this.update_date = ele.textContent?.trim();
-      }
-    });
-    title += "-c" + this.chapterCount + (this.update_date ? "-" + this.update_date : "")
-    this.meta = new GalleryMeta(window.location.href, title);
+    this.update_date = mangaCopyPublishedAtFromDocument(document);
+    this.meta = mangaCopyGalleryMetaFromDocument(document, window.location.href);
     return this.meta;
   }
   async *fetchPagesSource(source: Chapter): AsyncGenerator<Result<string>> {
@@ -36,8 +31,11 @@ class MangaCopyMatcher extends BaseMatcher<string> {
       const decryption = await decrypt(contentKey, jojoKey);
       const images = JSON.parse(decryption) as { url: string }[];
       const digits = images.length.toString().length;
+      const publishedAt = this.update_date || mangaCopyPublishedAtFromDocument(document);
       return images.map((img, i) => {
-        return new ImageNode("", source as string, (i + 1).toString().padStart(digits, "0") + ".webp", undefined, img.url);
+        const node = new ImageNode("", source as string, (i + 1).toString().padStart(digits, "0") + ".webp", undefined, img.url);
+        node.setPublishedAt(publishedAt);
+        return node;
       })
     } catch (error) {
       throw new Error("cannot decrypt contentKey: " + (error as any).toString() + "\n" + contentKey);

@@ -2,6 +2,7 @@ import { GalleryMeta } from "../../download/gallery-meta";
 import ImageNode from "../../img-node";
 import q from "../../utils/query-element";
 import { ADAPTER } from "../adapt";
+import { imHentaiGalleryMetaFromDocument, imHentaiPublishedAtFromDocument } from "../../eagle/adapters/im-hentai";
 import { BaseMatcher, OriginMeta, Result } from "../platform";
 
 type IMHentaiData = {
@@ -10,6 +11,7 @@ type IMHentaiData = {
 
 class IMHentaiMatcher extends BaseMatcher<IMHentaiData> {
   meta?: GalleryMeta;
+  publishedAt = "";
 
   async fetchOriginMeta(node: ImageNode, _: boolean): Promise<OriginMeta> {
     return { url: node.originSrc! };
@@ -29,12 +31,14 @@ class IMHentaiMatcher extends BaseMatcher<IMHentaiData> {
         wh = { w: parseInt(splits[1]), h: parseInt(splits[2]) };
       }
       const node = new ImageNode(url, href, `${i.toString().padStart(digits, "0")}.${ext}`, undefined, originSrc, wh);
+      node.setPublishedAt(this.publishedAt);
       ret.push(node);
     }
     return ret;
   }
 
   async *fetchPagesSource(): AsyncGenerator<Result<IMHentaiData>> {
+    this.publishedAt = imHentaiPublishedAtFromDocument(document);
     const server = q<HTMLInputElement>("#load_server", document).value;
     const uid = q<HTMLInputElement>("#gallery_id", document).value;
     const gid = q<HTMLInputElement>("#load_id", document).value;
@@ -62,21 +66,7 @@ class IMHentaiMatcher extends BaseMatcher<IMHentaiData> {
 
   galleryMeta(): GalleryMeta {
     if (this.meta) return this.meta;
-    const title = document.querySelector(".right_details > h1")?.textContent || undefined;
-    const originTitle = document.querySelector(".right_details > p.subtitle")?.textContent || undefined;
-    const meta = new GalleryMeta(window.location.href, title || "UNTITLE");
-    meta.originTitle = originTitle;
-    meta.tags = {};
-    const list = Array.from(document.querySelectorAll<HTMLElement>(".galleries_info > li"));
-    for (const li of list) {
-      let cat = li.querySelector(".tags_text")?.textContent;
-      if (!cat) continue;
-      cat = cat.replace(":", "").trim();
-      if (!cat) continue;
-      const tags = Array.from(li.querySelectorAll("a.tag")).map(a => a.firstChild?.textContent?.trim()).filter(v => Boolean(v));
-      meta.tags[cat] = tags;
-    }
-    this.meta = meta;
+    this.meta = imHentaiGalleryMetaFromDocument(document);
     return this.meta;
   }
 

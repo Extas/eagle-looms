@@ -1,6 +1,7 @@
 import { GalleryMeta } from "../../download/gallery-meta";
 import ImageNode from "../../img-node";
 import { Chapter } from "../../page-fetcher";
+import { niyaniyaPublishedAt, niyaniyaTagsFromDetail } from "../../eagle/adapters/niyaniya";
 import { ADAPTER } from "../adapt";
 import { BaseMatcher, OriginMeta, Result } from "../platform";
 
@@ -39,17 +40,6 @@ type BookDetail = {
   // updated_at: number,
 }
 
-const NAMESPACE_MAP: Record<number, string> = {
-  0: "misc",
-  1: "artist",
-  2: "circle",
-  7: "uploader",
-  8: "male",
-  9: "female",
-  10: "mixed",
-  11: "language",
-};
-
 class NiyaniyaMatcher extends BaseMatcher<string> {
   meta?: GalleryMeta;
 
@@ -62,14 +52,8 @@ class NiyaniyaMatcher extends BaseMatcher<string> {
   }
 
   createMeta(detail: BookDetail) {
-    const tags: Record<string, any[]> = detail.tags.reduce<Record<string, any[]>>((map, tag) => {
-      const category = NAMESPACE_MAP[tag.namespace || 0] || "misc";
-      if (!map[category]) map[category] = [];
-      map[category].push(tag.name);
-      return map;
-    }, {});
     this.meta = new GalleryMeta(window.location.href, detail.title);
-    this.meta.tags = tags;
+    this.meta.tags = niyaniyaTagsFromDetail(detail);
   }
 
   async parseImgNodes(source: string): Promise<ImageNode[]> {
@@ -110,7 +94,9 @@ class NiyaniyaMatcher extends BaseMatcher<string> {
       const href = `${window.location.origin}/reader/${galleryID}/${i + 1}`;
       const title = (i + 1).toString().padStart(pad, "0") + "." + item.path.split(".").pop();
       const src = itemBase + item.path;
-      return new ImageNode(thumbBase + thumbs[i].path, href, title, undefined, src, { w: item.dimensions[0], h: item.dimensions[1] });
+      const node = new ImageNode(thumbBase + thumbs[i].path, href, title, undefined, src, { w: item.dimensions[0], h: item.dimensions[1] });
+      node.setPublishedAt(niyaniyaPublishedAt(detail));
+      return node;
     });
   }
   async fetchOriginMeta(node: ImageNode): Promise<OriginMeta> {
@@ -124,6 +110,7 @@ class NiyaniyaMatcher extends BaseMatcher<string> {
   }
 
 }
+
 ADAPTER.addSetup({
   name: "niyaniya.moe",
   workURLs: [

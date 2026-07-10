@@ -1,4 +1,5 @@
 import ImageNode from "../../img-node";
+import { kemonoAuthorUrls, kemonoPublishedAt, kemonoSourceTags } from "../../eagle/adapters/kemono";
 import { isImage, isVideo } from "../../utils/media-helper";
 import { ADAPTER } from "../adapt";
 import { BaseMatcher, OriginMeta, Result } from "../platform"
@@ -15,6 +16,12 @@ type PawchiveResult = {
   substring: string,
   file?: PawchiveFile,
   attachments: PawchiveFile[],
+  added?: string,
+  edited?: string,
+  published?: string,
+  tags?: unknown,
+  artist?: PawchiveAuthor,
+  creator?: PawchiveAuthor,
 }
 
 type PawchiveFile = {
@@ -22,6 +29,13 @@ type PawchiveFile = {
   path?: string,
   server?: string,
   type: "thumbnail",
+}
+
+type PawchiveAuthor = {
+  id?: unknown,
+  name?: unknown,
+  username?: unknown,
+  service?: unknown,
 }
 
 abstract class PawchiveListAbstract implements PawchiveList {
@@ -195,6 +209,9 @@ class PawchiveMatcher extends BaseMatcher<PawchiveResult[]> {
             continue;
           }
           originSrcMap.set(node.originSrc!, true);
+          node.setTags(...kemonoSourceTags(chunk.res));
+          node.setAuthorUrls(...kemonoAuthorUrls(chunk.res, window.location.origin));
+          node.setPublishedAt(kemonoPublishedAt(chunk.res));
           nodes.push(node);
         }
       }

@@ -1,12 +1,14 @@
 import { GalleryMeta } from "../../download/gallery-meta";
 import ImageNode from "../../img-node";
 import { ADAPTER } from "../adapt";
+import { akumaGalleryMetaFromDocument, akumaPublishedAtFromDocument } from "../../eagle/adapters/akuma";
 import { BaseMatcher, Result, OriginMeta } from "../platform";
 
 class AkumaMatcher extends BaseMatcher<Document> {
   originImages?: string[];
   index: number = 0;
   meta?: GalleryMeta;
+  publishedAt = "";
   title(): string {
     return this.galleryMeta().title!;
   }
@@ -17,20 +19,12 @@ class AkumaMatcher extends BaseMatcher<Document> {
     return this.meta!;
   }
   initGalleryMeta(doc: Document): GalleryMeta {
-    const title = doc.querySelector("header.entry-header > h1")?.textContent ?? doc.title;
-    const meta = new GalleryMeta(window.location.href, title);
-    meta.originTitle = doc.querySelector("header.entry-header > span")?.textContent || undefined;
-    meta.tags = Array.from(doc.querySelectorAll("ul.info-list > li.meta-data"))
-      .reduce<Record<string, string[]>>((prev, curr) => {
-        const cat = curr.querySelector("span.data")?.textContent?.replace(":", "").toLowerCase().trim();
-        if (cat) {
-          prev[cat] = Array.from(curr.querySelectorAll("span.value")).map(v => v.textContent?.trim()).filter(Boolean) as string[];
-        }
-        return prev;
-      }, {});
+    const meta = akumaGalleryMetaFromDocument(doc, window.location.href);
+    this.publishedAt = akumaPublishedAtFromDocument(doc);
     return meta;
   }
   async *fetchPagesSource(): AsyncGenerator<Result<Document>> {
+    this.galleryMeta();
     // fetch origin images;
     const csrf = document.querySelector<HTMLMetaElement>("meta[name='csrf-token'][content]")?.content;
     if (!csrf) throw new Error("cannot get csrf token form this page");
@@ -74,7 +68,9 @@ class AkumaMatcher extends BaseMatcher<Document> {
       const ext = origin.split(".").pop() ?? "jpg";
       const originSrc = thumb.slice(0, thumb.indexOf("tbn")) + origin;
       const title = (this.index + 1).toString().padStart(digits, "0");
-      ret.push(new ImageNode(thumb, href, `${title}.${ext}`, undefined, originSrc));
+      const node = new ImageNode(thumb, href, `${title}.${ext}`, undefined, originSrc);
+      node.setPublishedAt(this.publishedAt);
+      ret.push(node);
       this.index++;
     }
     return ret;
@@ -83,6 +79,7 @@ class AkumaMatcher extends BaseMatcher<Document> {
     return { url: node.originSrc! };
   }
 }
+
 ADAPTER.addSetup({
   name: "Akuma.moe",
   workURLs: [

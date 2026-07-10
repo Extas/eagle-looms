@@ -1,11 +1,14 @@
 import { GalleryMeta } from "../../download/gallery-meta";
 import ImageNode from "../../img-node";
 import { ADAPTER } from "../adapt";
+import { hentai3GalleryMetaFromDocument, hentai3PublishedAtFromDocument } from "../../eagle/adapters/hentai3";
 import { BaseMatcher, OriginMeta, Result } from "../platform";
 
 class Hentai3Matcher extends BaseMatcher<Document> {
+  publishedAt = "";
 
   async *fetchPagesSource(): AsyncGenerator<Result<Document>> {
+    this.publishedAt = hentai3PublishedAtFromDocument(document);
     yield Result.ok(document);
   }
 
@@ -20,6 +23,7 @@ class Hentai3Matcher extends BaseMatcher<Document> {
       const ext = thumb.split(".").pop() ?? "jpg";
       const title = (i + 1).toString().padStart(digits, "0") + "." + ext;
       const node = new ImageNode(thumb, href, title, undefined, undefined, { w: img.width, h: img.height });
+      node.setPublishedAt(this.publishedAt);
       return node;
     });
     if (nodes.length === 0) {
@@ -56,18 +60,7 @@ class Hentai3Matcher extends BaseMatcher<Document> {
   meta?: GalleryMeta;
   galleryMeta(): GalleryMeta {
     if (this.meta) return this.meta;
-    const title = document.querySelector("#main-info > h1")?.textContent ?? document.title;
-    const meta = new GalleryMeta(window.location.href, title);
-    Array.from(document.querySelectorAll<HTMLDivElement>(".tag-container.field-name")).forEach(elem => {
-      const cate = elem.firstChild?.textContent?.trim()?.replace(":", "")?.toLowerCase()
-      const filterElem = Array.from(elem.querySelectorAll<HTMLSpanElement>("span.filter-elem"));
-      if (cate && filterElem.length > 0) {
-        const tags = filterElem.map(elem => elem.textContent?.trim()).filter(Boolean);
-        meta.tags[cate] = tags;
-      }
-    });
-
-    this.meta = meta;
+    this.meta = hentai3GalleryMetaFromDocument(document, window.location.href);
     return this.meta;
   }
 

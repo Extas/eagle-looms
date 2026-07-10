@@ -56,11 +56,13 @@ export default class ImageNode {
   private _originSrc?: string;
   blobSrc?: string;
   mimeType?: string;
+  publishedAt?: string;
   private downloadBar?: HTMLElement;
   picked: boolean = true;
   private debouncer: Debouncer = new Debouncer();
   rect?: Rect;
   tags: Set<string>;
+  authorUrls: string[] = [];
   actions: NodeAction[] = [];
 
   get originSrc() {
@@ -84,6 +86,17 @@ export default class ImageNode {
 
   setTags(...tags: string[]) {
     tags.forEach(t => this.tags.add(t));
+  }
+
+  setAuthorUrls(...urls: string[]) {
+    urls.map(url => url.trim()).filter(Boolean).forEach(url => {
+      if (!this.authorUrls.includes(url)) this.authorUrls.push(url);
+    });
+  }
+
+  setPublishedAt(value: unknown) {
+    const publishedAt = String(value ?? "").trim();
+    if (publishedAt) this.publishedAt = publishedAt;
   }
 
   updateTagByExtension() {

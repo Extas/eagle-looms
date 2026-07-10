@@ -7,10 +7,20 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
+# Dependencies and build outputs
 node_modules
 dist
+worker-*.js
+
+# Local environment
+.env
+.env.*
+!.env.example
 *.local
+
+# Lock files not used by this npm app
 *.lock
+!package-lock.json
 !flake.lock
 
 # Editor directories and files
@@ -24,9 +34,9 @@ dist
 *.njsproj
 *.sln
 *.sw?
-worker-*.js
 
-eh-view-enhance.user.js
-eh-view-enhance.meta.js
+# Generated userscripts
 comic-looms.user.js
 comic-looms.meta.js
+eagle-looms.user.js
+eagle-looms.meta.js

@@ -1,4 +1,6 @@
+import { GalleryMeta } from '../../download/gallery-meta';
 import ImageNode from '../../img-node';
+import { arcaGalleryMetaFromDocument, arcaPublishedAtFromDocument } from '../../eagle/adapters/arca';
 import { ADAPTER } from '../adapt';
 import { BaseMatcher, Result, OriginMeta } from '../platform';
 
@@ -9,6 +11,7 @@ class ArcaMatcher extends BaseMatcher<Document> {
   async parseImgNodes(doc: Document): Promise<ImageNode[]> {
     const imageString = '.article-content img:not(.arca-emoticon):not(.twemoji)';
     const videoString = '.article-content video:not(.arca-emoticon)';
+    const publishedAt = arcaPublishedAtFromDocument(doc);
 
     const elements = Array.from(doc.querySelectorAll<HTMLElement>(`${imageString}, ${videoString}`));
     const nodes: ImageNode[] = [];
@@ -23,7 +26,9 @@ class ArcaMatcher extends BaseMatcher<Document> {
           const ext = href.pathname.split('.').pop();
           href.searchParams.set('type', 'orig');
           const title = (i + 1).toString().padStart(digits, '0') + '.' + ext;
-          nodes.push(new ImageNode(src, href.href, title, undefined, href.href));
+          const node = new ImageNode(src, href.href, title, undefined, href.href);
+          node.setPublishedAt(publishedAt);
+          nodes.push(node);
         }
       } else if (element.tagName.toLowerCase() === 'video') {
         const video = element as HTMLVideoElement;
@@ -34,7 +39,9 @@ class ArcaMatcher extends BaseMatcher<Document> {
           href.searchParams.set('type', 'orig');
           const title = (i + 1).toString().padStart(digits, '0') + '.' + ext;
           const poster = video.poster || '';
-          nodes.push(new ImageNode(poster, href.href, title, undefined, href.href));
+          const node = new ImageNode(poster, href.href, title, undefined, href.href);
+          node.setPublishedAt(publishedAt);
+          nodes.push(node);
         }
       }
     });
@@ -44,7 +51,12 @@ class ArcaMatcher extends BaseMatcher<Document> {
   async fetchOriginMeta(node: ImageNode): Promise<OriginMeta> {
     return { url: node.href };
   }
+
+  galleryMeta(): GalleryMeta {
+    return arcaGalleryMetaFromDocument(document, window.location.href);
+  }
 }
+
 ADAPTER.addSetup({
   name: "Arcalive",
   workURLs: [

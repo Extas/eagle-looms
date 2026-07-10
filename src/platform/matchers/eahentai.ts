@@ -1,6 +1,7 @@
 import { GalleryMeta } from "../../download/gallery-meta";
 import ImageNode from "../../img-node";
 import { Chapter } from "../../page-fetcher";
+import { eahentaiGalleryMeta, eahentaiPublishedAt } from "../../eagle/adapters/eahentai";
 import { ADAPTER } from "../adapt";
 import { BaseMatcher, OriginMeta, Result } from "../platform";
 
@@ -42,13 +43,7 @@ class EahentaiMatcher extends BaseMatcher<EahentaiGalleryData> {
     if (!data || data.length === 0) throw new Error("cannot fetch album data from: " + api);
     const data1 = data[0];
 
-    // gallery meta
-    const meta = new GalleryMeta(window.location.href, data1.title);
-    meta.tags["tags"] = data1.tags.split("|");
-    meta.tags["author"] = [data1.author];
-    meta.tags["albumType"] = data1.albumType.split("|");
-    meta.tags["characters"] = data1.characters?.split("|") ?? [];
-    this.meta = meta;
+    this.meta = eahentaiGalleryMeta(data1, window.location.href);
 
     yield Result.ok(data[0]);
   }
@@ -59,7 +54,9 @@ class EahentaiMatcher extends BaseMatcher<EahentaiGalleryData> {
       const href = `${window.location.origin}/a/${data.albumID}/${i}`;
       const ext = img.imageUri.split(".").pop() ?? "jpg";
       const origin = eahentaiGetURL(img.imageUri);
-      return new ImageNode(thumb, href, img.title + "." + ext, undefined, origin);
+      const node = new ImageNode(thumb, href, img.title + "." + ext, undefined, origin);
+      node.setPublishedAt(eahentaiPublishedAt(img, data));
+      return node;
     });
   }
 
@@ -72,6 +69,7 @@ class EahentaiMatcher extends BaseMatcher<EahentaiGalleryData> {
   }
 
 }
+
 ADAPTER.addSetup({
   name: "eahentai",
   workURLs: [
