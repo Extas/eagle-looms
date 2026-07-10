@@ -154,6 +154,8 @@ export class EagleDownloader extends Downloader {
       this.assertImportActive();
       const importPlan = limitWritableImportJobs(selectedJobs, ADAPTER.conf.eagleImportLimit);
       const jobs = importPlan.jobs;
+      stats.selected = importPlan.selected;
+      stats.omittedByLimit = importPlan.omittedByLimit;
       stats.planned = jobs.length;
       prepareWritableJobNames(jobs);
       const organization = eaglePlanOrganization(folderTemplate, jobs);

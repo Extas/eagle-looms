@@ -147,6 +147,7 @@ stopping while destination folders resolve prevents the pending item/add call an
 stopping after some items were written keeps a persistent result marked as partial, with actual imported/skipped/failed counts and links
 Write to Eagle creates image items only, plus the destination folders required by those items
 final summary reports planned, imported, skipped, failed, and destination folders
+final summary and toast retain selected and over-limit omission counts instead of making a limited batch look complete
 final result panel and copied diagnostics retain the target Eagle library name after the transient plan notification closes
 imports that actually create exactly one item include its direct Eagle item link, even when other planned items were duplicates or failed
 all-skipped duplicate imports show No new items / 没有新项目 instead of Imported / 导入完成

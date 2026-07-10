@@ -102,11 +102,37 @@ describe('Eagle import summary', () => {
       failures: ['a.png: timeout'],
     })).toBe('Imported 2 images to Eagle, failed 1. See import result.');
     expect(eagleToastSummary({
+      selected: 100,
+      omittedByLimit: 90,
+      planned: 10,
+      imported: 10,
+      skipped: 0,
+      failed: 0,
+    })).toBe('Imported 10 images to Eagle, 90 over limit omitted.');
+    expect(eagleToastSummary({
       planned: 1,
       imported: 0,
       skipped: 0,
       failed: 1,
     })).toBe('Failed 1. See import result.');
+  });
+
+  it('keeps import-limit omissions in the final result', () => {
+    expect(eagleSummaryParts({
+      selected: 100,
+      omittedByLimit: 90,
+      planned: 10,
+      imported: 10,
+      skipped: 0,
+      failed: 0,
+    })).toEqual([
+      'selected 100',
+      'planned 10',
+      '90 over limit omitted',
+      'imported 10',
+      'skipped 0',
+      'failed 0',
+    ]);
   });
 
   it('summarizes visible import settings before writing', () => {

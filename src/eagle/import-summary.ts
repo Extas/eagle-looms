@@ -4,6 +4,8 @@ import { DEFAULT_EAGLE_CONFIRM_THRESHOLD, normalizeEagleConfirmMode, normalizeEa
 export type EagleImportSummaryStats = {
   libraryName?: string;
   canceled?: boolean;
+  selected?: number;
+  omittedByLimit?: number;
   planned: number;
   imported: number;
   skipped: number;
@@ -51,7 +53,7 @@ export function eagleSummary(stats: EagleImportSummaryStats): string {
 }
 
 export function eagleToastSummary(stats: EagleImportSummaryStats): string {
-  if (stats.failed > 0 && stats.imported === 0 && stats.skipped === 0) {
+  if (stats.failed > 0 && stats.imported === 0 && stats.skipped === 0 && !stats.omittedByLimit) {
     return format(i18n.eagleToastFailedOnly.get(), { count: stats.failed });
   }
   const base = stats.imported > 0
@@ -61,8 +63,9 @@ export function eagleToastSummary(stats: EagleImportSummaryStats): string {
     })
     : i18n.eagleToastNoNewItems.get();
   const skipped = stats.skipped > 0 ? format(i18n.eagleToastSkippedSuffix.get(), { count: stats.skipped }) : "";
+  const omitted = stats.omittedByLimit ? format(i18n.eagleToastOmittedSuffix.get(), { count: stats.omittedByLimit }) : "";
   const failed = stats.failed > 0 ? format(i18n.eagleToastFailedSuffix.get(), { count: stats.failed }) : "";
-  return `${base}${skipped}${failed}.`;
+  return `${base}${skipped}${omitted}${failed}.`;
 }
 
 export function eagleSummaryParts(stats: EagleImportSummaryStats): string[] {
@@ -75,7 +78,9 @@ export function eagleSummaryParts(stats: EagleImportSummaryStats): string[] {
     importOutcome(stats),
     stats.canceled ? i18n.eagleSummaryCanceled.get() : "",
     stats.libraryName ? format(i18n.eaglePlanLibrary.get(), { value: stats.libraryName }) : "",
+    stats.selected !== undefined && stats.selected !== stats.planned ? format(i18n.eaglePlanSelected.get(), { count: stats.selected }) : "",
     format(i18n.eagleSummaryPlanned.get(), { count: stats.planned }),
+    stats.omittedByLimit ? format(i18n.eaglePlanNoteOverLimit.get(), { count: stats.omittedByLimit }) : "",
     format(i18n.eagleSummaryImported.get(), { count: stats.imported }),
     format(i18n.eagleSummarySkipped.get(), { count: stats.skipped, reasons }),
     format(i18n.eagleSummaryFailed.get(), { count: stats.failed }),

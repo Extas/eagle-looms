@@ -938,6 +938,12 @@ pero desactivará la lupa y la capacidad de arrastrar y mover imágenes.`,
     ', skipped {count}',
     ', omitidos {count}',
   ],
+  eagleToastOmittedSuffix: [
+    ', {count} over limit omitted',
+    '，{count} 个超过上限未写入',
+    ', {count} over limit omitted',
+    ', {count} omitidos por limite',
+  ],
   eagleToastFailedSuffix: [
     ', failed {count}. See import result',
     '，失败 {count}。查看导入结果',
