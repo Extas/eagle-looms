@@ -1,15 +1,16 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { defaultConf } from "../config";
+import { defaultConf, getSiteConfig, saveConf } from "../config";
 import { ADAPTER } from "../platform/adapt";
 import { i18n } from "../utils/i18n";
 import { ConfigPanel } from "./config-panel";
 import type { Events } from "./event";
 
 const probeMock = vi.hoisted(() => vi.fn());
+const configStorage = vi.hoisted(() => new Map<string, string>());
 
 vi.mock("$", () => ({
-  GM_getValue: () => null,
-  GM_setValue: () => undefined,
+  GM_getValue: (key: string) => configStorage.get(key) ?? null,
+  GM_setValue: (key: string, value: string) => configStorage.set(key, value),
 }));
 
 vi.mock("../eagle/eagle-web-api", () => ({
@@ -50,6 +51,7 @@ function createPanel(events = createEvents()): ConfigPanel {
 
 describe("ConfigPanel Eagle preview", () => {
   beforeEach(() => {
+    configStorage.clear();
     ADAPTER.matcher = { name: "test-site", workURLs: [/.*/], constructor: vi.fn() as any };
     ADAPTER.globalConf = defaultConf();
     ADAPTER.conf = { ...ADAPTER.globalConf };
@@ -305,5 +307,26 @@ describe("ConfigPanel Eagle preview", () => {
     expect(scope).toContain("Eagle Looms/{site}/{author}");
     expect(scope).toContain("7");
     expect(scope).toContain(i18n.eagleConfigPreviewConfirmAlways.get());
+  });
+
+  it("restores global Eagle settings without clearing unrelated site settings", () => {
+    saveConf({
+      eagleFolderPath: "Eagle Looms/{site}/{author}",
+      eagleFolderPreset: "custom",
+      colCount: 9,
+    }, "test-site");
+    ADAPTER.conf.selectedSiteNameConfig = "test-site";
+    ADAPTER.siteConf = getSiteConfig("test-site");
+    ADAPTER.conf = { ...ADAPTER.globalConf, ...ADAPTER.siteConf, selectedSiteNameConfig: "test-site" } as typeof ADAPTER.conf;
+    const panel = createPanel();
+
+    panel.panel.querySelector<HTMLButtonElement>("#eagle-config-use-global")!.click();
+
+    expect(ADAPTER.siteConf?.eagleFolderPath).toBeUndefined();
+    expect(ADAPTER.siteConf?.eagleFolderPreset).toBeUndefined();
+    expect(ADAPTER.siteConf?.colCount).toBe(9);
+    expect(ADAPTER.conf.eagleFolderPath).toBe(ADAPTER.globalConf.eagleFolderPath);
+    expect(panel.panel.querySelector("#eagle-config-use-global")).toBeNull();
+    expect(panel.panel.textContent).toContain(i18n.eagleConfigPreviewInheritsGlobal.get());
   });
 });

@@ -516,6 +516,15 @@ export function saveConf(c: SiteConfig, name?: string) {
   storage.setItem(configKey, JSON.stringify(next));
 }
 
+export function clearSiteConfigKeys(name: string, keys: readonly (keyof Config)[]): SiteConfig {
+  const configKey = getConfigKey(name);
+  const raw = storage.getItem(configKey);
+  const config = raw ? JSON.parse(raw) as SiteConfig : {};
+  keys.forEach(key => delete config[key]);
+  storage.setItem(configKey, JSON.stringify(config));
+  return config;
+}
+
 function getConfigKey(name?: string) {
   if (name) {
     return CONFIG_KEY + b64EncodeUnicode(name).replaceAll(/[+=\/]/g, "-");

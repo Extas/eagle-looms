@@ -555,10 +555,17 @@ export function styleCSS() {
 }
 .eagle-config-preview-title {
   display: flex;
+  flex-wrap: wrap;
   justify-content: space-between;
   align-items: center;
   gap: 1em;
   font-weight: 700;
+}
+.eagle-config-preview-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.35em;
 }
 .eagle-config-preview div {
   min-width: 0;

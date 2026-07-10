@@ -1,4 +1,4 @@
-import { Config, ConfigBooleanType, ConfigTextType, ConfigItem, ConfigItems, ConfigNumberType, ConfigSelectType, defaultConf, resetConf } from "../config";
+import { clearSiteConfigKeys, Config, ConfigBooleanType, ConfigTextType, ConfigItem, ConfigItems, ConfigNumberType, ConfigSelectType, defaultConf, resetConf } from "../config";
 import { EagleWebApi } from "../eagle/eagle-web-api";
 import { localDatePrefix } from "../eagle/naming";
 import { findUnknownEagleFolderTokens, resolveEagleFolderPaths } from "../eagle/options";
@@ -12,6 +12,7 @@ export class ConfigPanel {
   root: HTMLElement;
   panel: HTMLElement;
   configSelect: HTMLElement;
+  private events!: Events;
 
   constructor(root: HTMLElement) {
     this.root = root;
@@ -21,6 +22,7 @@ export class ConfigPanel {
   }
 
   initEvents(events: Events) {
+    this.events = events;
     this.flushConfigItems(events);
 
     this.configSelect.addEventListener("click", (event) => {
@@ -171,8 +173,20 @@ export class ConfigPanel {
 
   private bindEagleConfigPreview() {
     const button = this.panel.querySelector<HTMLButtonElement>("#eagle-config-test-connection");
+    const useGlobalButton = this.panel.querySelector<HTMLButtonElement>("#eagle-config-use-global");
     const status = this.panel.querySelector<HTMLElement>("#eagle-config-connection-status");
     if (!button || !status) return;
+    useGlobalButton?.addEventListener("click", () => {
+      const siteName = ADAPTER.conf.selectedSiteNameConfig;
+      if (!siteName) return;
+      ADAPTER.siteConf = clearSiteConfigKeys(siteName, EAGLE_PREVIEW_CONFIG_KEYS);
+      ADAPTER.conf = {
+        ...ADAPTER.globalConf,
+        ...ADAPTER.siteConf,
+        selectedSiteNameConfig: siteName,
+      };
+      this.flushConfigItems(this.events);
+    });
     button.addEventListener("click", async () => {
       const conf = ADAPTER.conf.selectedSiteNameConfig ? ADAPTER.conf : ADAPTER.globalConf;
       const api = new EagleWebApi(conf.eagleBaseUrl);
@@ -316,9 +330,12 @@ function eagleConfigPreviewHTML(): string {
   const folderWarning = unknownFolderTokens.length
     ? `<div class="eagle-config-warning" role="alert"><b>${escapeHTML(i18n.eagleConfigFolderWarning.get())}</b><span>${escapeHTML(i18n.eagleConfigUnknownFolderTokens.get().replace("{tokens}", unknownFolderTokens.join(", ")))}</span></div>`
     : "";
+  const useGlobalButton = eagleConfigHasSiteOverrides()
+    ? `<button type="button" id="eagle-config-use-global" class="ehvp-custom-btn ehvp-custom-btn-plain">${escapeHTML(i18n.eagleConfigUseGlobal.get())}</button>`
+    : "";
   return `
 <div id="eagle-config-preview" class="eagle-config-preview">
-  <div class="eagle-config-preview-title"><span>${escapeHTML(i18n.eagleConfigPreview.get())}</span><button type="button" id="eagle-config-test-connection" class="ehvp-custom-btn ehvp-custom-btn-plain">${escapeHTML(i18n.eagleConfigTestConnection.get())}</button></div>
+  <div class="eagle-config-preview-title"><span>${escapeHTML(i18n.eagleConfigPreview.get())}</span><span class="eagle-config-preview-actions">${useGlobalButton}<button type="button" id="eagle-config-test-connection" class="ehvp-custom-btn ehvp-custom-btn-plain">${escapeHTML(i18n.eagleConfigTestConnection.get())}</button></span></div>
   <div><b>${escapeHTML(i18n.eagleConfigPreviewScope.get())}</b><span>${escapeHTML(eagleConfigScopeText())}</span></div>
   <div><b>${escapeHTML(i18n.eagleConfigPreviewConnection.get())}</b><span id="eagle-config-connection-status">${escapeHTML(conf.eagleBaseUrl)}</span></div>
   <div><b>${escapeHTML(i18n.eagleConfigPreviewPreset.get())}</b><span>${escapeHTML(eagleFolderPresetLabel(conf.eagleFolderPreset))}</span></div>
@@ -405,6 +422,10 @@ function eagleConfigScopeText(): string {
     return i18n.eagleConfigPreviewInheritsGlobal.get();
   }
   return i18n.eagleConfigPreviewOverrides.get().replace("{fields}", overridden.map(eagleConfigFieldLabel).join(", "));
+}
+
+function eagleConfigHasSiteOverrides(): boolean {
+  return Boolean(ADAPTER.conf.selectedSiteNameConfig && EAGLE_PREVIEW_CONFIG_KEYS.some(key => Object.prototype.hasOwnProperty.call(ADAPTER.siteConf || {}, key)));
 }
 
 function eagleConfigFieldLabel(key: typeof EAGLE_PREVIEW_CONFIG_KEYS[number]): string {

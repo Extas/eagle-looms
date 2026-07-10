@@ -86,6 +86,7 @@ Eagle import preview explains visible tag priority: copyright:/character:/author
 Eagle import preview explains that source:published:* is retained independently of the source tag cap
 Eagle import preview shows whether the current tab uses global settings, inherits global Eagle settings, or overrides specific Eagle fields
 switching between global and site config keeps exactly one Eagle import preview
+site-specific Eagle overrides can be cleared back to global values without resetting unrelated site settings
 settings persist after reload
 manual folder path edits switch preset to Custom path
 matching saved paths infer the correct built-in preset

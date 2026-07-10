@@ -596,6 +596,12 @@ pero desactivará la lupa y la capacidad de arrastrar y mover imágenes.`,
     'Test Eagle',
     'Probar Eagle',
   ],
+  eagleConfigUseGlobal: [
+    'Use global Eagle settings',
+    '使用全局 Eagle 设置',
+    'Use global Eagle settings',
+    'Usar ajustes globales de Eagle',
+  ],
   eagleConfigTestChecking: [
     'Testing...',
     '测试中...',

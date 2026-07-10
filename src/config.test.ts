@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { defaultConf, getConf, getSiteConfig, saveConf } from "./config";
+import { clearSiteConfigKeys, defaultConf, getConf, getSiteConfig, saveConf } from "./config";
 import { b64EncodeUnicode } from "./utils/random";
 
 const storage = vi.hoisted(() => new Map<string, string>());
@@ -356,5 +356,20 @@ describe("config migrations", () => {
     expect(siteConfig.configPatchVersion).toBe(EXPECTED_CONFIG_PATCH_VERSION);
     expect(siteConfig.eagleFolderPreset).toBe("gallery");
     expect(siteConfig.eagleFolderPath).toBe("Eagle Looms/{site}/{gallery}");
+  });
+
+  it("clears selected site overrides without resetting unrelated site settings", () => {
+    saveConf({
+      eagleFolderPreset: "gallery",
+      eagleFolderPath: "Eagle Looms/{site}/{gallery}",
+      colCount: 9,
+    }, "Twitter | X");
+
+    clearSiteConfigKeys("Twitter | X", ["eagleFolderPreset", "eagleFolderPath"]);
+
+    const siteConfig = getSiteConfig("Twitter | X");
+    expect(siteConfig.eagleFolderPreset).toBeUndefined();
+    expect(siteConfig.eagleFolderPath).toBeUndefined();
+    expect(siteConfig.colCount).toBe(9);
   });
 });
