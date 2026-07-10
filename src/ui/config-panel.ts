@@ -1,5 +1,5 @@
 import { clearSiteConfigKeys, Config, ConfigBooleanType, ConfigTextType, ConfigItem, ConfigItems, ConfigNumberType, ConfigSelectType, defaultConf, resetConf } from "../config";
-import { EagleWebApi, extractEagleLibraryName } from "../eagle/eagle-web-api";
+import { classifyEagleApiError, EagleWebApi, extractEagleLibraryName } from "../eagle/eagle-web-api";
 import { localDatePrefix } from "../eagle/naming";
 import { displayEagleBaseUrl, findUnknownEagleFolderTokens, hasMalformedEagleFolderTokenSyntax, resolveEagleFolderPaths, tryNormalizeEagleBaseUrl } from "../eagle/options";
 import { ADAPTER } from "../platform/adapt";
@@ -216,7 +216,7 @@ export class ConfigPanel {
       } catch (error) {
         status.textContent = i18n.eagleConfigTestFailed.get()
           .replace("{url}", displayEagleBaseUrl(api.baseUrl))
-          .replace("{message}", errorMessage(error));
+          .replace("{message}", eagleConnectionErrorMessage(error));
         status.classList.add("eagle-config-connection-error");
       } finally {
         button.disabled = false;
@@ -480,6 +480,14 @@ function eagleLibraryName(value: unknown): string {
 
 function errorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error || "unknown error");
+}
+
+function eagleConnectionErrorMessage(error: unknown): string {
+  const message = errorMessage(error);
+  if (classifyEagleApiError(error) === "authorization") {
+    return i18n.eagleImportApiUnauthorized.get().replace("{message}", message);
+  }
+  return message;
 }
 
 function escapeHTML(value: string): string {

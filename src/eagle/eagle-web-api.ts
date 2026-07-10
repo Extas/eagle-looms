@@ -34,6 +34,8 @@ export interface EagleLibraryInfo {
   folders: EagleFolder[];
 }
 
+export type EagleApiErrorKind = 'authorization' | 'connection' | 'timeout' | 'other';
+
 export class EagleWebApi {
   readonly baseUrl: string;
 
@@ -209,4 +211,13 @@ export function extractEagleLibraryPath(payload: unknown): string {
   const value = payload as { path?: unknown; data?: unknown };
   if (typeof value.path === 'string' && value.path.trim()) return value.path.trim();
   return value.data ? extractEagleLibraryPath(value.data) : '';
+}
+
+export function classifyEagleApiError(error: unknown): EagleApiErrorKind {
+  const message = error instanceof Error ? error.message : String(error || '');
+  const normalized = message.toLowerCase();
+  if (/\b(?:401|403)\b|unauthorized|forbidden|authentication|invalid[^\n]*token|token[^\n]*invalid/.test(normalized)) return 'authorization';
+  if (/request timed out|timed out|timeout/.test(normalized)) return 'timeout';
+  if (/failed to fetch|networkerror|network error|connection refused|econnrefused|could not connect/.test(normalized)) return 'connection';
+  return 'other';
 }

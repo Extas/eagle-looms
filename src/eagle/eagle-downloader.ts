@@ -7,7 +7,7 @@ import { FetchState, IMGFetcher } from "../img-fetcher";
 import type ImageNode from "../img-node";
 import { SubData } from "../platform/platform";
 import EBUS from "../event-bus";
-import { EagleWebApi, AddItemInput, extractEagleLibraryName, extractEagleLibraryPath } from "./eagle-web-api";
+import { classifyEagleApiError, EagleWebApi, AddItemInput, extractEagleLibraryName, extractEagleLibraryPath } from "./eagle-web-api";
 import { ensureFolderPath } from "./folders";
 import { arrayBufferToBase64 } from "./transport";
 import { cleanFolderTagValue, collapseCharacterFolderValues, EAGLE_FOLDER_PRESET_TEMPLATES, EagleFolderTokens, hasMalformedEagleFolderTokenSyntax, normalizeEagleBaseUrl, normalizeEagleFolderTemplate, normalizeEagleImportLimit, resolveEagleFolderPaths } from "./options";
@@ -558,11 +558,14 @@ export function isPartialImportResult(stats: Pick<EagleImportSummaryStats, "plan
 
 export function eagleImportErrorMessage(error: unknown): string {
   const message = error instanceof Error ? error.message : String(error || "unknown error");
-  const normalized = message.toLowerCase();
-  if (/failed to fetch|networkerror|network error|connection refused|econnrefused|could not connect/.test(normalized)) {
+  const kind = classifyEagleApiError(error);
+  if (kind === "authorization") {
+    return format(i18n.eagleImportApiUnauthorized.get(), { message });
+  }
+  if (kind === "connection") {
     return format(i18n.eagleImportCannotReachApi.get(), { message });
   }
-  if (/request timed out|timed out|timeout/.test(normalized)) {
+  if (kind === "timeout") {
     return format(i18n.eagleImportApiTimedOut.get(), { message });
   }
   return message;

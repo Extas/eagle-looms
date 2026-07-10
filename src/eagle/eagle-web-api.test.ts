@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { eagleApiRequestUrl, extractEagleItemId, extractEagleItemIds, extractEagleLibraryName, extractEagleLibraryPath } from './eagle-web-api';
+import { classifyEagleApiError, eagleApiRequestUrl, extractEagleItemId, extractEagleItemIds, extractEagleLibraryName, extractEagleLibraryPath } from './eagle-web-api';
 
 describe('Eagle Web API response helpers', () => {
   it('keeps V2 API tokens on every request URL', () => {
@@ -29,5 +29,13 @@ describe('Eagle Web API response helpers', () => {
     expect(extractEagleLibraryName({})).toBe('');
     expect(extractEagleLibraryPath({ path: 'D:/Library.library' })).toBe('D:/Library.library');
     expect(extractEagleLibraryPath({ data: { path: 'D:/Nested.library' } })).toBe('D:/Nested.library');
+  });
+
+  it('classifies actionable Eagle API transport and authorization failures', () => {
+    expect(classifyEagleApiError(new Error('403 Forbidden'))).toBe('authorization');
+    expect(classifyEagleApiError(new Error('invalid API token'))).toBe('authorization');
+    expect(classifyEagleApiError(new Error('request timed out'))).toBe('timeout');
+    expect(classifyEagleApiError(new Error('Failed to fetch'))).toBe('connection');
+    expect(classifyEagleApiError(new Error('bad request'))).toBe('other');
   });
 });

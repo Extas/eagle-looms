@@ -1534,6 +1534,12 @@ pero desactivará la lupa y la capacidad de arrastrar y mover imágenes.`,
     'Eagle Web API timed out. Check Eagle is responsive, then retry or use Config > Test Eagle. ({message})',
     'Eagle Web API agoto el tiempo. Revisa que Eagle responda y reintenta o usa Config > Test Eagle. ({message})',
   ],
+  eagleImportApiUnauthorized: [
+    'Eagle API authorization failed. Check the API token in Config and Eagle Developer settings, then retry. ({message})',
+    'Eagle API 授权失败。请检查配置与 Eagle 开发者设置中的 API token 后重试。（{message}）',
+    'Eagle API authorization failed. Check the API token in Config and Eagle Developer settings, then retry. ({message})',
+    'Fallo de autorizacion de Eagle API. Comprueba el token en Config y ajustes de desarrollador, y reintenta. ({message})',
+  ],
   eagleImportSkipReasonDuplicate: [
     'duplicate',
     '重复',

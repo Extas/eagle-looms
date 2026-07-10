@@ -14,6 +14,7 @@ vi.mock("$", () => ({
 }));
 
 vi.mock("../eagle/eagle-web-api", () => ({
+  classifyEagleApiError: (error: any) => /401|403|unauthorized|forbidden|token/i.test(String(error?.message || error)) ? "authorization" : "other",
   extractEagleLibraryName: (value: any) => value?.name || value?.data?.name || "",
   EagleWebApi: class EagleWebApi {
     readonly baseUrl: string;
@@ -99,6 +100,19 @@ describe("ConfigPanel Eagle preview", () => {
     expect(status.textContent).toContain(ADAPTER.globalConf.eagleBaseUrl);
     expect(status.textContent).toContain("connection refused");
     expect(status.classList.contains("eagle-config-connection-error")).toBe(true);
+  });
+
+  it("turns Eagle authorization failures into a token repair hint", async () => {
+    probeMock.mockRejectedValue(new Error("403 Forbidden"));
+    const panel = createPanel();
+    const status = panel.panel.querySelector<HTMLElement>("#eagle-config-connection-status")!;
+
+    panel.panel.querySelector<HTMLButtonElement>("#eagle-config-test-connection")!.click();
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(status.textContent).toContain("API token");
+    expect(status.textContent).toContain("403 Forbidden");
   });
 
   it("keeps Eagle API tokens out of connection preview and test results", async () => {
