@@ -1,7 +1,7 @@
 import { Config, ConfigBooleanType, ConfigTextType, ConfigItem, ConfigItems, ConfigNumberType, ConfigSelectType, defaultConf, resetConf } from "../config";
 import { EagleWebApi } from "../eagle/eagle-web-api";
 import { localDatePrefix } from "../eagle/naming";
-import { resolveEagleFolderPaths } from "../eagle/options";
+import { findUnknownEagleFolderTokens, resolveEagleFolderPaths } from "../eagle/options";
 import { ADAPTER } from "../platform/adapt";
 import { I18nValue, i18n } from "../utils/i18n";
 import q from "../utils/query-element";
@@ -292,6 +292,10 @@ function eagleConfigPreviewHTML(): string {
     .replace("{count}", String(conf.eagleImportLimit))
     .replace("{duplicates}", conf.eagleSkipDuplicates ? i18n.eagleConfigPreviewSkipDuplicates.get() : i18n.eagleConfigPreviewAddDuplicates.get());
   const confirmPolicy = eagleConfirmPolicyText(conf.eagleConfirmMode, conf.eagleConfirmThreshold);
+  const unknownFolderTokens = findUnknownEagleFolderTokens(conf.eagleFolderPath);
+  const folderWarning = unknownFolderTokens.length
+    ? `<div class="eagle-config-warning" role="alert"><b>${escapeHTML(i18n.eagleConfigFolderWarning.get())}</b><span>${escapeHTML(i18n.eagleConfigUnknownFolderTokens.get().replace("{tokens}", unknownFolderTokens.join(", ")))}</span></div>`
+    : "";
   return `
 <div id="eagle-config-preview" class="eagle-config-preview">
   <div class="eagle-config-preview-title"><span>${escapeHTML(i18n.eagleConfigPreview.get())}</span><button type="button" id="eagle-config-test-connection" class="ehvp-custom-btn ehvp-custom-btn-plain">${escapeHTML(i18n.eagleConfigTestConnection.get())}</button></div>
@@ -299,6 +303,7 @@ function eagleConfigPreviewHTML(): string {
   <div><b>${escapeHTML(i18n.eagleConfigPreviewConnection.get())}</b><span id="eagle-config-connection-status">${escapeHTML(conf.eagleBaseUrl)}</span></div>
   <div><b>${escapeHTML(i18n.eagleConfigPreviewPreset.get())}</b><span>${escapeHTML(eagleFolderPresetLabel(conf.eagleFolderPreset))}</span></div>
   <div><b>${escapeHTML(i18n.eagleConfigPreviewFolderTemplate.get())}</b><code>${escapeHTML(conf.eagleFolderPath)}</code></div>
+  ${folderWarning}
   <div><b>${escapeHTML(i18n.eagleConfigPreviewFolder.get())}</b><code>${escapeHTML(samplePaths.join(" | "))}</code></div>
   <div><b>${escapeHTML(i18n.eagleConfigPreviewNames.get())}</b><span>${escapeHTML(itemNames)}</span></div>
   <div><b>${escapeHTML(i18n.eagleConfigPreviewSourceFields.get())}</b><span>${escapeHTML(i18n.eagleConfigPreviewSourceFieldsText.get())}</span></div>

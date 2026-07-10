@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { cleanFolderTagValue, collapseCharacterFolderValues, DEFAULT_EAGLE_FOLDER_TEMPLATE, eagleFolderPresetForTemplate, eagleFolderTemplateForPreset, normalizeEagleBaseUrl, normalizeEagleBoolean, normalizeEagleConfigPatch, normalizeEagleConfirmMode, normalizeEagleConfirmThreshold, normalizeEagleFolderPreset, normalizeEagleFolderTemplate, normalizeEagleImportLimit, normalizeEagleMaxSourceTags, resolveEagleFolderPath, resolveEagleFolderPaths } from './options';
+import { cleanFolderTagValue, collapseCharacterFolderValues, DEFAULT_EAGLE_FOLDER_TEMPLATE, eagleFolderPresetForTemplate, eagleFolderTemplateForPreset, findUnknownEagleFolderTokens, normalizeEagleBaseUrl, normalizeEagleBoolean, normalizeEagleConfigPatch, normalizeEagleConfirmMode, normalizeEagleConfirmThreshold, normalizeEagleFolderPreset, normalizeEagleFolderTemplate, normalizeEagleImportLimit, normalizeEagleMaxSourceTags, resolveEagleFolderPath, resolveEagleFolderPaths } from './options';
 
 describe('Eagle options', () => {
   it('normalizes Eagle API URL input to an origin', () => {
@@ -28,6 +28,11 @@ describe('Eagle options', () => {
 
   it('falls back to the default folder template when input has no valid segments', () => {
     expect(normalizeEagleFolderTemplate('???///')).toBe('Eagle Looms/{site}/{date}');
+  });
+
+  it('reports unsupported folder tokens without rejecting custom literal folders', () => {
+    expect(findUnknownEagleFolderTokens('Eagle Looms/{site}/{data}/{site}/{}')).toEqual(['{data}', '{}']);
+    expect(findUnknownEagleFolderTokens('Eagle Looms/{site}/{date}/{author}')).toEqual([]);
   });
 
   it('normalizes folder presets and exposes their templates', () => {

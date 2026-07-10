@@ -96,7 +96,7 @@ Automated validation is expensive, so small iterations are versioned and validat
 For each small feature iteration, increment the last number by one:
 
 ```text
-1.0.58 -> 1.0.59 -> ... -> 1.0.100
+1.0.1 -> 1.0.2 -> ... -> 1.0.100
 1.0.100 -> 1.1.1
 ```
 

@@ -145,6 +145,17 @@ describe("ConfigPanel Eagle preview", () => {
     expect(preview.textContent).toContain("Eagle Looms/test-site/series/character b");
   });
 
+  it("warns before import when a custom folder rule contains unknown tokens", () => {
+    ADAPTER.globalConf.eagleFolderPreset = "custom";
+    ADAPTER.globalConf.eagleFolderPath = "Eagle Looms/{site}/{data}";
+    const panel = createPanel();
+    const warning = panel.panel.querySelector<HTMLElement>(".eagle-config-warning")!;
+
+    expect(warning.getAttribute("role")).toBe("alert");
+    expect(warning.textContent).toContain("{data}");
+    expect(warning.textContent).toContain(i18n.eagleConfigFolderWarning.get());
+  });
+
   it("keeps exactly one Eagle preview after switching config scope", () => {
     const panel = createPanel();
     const siteTab = panel.configSelect.querySelector<HTMLElement>('[data-value="test-site"]')!;

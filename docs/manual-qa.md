@@ -88,6 +88,7 @@ switching between global and site config keeps exactly one Eagle import preview
 settings persist after reload
 manual folder path edits switch preset to Custom path
 matching saved paths infer the correct built-in preset
+unknown custom folder tokens show a warning before import and remain visible in the example path
 ```
 
 ## E2E Import Flow

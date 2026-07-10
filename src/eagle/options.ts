@@ -11,6 +11,15 @@ export const EAGLE_MAX_SOURCE_TAGS_RANGE = [0, 100] as const;
 export const EAGLE_CONFIRM_THRESHOLD_RANGE = [0, 1000] as const;
 
 const FOLDER_INVALID_CHARS = /[\\/:*?"<>|\n\r\t]+/g;
+const EAGLE_FOLDER_TOKENS = new Set([
+  "{site}",
+  "{date}",
+  "{gallery}",
+  "{chapter}",
+  "{copyright}",
+  "{character}",
+  "{author}",
+]);
 
 export type EagleFolderTokens = {
   site: string;
@@ -101,6 +110,12 @@ export function normalizeEagleFolderTemplate(value: unknown): string {
     .map(segment => cleanFolderName(segment.trim()))
     .filter(Boolean);
   return segments.length ? segments.join("/") : DEFAULT_EAGLE_FOLDER_TEMPLATE;
+}
+
+export function findUnknownEagleFolderTokens(value: unknown): string[] {
+  if (typeof value !== "string") return [];
+  return [...new Set(value.match(/\{[^{}]*\}/g) || [])]
+    .filter(token => !EAGLE_FOLDER_TOKENS.has(token));
 }
 
 export function normalizeEagleImportLimit(value: unknown): number {

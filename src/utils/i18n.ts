@@ -650,6 +650,18 @@ pero desactivará la lupa y la capacidad de arrastrar y mover imágenes.`,
     'Folder rule',
     'Regla de carpeta',
   ],
+  eagleConfigFolderWarning: [
+    'Folder rule warning',
+    '文件夹规则警告',
+    'Folder rule warning',
+    'Advertencia de regla',
+  ],
+  eagleConfigUnknownFolderTokens: [
+    'Unknown tokens: {tokens}. Eagle will create them as literal folder names.',
+    '未知变量：{tokens}。Eagle 会将其作为普通文件夹名称创建。',
+    'Unknown tokens: {tokens}. Eagle will create them as literal folder names.',
+    'Variables desconocidas: {tokens}. Eagle las creara como nombres literales.',
+  ],
   eagleConfigPreviewNames: [
     'Item names',
     '文件名',

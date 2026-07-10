@@ -576,6 +576,9 @@ export function styleCSS() {
 .eagle-config-connection-error {
   color: #ff7777;
 }
+.eagle-config-warning {
+  color: #ffcc66;
+}
 .p-downloader {
   display: flex;
   flex-direction: column;
