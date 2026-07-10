@@ -170,6 +170,34 @@ describe('Eagle import summary', () => {
     ]);
   });
 
+  it('keeps preflight failures visible in compact plans even when nothing can be written', () => {
+    expect(eaglePlanCompactParts({
+      folderTemplate: 'Eagle Looms/{site}/{date}',
+      sourceTagLimit: 20,
+      skipDuplicates: true,
+      planned: 2,
+      writable: 0,
+      preflightFailed: 2,
+    })).toEqual([
+      'will write 0',
+      'preflight failed 2',
+    ]);
+
+    expect(eaglePlanCompactParts({
+      folderTemplate: 'Eagle Looms/{site}/{date}',
+      sourceTagLimit: 20,
+      skipDuplicates: true,
+      planned: 2,
+      writable: 1,
+      preflightFailed: 1,
+      folders: ['Eagle Looms/site/2026-07-11'],
+    })).toEqual([
+      'will write 1',
+      'destination Eagle Looms/site/2026-07-11',
+      'preflight failed 1',
+    ]);
+  });
+
   it('confirms only risky or larger import plans by default', () => {
     const basePlan = {
       folderTemplate: 'Eagle Looms/{site}/{copyright}',

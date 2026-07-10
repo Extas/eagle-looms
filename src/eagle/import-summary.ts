@@ -215,6 +215,7 @@ export function eaglePlanCompactParts(plan: EagleImportPlan): string[] {
       reasons: skippedReasons.length ? ` (${skippedReasons.join(", ")})` : "",
     }));
   }
+  if (plan.preflightFailed) parts.push(format(i18n.eaglePlanPreflightFailed.get(), { count: plan.preflightFailed }));
   return parts;
 }
 
