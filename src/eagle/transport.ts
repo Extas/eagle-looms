@@ -37,14 +37,12 @@ export async function requestText(url: string, options: {
       timeout: options.timeoutMs || 45000,
     });
   }
-  const response = await fetchWithTimeout(url, {
+  return fetchBodyWithTimeout(url, {
     method: options.method || 'GET',
     headers: options.headers,
     body: options.body,
     credentials: 'include',
-  }, options.timeoutMs || 45000);
-  if (!response.ok) throw new Error(`${response.status} ${response.statusText}`);
-  return response.text();
+  }, options.timeoutMs || 45000, response => response.text());
 }
 
 export async function requestArrayBuffer(url: string, headers: Record<string, string> = {}): Promise<ArrayBuffer> {
@@ -56,9 +54,7 @@ export async function requestArrayBuffer(url: string, headers: Record<string, st
       timeout: 90000,
     });
   }
-  const response = await fetchWithTimeout(url, { credentials: 'include', headers }, 90000);
-  if (!response.ok) throw new Error(`${response.status} ${response.statusText}`);
-  return response.arrayBuffer();
+  return fetchBodyWithTimeout(url, { credentials: 'include', headers }, 90000, response => response.arrayBuffer());
 }
 
 export function arrayBufferToBase64(buffer: ArrayBuffer): string {
@@ -75,11 +71,13 @@ function hasGmXhr(): boolean {
   return typeof GM_xmlhttpRequest === 'function';
 }
 
-async function fetchWithTimeout(url: string, init: RequestInit, timeoutMs: number): Promise<Response> {
+async function fetchBodyWithTimeout<T>(url: string, init: RequestInit, timeoutMs: number, readBody: (response: Response) => Promise<T>): Promise<T> {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
   try {
-    return await fetch(url, { ...init, signal: controller.signal });
+    const response = await fetch(url, { ...init, signal: controller.signal });
+    if (!response.ok) throw new Error(`${response.status} ${response.statusText}`);
+    return await readBody(response);
   } catch (error) {
     if (controller.signal.aborted) throw new Error('request timed out');
     throw error;

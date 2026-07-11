@@ -34,4 +34,22 @@ describe('Eagle transport', () => {
 
     await assertion;
   });
+
+  it('keeps the timeout active while the native fetch response body is read', async () => {
+    vi.useFakeTimers();
+    vi.stubGlobal('fetch', vi.fn((_url: string, init: RequestInit) => Promise.resolve({
+      ok: true,
+      status: 200,
+      statusText: 'OK',
+      text: () => new Promise((_resolve, reject) => {
+        init.signal?.addEventListener('abort', () => reject(new DOMException('aborted', 'AbortError')));
+      }),
+    })));
+
+    const request = requestJson('http://localhost:41595/api/v2/app/info', { timeoutMs: 25 });
+    const assertion = expect(request).rejects.toThrow('request timed out');
+    await vi.advanceTimersByTimeAsync(25);
+
+    await assertion;
+  });
 });
