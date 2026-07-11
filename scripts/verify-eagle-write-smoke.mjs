@@ -1,5 +1,4 @@
 const eagleBase = (process.env.EAGLE_API_BASE || 'http://localhost:41595').replace(/\/$/, '');
-const smokePath = ['Eagle Looms', '_Smoke', 'write-smoke'];
 const smokeTag = 'eagle-looms-smoke';
 const smokeWebsitePrefix = 'https://eagle-looms.local/smoke/';
 const smokeSchema = 'eagle-looms/smoke/v1';
@@ -8,12 +7,14 @@ let createdId = '';
 
 try {
   const preCleanedSmokeIds = await cleanupStaleSmokeItems();
-  const folderId = await ensureFolderPath(smokePath);
-  createdId = await addSmokeBookmark(folderId, runId);
+  createdId = await addSmokeBookmark(runId);
   if (!createdId) throw new Error('item/add did not return an item id.');
   const readBack = await waitForCreated(createdId, runId);
   if (!readBack || readBack.isDeleted || !readBack.annotation?.includes(runId)) {
     throw new Error('Created smoke item did not round-trip through item/info.');
+  }
+  if (!Array.isArray(readBack.folders) || readBack.folders.length > 0) {
+    throw new Error('Created smoke item should remain unfiled.');
   }
   await trashItemWithRetry(createdId);
   const trashed = await waitForTrash(createdId);
@@ -21,7 +22,7 @@ try {
 
   console.log(JSON.stringify({
     source: eagleBase,
-    folderPath: smokePath.join('/'),
+    storage: 'unfiled',
     createdId,
     preCleanedSmokeIds,
     cleanup: 'moved-created-smoke-item-to-trash',
@@ -33,32 +34,7 @@ try {
   throw error;
 }
 
-async function ensureFolderPath(path) {
-  let folders = await readFolders();
-  let parent;
-  let current;
-  for (const segment of path) {
-    current = findFolderByName(folders, segment);
-    if (!current) {
-      current = await eagleJson('/api/v2/folder/create', {
-        method: 'POST',
-        body: { name: segment, ...(parent ? { parent } : {}) },
-      });
-    }
-    parent = current.id;
-    folders = current.children || [];
-  }
-  return current.id;
-}
-
-async function readFolders() {
-  const library = await eagleJson('/api/v2/library/info');
-  if (Array.isArray(library?.folders)) return library.folders;
-  const folders = await eagleJson('/api/v2/folder/get?limit=1000');
-  return Array.isArray(folders?.data) ? folders.data : Array.isArray(folders) ? folders : [];
-}
-
-async function addSmokeBookmark(folderId, id) {
+async function addSmokeBookmark(id) {
   const smokeUrl = `${smokeWebsitePrefix}${id}`;
   const result = await eagleJson('/api/v2/item/add', {
     method: 'POST',
@@ -66,7 +42,6 @@ async function addSmokeBookmark(folderId, id) {
       name: `Eagle Looms Write Smoke ${id}`,
       bookmarkURL: smokeUrl,
       website: smokeUrl,
-      folders: [folderId],
       tags: [smokeTag],
       annotation: JSON.stringify({
         schema: smokeSchema,
@@ -90,7 +65,14 @@ async function queryByRunId(id) {
 }
 
 async function readItemInfo(id) {
-  return eagleJson(`/api/item/info?id=${encodeURIComponent(id)}`);
+  const result = await eagleJson('/api/v2/item/get', {
+    method: 'POST',
+    body: { id, limit: 1 },
+  });
+  if (Array.isArray(result)) return result.find((item) => item.id === id) || result[0];
+  if (result?.id) return result;
+  const items = rows(result);
+  return items.find((item) => item.id === id) || items[0];
 }
 
 async function cleanupStaleSmokeItems() {
@@ -164,10 +146,6 @@ async function eagleJson(pathname, options = {}) {
   return json?.data ?? json;
 }
 
-function findFolderByName(folders, name) {
-  return (folders || []).find((folder) => String(folder.name || '').trim().toLowerCase() === name.toLowerCase());
-}
-
 function extractItemId(payload) {
   if (typeof payload === 'string') return payload;
   if (!payload || typeof payload !== 'object') return '';
@@ -180,6 +158,15 @@ function extractItemId(payload) {
   if (payload.item) return extractItemId(payload.item);
   if (payload.data) return extractItemId(payload.data);
   return '';
+}
+
+function rows(payload) {
+  if (Array.isArray(payload)) return payload;
+  if (Array.isArray(payload?.data)) return payload.data;
+  if (Array.isArray(payload?.items)) return payload.items;
+  if (Array.isArray(payload?.data?.data)) return payload.data.data;
+  if (Array.isArray(payload?.data?.items)) return payload.data.items;
+  return [];
 }
 
 function isManagedSmokeItem(item) {

@@ -1,5 +1,4 @@
 const eagleBase = (process.env.EAGLE_API_BASE || 'http://localhost:41595').replace(/\/$/, '');
-const smokePath = ['Eagle Looms', '_Smoke', 'import-smoke'];
 const smokeTag = 'eagle-looms-import-smoke';
 const smokeWebsitePrefix = 'https://eagle-looms.local/import-smoke/';
 const smokeSchema = 'eagle-looms/import-smoke/v1';
@@ -10,12 +9,14 @@ let lastReadDebug;
 
 try {
   const preCleanedSmokeIds = await cleanupStaleSmokeItems();
-  const folderId = await ensureFolderPath(smokePath);
-  createdId = await addSmokeImage(folderId, runId);
+  createdId = await addSmokeImage(runId);
   if (!createdId) throw new Error('item/add did not return an item id for image smoke.');
   const readBack = await waitForCreated(createdId, runId);
   if (!readBack || readBack.isDeleted) {
     throw new Error(`Created image smoke item did not round-trip through item/info. ${JSON.stringify({ createdId, lastReadDebug })}`);
+  }
+  if (!Array.isArray(readBack.folders) || readBack.folders.length > 0) {
+    throw new Error('Created image smoke item should remain unfiled.');
   }
   if (!Array.isArray(readBack.tags) || !readBack.tags.includes(smokeTag)) {
     throw new Error('Created image smoke item did not preserve smoke tag.');
@@ -35,7 +36,7 @@ try {
 
   console.log(JSON.stringify({
     source: eagleBase,
-    folderPath: smokePath.join('/'),
+    storage: 'unfiled',
     createdId,
     preCleanedSmokeIds,
     cleanup: 'moved-created-image-smoke-item-to-trash',
@@ -47,37 +48,11 @@ try {
   throw error;
 }
 
-async function ensureFolderPath(path) {
-  let folders = await readFolders();
-  let parent;
-  let current;
-  for (const segment of path) {
-    current = findFolderByName(folders, segment);
-    if (!current) {
-      current = await eagleJson('/api/v2/folder/create', {
-        method: 'POST',
-        body: { name: segment, ...(parent ? { parent } : {}) },
-      });
-    }
-    parent = current.id;
-    folders = current.children || [];
-  }
-  return current.id;
-}
-
-async function readFolders() {
-  const library = await eagleJson('/api/v2/library/info');
-  if (Array.isArray(library?.folders)) return library.folders;
-  const folders = await eagleJson('/api/v2/folder/get?limit=1000');
-  return Array.isArray(folders?.data) ? folders.data : Array.isArray(folders) ? folders : [];
-}
-
-async function addSmokeImage(folderId, id) {
+async function addSmokeImage(id) {
   const body = {
     name: `Eagle Looms Import Smoke ${id}.png`,
     base64: pixelPngBase64,
     website: `${smokeWebsitePrefix}${id}`,
-    folders: [folderId],
     tags: [
       smokeTag,
       'copyright:import smoke',
@@ -203,10 +178,6 @@ async function eagleJson(pathname, options = {}) {
     throw new Error(String(json?.message || response.statusText));
   }
   return json?.data ?? json;
-}
-
-function findFolderByName(folders, name) {
-  return (folders || []).find((folder) => String(folder.name || '').trim().toLowerCase() === name.toLowerCase());
 }
 
 function extractItemId(payload) {

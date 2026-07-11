@@ -18,7 +18,7 @@ Full local gate:
 npm run verify:all
 ```
 
-`verify:all` creates small managed smoke items in the current Eagle library, verifies readback, then moves only those smoke items to trash.
+`verify:all` creates small managed, unfiled smoke items in the current Eagle library, verifies readback, then moves only those smoke items to trash. It does not create persistent smoke-test folders.
 
 ## Install Check
 
