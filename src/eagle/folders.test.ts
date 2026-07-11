@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import type { EagleFolder } from '../types';
 import type { EagleWebApi } from './eagle-web-api';
 import { ensureFolderPath } from './folders';
@@ -27,5 +27,29 @@ describe('Eagle folders', () => {
       { name: 'anime-pictures.net', parent: 'folder-1' },
       { name: 'Gallery', parent: 'folder-2' },
     ]);
+  });
+
+  it('stops before creating folders when the import is canceled during the tree read', async () => {
+    let active = true;
+    let releaseFolders!: () => void;
+    const blocked = new Promise<void>(resolve => {
+      releaseFolders = resolve;
+    });
+    const api = {
+      getFolders: vi.fn(async () => {
+        await blocked;
+        return [] as EagleFolder[];
+      }),
+      createFolder: vi.fn(),
+    } as unknown as EagleWebApi;
+
+    const result = ensureFolderPath(api, ['Eagle Looms', 'site', 'date'], () => {
+      if (!active) throw new Error('abort');
+    });
+    active = false;
+    releaseFolders();
+
+    await expect(result).rejects.toThrow('abort');
+    expect((api as any).createFolder).not.toHaveBeenCalled();
   });
 });

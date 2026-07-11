@@ -536,12 +536,12 @@ export class EagleDownloader extends Downloader {
       const cacheKey = folderIdentityKey(folderKey);
       let folderId = folderIds.get(cacheKey);
       if (!folderId) {
-        folderId = await ensureFolderPath(api, folderPath);
-        this.assertImportActive(runId);
+        folderId = await ensureFolderPath(api, folderPath, () => this.assertImportActive(runId));
         folderIds.set(cacheKey, folderId);
       }
       recordUniqueLink(stats.folderLinks, folderKey, eagleFolderUrl(api, folderId));
       ids.push(folderId);
+      this.assertImportActive(runId);
     }
     return ids;
   }

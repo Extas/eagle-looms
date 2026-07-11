@@ -146,6 +146,7 @@ clicking either import button again while import/confirmation/write is active st
 stopping during duplicate preflight prevents queued Eagle queries from reaching confirmation or write stages
 starting another import after stopping does not revive requests or progress updates from the previous import session
 stopping while destination folders resolve prevents the pending item/add call and is not reported as an import failure
+canceling during an Eagle folder-tree read prevents subsequent folder creation; cancellation between nested creates stops before the next segment
 stopping after some items were written keeps a persistent result marked as partial, with actual imported/skipped/failed counts and links
 stopping during single-image fetch, Eagle preflight, or confirmation keeps a persistent canceled result even when no item was handled yet
 Write to Eagle creates image items only, plus the destination folders required by those items
