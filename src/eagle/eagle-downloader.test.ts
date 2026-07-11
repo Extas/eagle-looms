@@ -218,6 +218,40 @@ describe('Eagle downloader duplicate checks', () => {
     expect(api.queryItems).not.toHaveBeenCalled();
   });
 
+  it('does not let requests from a canceled run resume inside the next import run', async () => {
+    ADAPTER.conf = defaultConf();
+    const panel = { setImportProgress: vi.fn() };
+    let releaseQueries!: () => void;
+    const blocked = new Promise<void>(resolve => {
+      releaseQueries = resolve;
+    });
+    const api = { queryItems: vi.fn(async () => {
+      await blocked;
+      return [];
+    }) };
+    const downloader = Object.assign(Object.create(EagleDownloader.prototype), {
+      panel,
+      importRunId: 1,
+      importStopRequested: false,
+    }) as EagleDownloader;
+    const jobs = Array.from({ length: 6 }, (_, index) => ({
+      asset: {
+        ...eagleAsset(`image-${index}.jpg`),
+        sourceUrl: `https://example.test/posts/${index}`,
+        originUrl: `https://img.example.test/${index}.jpg`,
+      },
+    }));
+
+    const preflight = (downloader as any).preflightJobs(api, jobs, 1);
+    await vi.waitFor(() => expect(api.queryItems).toHaveBeenCalledTimes(4));
+    (downloader as any).importRunId = 2;
+    releaseQueries();
+
+    await expect(preflight).rejects.toThrow('abort');
+    await Promise.resolve();
+    expect(api.queryItems).toHaveBeenCalledTimes(4);
+  });
+
   it('skips repeated assets in one plan before querying Eagle', async () => {
     clearSessionImportedAssets();
     ADAPTER.conf = defaultConf();
@@ -564,7 +598,8 @@ describe('Eagle downloader duplicate checks', () => {
       expect.any(Map),
       job,
       expect.objectContaining({ planned: 1 }),
-      expect.any(Set)
+      expect.any(Set),
+      expect.any(Number),
     );
     expect(panel.showEagleImportResult).toHaveBeenCalledWith(
       expect.arrayContaining(['library Test Library']),

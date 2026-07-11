@@ -78,11 +78,15 @@ type EagleImportEndStage = Extract<DownloaderPanelStage, "downloadFailed" | "dow
 
 export class EagleDownloader extends Downloader {
   private importStopRequested = false;
+  private importRunId = 0;
+  private importInFlight = false;
 
   initEvents(panel: DownloaderPanel) {
     panel.forceBTN.addEventListener("click", () => {
       if (this.downloading) {
         this.abort("downloadStart");
+      } else if (this.importInFlight) {
+        EBUS.emit("notify-message", "error", i18n.eagleImportAlreadyRunning.get(), 4000);
       } else {
         this.importLoaded();
       }
@@ -90,6 +94,8 @@ export class EagleDownloader extends Downloader {
     panel.startBTN.addEventListener("click", () => {
       if (this.downloading) {
         this.abort("downloadStart");
+      } else if (this.importInFlight) {
+        EBUS.emit("notify-message", "error", i18n.eagleImportAlreadyRunning.get(), 4000);
       } else {
         this.start();
       }
@@ -109,13 +115,17 @@ export class EagleDownloader extends Downloader {
   }
 
   abort(stage: EagleImportEndStage) {
-    if (stage === "downloadStart") this.importStopRequested = true;
+    if (stage === "downloadStart") {
+      this.importStopRequested = true;
+      this.importRunId = (Number.isFinite(this.importRunId) ? this.importRunId : 0) + 1;
+    }
     super.abort(stage);
   }
 
   async download(chapters: Chapter[]) {
+    this.importInFlight = true;
     this.done = false;
-    this.importStopRequested = false;
+    const runId = this.beginImportRun();
     const abortable = this.downloading;
     const stats = emptyImportStats();
     const folderIds = new Map<string, string>();
@@ -153,8 +163,8 @@ export class EagleDownloader extends Downloader {
       if (ADAPTER.conf.eagleSkipDuplicates && selectedJobs.length > 1) {
         EBUS.emit("notify-message", "info", i18n.eagleImportCheckingDuplicates.get(), 4000);
       }
-      const preflight = await this.preflightJobs(api, selectedJobs);
-      this.assertImportActive();
+      const preflight = await this.preflightJobs(api, selectedJobs, runId);
+      this.assertImportActive(runId);
       const importPlan = limitWritableImportJobs(selectedJobs, ADAPTER.conf.eagleImportLimit);
       const jobs = importPlan.jobs;
       stats.selected = importPlan.selected;
@@ -197,7 +207,7 @@ export class EagleDownloader extends Downloader {
           writeIndex += 1;
           this.panel.setImportProgress(i18n.eagleImportWritingToEagle.get(), writeIndex, importPlan.writable);
         }
-        await this.writeJob(api, folderIds, job, stats, usedNamesForFolder(folderNames, job.folderKey));
+        await this.writeJob(api, folderIds, job, stats, usedNamesForFolder(folderNames, job.folderKey), runId);
       }
 
       this.done = stats.failed === 0;
@@ -217,11 +227,12 @@ export class EagleDownloader extends Downloader {
       const stopped = cancelled || this.importStopRequested;
       if (stopped) this.showCancellationResult(stats);
       this.abort(stopped ? "downloadStart" : endStage);
+      this.importInFlight = false;
     }
   }
 
   async importOne(chapterIndex: number, index: number): Promise<void> {
-    if (this.downloading) {
+    if (this.downloading || this.importInFlight) {
       EBUS.emit("notify-message", "error", i18n.eagleImportAlreadyRunning.get(), 4000);
       return;
     }
@@ -242,7 +253,8 @@ export class EagleDownloader extends Downloader {
     let endStage: EagleImportEndStage = "downloadFailed";
     this.done = false;
     this.downloading = true;
-    this.importStopRequested = false;
+    this.importInFlight = true;
+    const runId = this.beginImportRun();
     try {
       if (!isReadyForEagleImport(imf)) {
         if (imf.stage === FetchState.FAILED) imf.resetStage();
@@ -275,8 +287,8 @@ export class EagleDownloader extends Downloader {
       stats.planned = assets.length;
       if (assets.length === 0) throw new Error(i18n.eagleImportCurrentNotReady.get());
       const jobs = assets.map(asset => this.jobForAsset(folderTemplate, asset));
-      const preflight = await this.preflightJobs(api, jobs);
-      this.assertImportActive();
+      const preflight = await this.preflightJobs(api, jobs, runId);
+      this.assertImportActive(runId);
       prepareWritableJobNames(jobs);
       const organization = eaglePlanOrganization(folderTemplate, jobs);
       const plan = {
@@ -313,7 +325,7 @@ export class EagleDownloader extends Downloader {
           writeIndex += 1;
           this.panel.setImportProgress(i18n.eagleImportWritingToEagle.get(), writeIndex, preflight.writable);
         }
-        await this.writeJob(api, folderIds, job, stats, usedNamesForFolder(folderNames, job.folderKey));
+        await this.writeJob(api, folderIds, job, stats, usedNamesForFolder(folderNames, job.folderKey), runId);
       }
       this.done = stats.failed === 0;
       endStage = eagleImportEndStage(stats);
@@ -331,6 +343,7 @@ export class EagleDownloader extends Downloader {
       const stopped = cancelled || this.importStopRequested;
       if (stopped) this.showCancellationResult(stats);
       this.abort(stopped ? "downloadStart" : endStage);
+      this.importInFlight = false;
     }
   }
 
@@ -379,18 +392,18 @@ export class EagleDownloader extends Downloader {
     return assets;
   }
 
-  private async isDuplicate(api: EagleWebApi, asset: EagleImportAsset): Promise<boolean> {
+  private async isDuplicate(api: EagleWebApi, asset: EagleImportAsset, runId = this.importRunId): Promise<boolean> {
     for (const query of duplicateQueries(asset)) {
-      this.assertImportActive();
+      this.assertImportActive(runId);
       const items = await api.queryItems(query, 20);
-      this.assertImportActive();
+      this.assertImportActive(runId);
       if (items.some(item => isDuplicateItem(item, asset))) return true;
     }
     return false;
   }
 
-  private async preflightJobs(api: EagleWebApi, jobs: EagleImportJob[]): Promise<EagleImportPreflight> {
-    this.assertImportActive();
+  private async preflightJobs(api: EagleWebApi, jobs: EagleImportJob[], runId = this.importRunId): Promise<EagleImportPreflight> {
+    this.assertImportActive(runId);
     const preflight: EagleImportPreflight = { writable: 0, sessionSkipped: 0, duplicateSkipped: 0, failed: 0 };
     const plannedKeys = new Set<string>();
     const candidates: EagleImportJob[] = [];
@@ -398,7 +411,7 @@ export class EagleDownloader extends Downloader {
     const reportProgress = () => this.panel.setImportProgress(i18n.eagleImportCheckingEagle.get(), checked, jobs.length);
 
     for (const job of jobs) {
-      this.assertImportActive();
+      this.assertImportActive(runId);
       job.preflightChecked = true;
       if (hasPlannedAssetKey(job.asset, plannedKeys) || isSessionImported(job.asset)) {
         job.skipReason = "session";
@@ -412,7 +425,7 @@ export class EagleDownloader extends Downloader {
     reportProgress();
 
     if (!ADAPTER.conf.eagleSkipDuplicates) {
-      this.assertImportActive();
+      this.assertImportActive(runId);
       preflight.writable = candidates.length;
       checked += candidates.length;
       reportProgress();
@@ -422,28 +435,34 @@ export class EagleDownloader extends Downloader {
     const limit = pLimit(EAGLE_DUPLICATE_CHECK_CONCURRENCY);
     await Promise.all(candidates.map(job => limit(async () => {
       try {
-        this.assertImportActive();
-        if (await this.isDuplicate(api, job.asset)) {
+        this.assertImportActive(runId);
+        if (await this.isDuplicate(api, job.asset, runId)) {
           job.skipReason = "duplicate";
           preflight.duplicateSkipped += 1;
         } else {
           preflight.writable += 1;
         }
-        this.assertImportActive();
+        this.assertImportActive(runId);
       } catch (error) {
         if (this.importStopRequested || (error instanceof Error && error.message === "abort")) throw error;
         job.preflightError = error;
         preflight.failed += 1;
       } finally {
         checked += 1;
-        if (!this.importStopRequested) reportProgress();
+        if (!this.importStopRequested && runId === this.importRunId) reportProgress();
       }
     })));
     return preflight;
   }
 
-  private assertImportActive(): void {
-    if (this.importStopRequested) throw new Error("abort");
+  private assertImportActive(runId = this.importRunId): void {
+    if (this.importStopRequested || runId !== this.importRunId) throw new Error("abort");
+  }
+
+  private beginImportRun(): number {
+    this.importStopRequested = false;
+    this.importRunId = (Number.isFinite(this.importRunId) ? this.importRunId : 0) + 1;
+    return this.importRunId;
   }
 
   private showCancellationResult(stats: EagleImportStats): void {
@@ -461,10 +480,10 @@ export class EagleDownloader extends Downloader {
     EBUS.emit("notify-message", "info", message, handled > 0 ? 8000 : 4000);
   }
 
-  private async writeJob(api: EagleWebApi, folderIds: Map<string, string>, job: EagleImportJob, stats: EagleImportStats, usedNames: Set<string>): Promise<void> {
+  private async writeJob(api: EagleWebApi, folderIds: Map<string, string>, job: EagleImportJob, stats: EagleImportStats, usedNames: Set<string>, runId = this.importRunId): Promise<void> {
     const asset = job.asset;
     try {
-      this.assertImportActive();
+      this.assertImportActive(runId);
       if (job.preflightError) throw job.preflightError;
       if (job.skipReason) {
         applySkippedJob(stats, job.skipReason, job.finalName || asset.name);
@@ -475,19 +494,20 @@ export class EagleDownloader extends Downloader {
         return;
       }
       if (!job.preflightChecked) {
-        if (ADAPTER.conf.eagleSkipDuplicates && await this.isDuplicate(api, asset)) {
+        if (ADAPTER.conf.eagleSkipDuplicates && await this.isDuplicate(api, asset, runId)) {
           applySkippedJob(stats, "duplicate", job.finalName || asset.name);
           return;
         }
       }
       asset.name = job.finalName || createEagleItemName(asset.name, usedNames);
-      const jobFolderIds = await this.folderIdsForJob(api, folderIds, job, stats);
-      this.assertImportActive();
+      const jobFolderIds = await this.folderIdsForJob(api, folderIds, job, stats, runId);
+      this.assertImportActive(runId);
       const id = await api.addItem(toAddItemInput(asset, jobFolderIds));
       if (!id) throw new Error("Eagle did not return an item ID.");
       recordUniqueLink(stats.itemLinks, asset.name, eagleItemUrl(api, id));
       markSessionImported(asset);
       stats.imported += 1;
+      this.assertImportActive(runId);
     } catch (error) {
       if (this.importStopRequested || (error instanceof Error && error.message === "abort")) throw error;
       recordImportFailure(stats, job.finalName || asset.name, error);
@@ -505,19 +525,19 @@ export class EagleDownloader extends Downloader {
     };
   }
 
-  private async folderIdsForJob(api: EagleWebApi, folderIds: Map<string, string>, job: EagleImportJob, stats: EagleImportStats): Promise<string[]> {
-    this.assertImportActive();
+  private async folderIdsForJob(api: EagleWebApi, folderIds: Map<string, string>, job: EagleImportJob, stats: EagleImportStats, runId = this.importRunId): Promise<string[]> {
+    this.assertImportActive(runId);
     stats.folders.push(...job.folderKeys);
     const ids: string[] = [];
     for (let i = 0; i < job.folderPaths.length; i++) {
-      this.assertImportActive();
+      this.assertImportActive(runId);
       const folderPath = job.folderPaths[i];
       const folderKey = job.folderKeys[i];
       const cacheKey = folderIdentityKey(folderKey);
       let folderId = folderIds.get(cacheKey);
       if (!folderId) {
         folderId = await ensureFolderPath(api, folderPath);
-        this.assertImportActive();
+        this.assertImportActive(runId);
         folderIds.set(cacheKey, folderId);
       }
       recordUniqueLink(stats.folderLinks, folderKey, eagleFolderUrl(api, folderId));
