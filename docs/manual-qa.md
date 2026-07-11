@@ -163,6 +163,7 @@ long import result details scroll inside the result body while Clear and Copy re
 failure details copied from the result panel use the current UI language for Eagle connection, timeout, missing image, canceled, and skipped-reason labels
 Eagle connection failures point users to start Eagle, check the Eagle API URL, and use Config > Test Eagle
 Eagle 401/403 or invalid-token failures point users to the API token in Config and Eagle Developer settings
+oversized or multiline API failures remain compact in notifications and result panels while preserving the actionable diagnosis
 HTML or otherwise non-JSON responses identify the configured endpoint as a likely non-Eagle/V2 API URL
 Eagle connection failures and no-loaded-image failures also appear in the import result panel and can be copied
 when no images are loaded/selected, the import result reports that local selection issue before trying Eagle connection

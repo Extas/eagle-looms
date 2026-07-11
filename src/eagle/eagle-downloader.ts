@@ -23,6 +23,7 @@ import pLimit from "p-limit";
 const FILENAME_INVALIDCHAR = /[\\/:*?"<>|\n\t]/g;
 const METADATA_FOLDER_TOKENS = ["copyright", "character", "author"] as const;
 const EAGLE_DUPLICATE_CHECK_CONCURRENCY = 4;
+const MAX_IMPORT_ERROR_MESSAGE_LENGTH = 600;
 
 type EagleImportStats = EagleImportSummaryStats & {
   folders: string[];
@@ -561,21 +562,26 @@ export function hasIncompleteImportResult(stats: Pick<EagleImportSummaryStats, "
 }
 
 export function eagleImportErrorMessage(error: unknown): string {
-  const message = redactEagleApiSecrets(error instanceof Error ? error.message : String(error || "unknown error"));
+  const message = compactImportErrorText(redactEagleApiSecrets(error instanceof Error ? error.message : String(error || "unknown error")));
   const kind = classifyEagleApiError(error);
+  let result = message;
   if (kind === "authorization") {
-    return format(i18n.eagleImportApiUnauthorized.get(), { message });
+    result = format(i18n.eagleImportApiUnauthorized.get(), { message });
+  } else if (kind === "connection") {
+    result = format(i18n.eagleImportCannotReachApi.get(), { message });
+  } else if (kind === "response") {
+    result = format(i18n.eagleImportApiInvalidResponse.get(), { message });
+  } else if (kind === "timeout") {
+    result = format(i18n.eagleImportApiTimedOut.get(), { message });
   }
-  if (kind === "connection") {
-    return format(i18n.eagleImportCannotReachApi.get(), { message });
-  }
-  if (kind === "response") {
-    return format(i18n.eagleImportApiInvalidResponse.get(), { message });
-  }
-  if (kind === "timeout") {
-    return format(i18n.eagleImportApiTimedOut.get(), { message });
-  }
-  return message;
+  return compactImportErrorText(result);
+}
+
+function compactImportErrorText(value: string): string {
+  const compact = value.replace(/\s+/g, " ").trim() || "unknown error";
+  return compact.length > MAX_IMPORT_ERROR_MESSAGE_LENGTH
+    ? `${compact.slice(0, MAX_IMPORT_ERROR_MESSAGE_LENGTH - 3).trimEnd()}...`
+    : compact;
 }
 
 export function eagleFolderTemplateForImport(value: unknown): string {

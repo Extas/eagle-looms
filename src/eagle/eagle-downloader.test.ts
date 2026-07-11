@@ -334,6 +334,15 @@ describe('Eagle downloader duplicate checks', () => {
     expect(eagleImportErrorMessage(new Error('403 https://eagle.test/api/v2/item/get?token=secret-value'))).not.toContain('secret-value');
   });
 
+  it('keeps oversized API responses readable in notifications and result panels', () => {
+    const message = eagleImportErrorMessage(new Error(`Eagle API returned invalid JSON\n${'response body '.repeat(200)}`));
+
+    expect(message).toContain('API URL');
+    expect(message).not.toContain('\n');
+    expect(message.length).toBeLessThanOrEqual(600);
+    expect(message.endsWith('...')).toBe(true);
+  });
+
   it('rejects malformed or unknown folder rules before Eagle can create literal brace folders', () => {
     expect(eagleFolderTemplateForImport('Eagle Looms/{site}/{date}')).toBe('Eagle Looms/{site}/{date}');
     expect(() => eagleFolderTemplateForImport('Eagle Looms/{site/{date}')).toThrow(i18n.eagleImportMalformedFolderRule.get());
