@@ -613,10 +613,12 @@ describe('Eagle downloader duplicate checks', () => {
     const chapter = { title: 'Chapter 1', filteredQueue: [imf] };
     const skippedAsset = {
       ...eagleAsset('skipped.jpg'),
+      tags: ['copyright:old work', 'old tag'],
       folderTokens: { site: 'site', gallery: '', chapter: '', copyright: 'old work' },
     };
     const writableAsset = {
       ...eagleAsset('writable.jpg'),
+      tags: ['copyright:new work', 'new tag'],
       sourceUrl: 'https://example.test/posts/writable',
       originUrl: 'https://img.example.test/writable.jpg',
       folderTokens: { site: 'site', gallery: '', chapter: '', copyright: 'new work' },
@@ -672,6 +674,7 @@ describe('Eagle downloader duplicate checks', () => {
     expect(compact.join(' ')).toContain('Eagle Looms/site/new work');
     expect(compact.join(' ')).not.toContain('Eagle Looms/site/old work');
     expect(details.join(' ')).toContain('copyright new work');
+    expect(details.join(' ')).toContain('tags copyright:new work | new tag');
     expect(details.join(' ')).not.toContain('old work');
     expect((downloader as any).writeJob).not.toHaveBeenCalled();
   });

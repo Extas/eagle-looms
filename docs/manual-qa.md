@@ -130,6 +130,7 @@ preflight failures and over-limit omissions force confirmation even for small ba
 confirmation panel defaults to a compact summary: will-write, first destination folders, and skipped-before-writing when present
 compact plans include the configured import limit and omitted count whenever selected writable items exceed the limit
 confirmation panel keeps full selected, planned, limit omissions, item names, folder metadata, tag cap, and duplicate-policy details collapsed by default
+expanded confirmation details show a bounded sample of the actual visible tags from writable items only
 Copy plan copies the full collapsed details, not only the compact summary
 confirmation toast uses the compact summary instead of the full plan
 result toast stays short after writing, such as Imported 2 images to Eagle, and points to the result panel when failures occur

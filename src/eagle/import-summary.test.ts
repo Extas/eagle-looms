@@ -150,10 +150,11 @@ describe('Eagle import summary', () => {
       folders: ['Eagle Looms/site/a', 'Eagle Looms/site/a'],
       itemNameSamples: ['2025-07-08 anime-pictures-908175.png', '2025-07-09 anime-pictures-908176.png'],
       itemNamePolicy: 'date prefix when source date exists',
+      tagSamples: ['copyright:bang dream', 'character:tomori', 'author:soha', 'blue eyes', 'school uniform', 'long hair', 'smile'],
       missingFolderTokens: { copyright: 1, author: 2 },
       folderTokenSamples: { copyright: ['bang dream'], author: ['soha blan', 'soha blan', 'very long artist name that should be shortened in summaries'] },
     };
-    expect(eaglePlanSummary(plan)).toBe('Eagle import plan: library Test Library, selected 3, planned 2, limit 2, omitted 1, will write 1, will skip before writing 1 (duplicates 1), folders Eagle Looms/site/a, writes image items only, item names 2025-07-08 anime-pictures-908175.png | 2025-07-09 anime-pictures-908176.png, name policy date prefix when source date exists, missing folder metadata copyright 1, author 2, folder metadata copyright bang dream; author soha blan | very long artist name that should be..., additional source tags max 20, duplicates skipped.');
+    expect(eaglePlanSummary(plan)).toBe('Eagle import plan: library Test Library, selected 3, planned 2, limit 2, omitted 1, will write 1, will skip before writing 1 (duplicates 1), folders Eagle Looms/site/a, writes image items only, item names 2025-07-08 anime-pictures-908175.png | 2025-07-09 anime-pictures-908176.png, name policy date prefix when source date exists, tags copyright:bang dream | character:tomori | author:soha | blue eyes | school uniform | long hair (+1), missing folder metadata copyright 1, author 2, folder metadata copyright bang dream; author soha blan | very long artist name that should be..., additional source tags max 20, duplicates skipped.');
     expect(eaglePlanSummaryParts(plan)).toEqual([
       'library Test Library',
       'selected 3',
@@ -165,6 +166,7 @@ describe('Eagle import summary', () => {
       'writes image items only',
       'item names 2025-07-08 anime-pictures-908175.png | 2025-07-09 anime-pictures-908176.png',
       'name policy date prefix when source date exists',
+      'tags copyright:bang dream | character:tomori | author:soha | blue eyes | school uniform | long hair (+1)',
       'missing folder metadata copyright 1, author 2',
       'folder metadata copyright bang dream; author soha blan | very long artist name that should be...',
       'additional source tags max 20',

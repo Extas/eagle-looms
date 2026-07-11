@@ -36,6 +36,7 @@ export type EagleImportPlan = {
   folders?: string[];
   itemNameSamples?: string[];
   itemNamePolicy?: string;
+  tagSamples?: string[];
   missingFolderTokens?: Record<string, number>;
   fallbackFolderTokens?: Record<string, number>;
   folderTokenSamples?: Record<string, string[]>;
@@ -46,6 +47,7 @@ const MAX_SUMMARY_FAILURES = 3;
 const MAX_SUMMARY_SKIPPED_ITEMS = 3;
 const MAX_SUMMARY_TOKEN_VALUES = 2;
 const MAX_SUMMARY_ITEM_NAMES = 3;
+const MAX_SUMMARY_TAGS = 6;
 const MAX_COMPACT_FOLDERS = 2;
 
 export function eagleSummary(stats: EagleImportSummaryStats): string {
@@ -175,6 +177,11 @@ export function eaglePlanSummaryParts(plan: EagleImportPlan): string[] {
     parts.push(format(i18n.eaglePlanItemNames.get(), { value: `${itemNames.join(" | ")}${more > 0 ? ` (+${more})` : ""}` }));
   }
   if (writable > 0 && plan.itemNamePolicy) parts.push(format(i18n.eaglePlanNamePolicy.get(), { value: plan.itemNamePolicy }));
+  const tagSamples = unique(plan.tagSamples || []).slice(0, MAX_SUMMARY_TAGS).map(shortValue);
+  if (writable > 0 && tagSamples.length) {
+    const more = unique(plan.tagSamples || []).length - tagSamples.length;
+    parts.push(format(i18n.eaglePlanTagSamples.get(), { value: `${tagSamples.join(" | ")}${more > 0 ? ` (+${more})` : ""}` }));
+  }
   const missingTokens = Object.entries(plan.missingFolderTokens || {})
     .filter(([, count]) => count > 0)
     .map(([token, count]) => `${token} ${count}`);

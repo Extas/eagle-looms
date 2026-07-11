@@ -690,6 +690,7 @@ function eaglePlanOrganization(folderTemplate: string, jobs: EagleImportJob[]) {
   return {
     folders: writable.flatMap(job => job.folderKeys),
     itemNameSamples: itemNameSamples(writable),
+    tagSamples: writable.flatMap(job => job.asset.tags),
     missingFolderTokens: missingFolderTokenCounts(folderTemplate, writable),
     fallbackFolderTokens: fallbackFolderTokenCounts(folderTemplate, writable),
     folderTokenSamples: folderTokenSamples(folderTemplate, writable),

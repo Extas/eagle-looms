@@ -1064,6 +1064,12 @@ pero desactivará la lupa y la capacidad de arrastrar y mover imágenes.`,
     'name policy {value}',
     'regla de nombre {value}',
   ],
+  eaglePlanTagSamples: [
+    'tags {value}',
+    '标签 {value}',
+    'tags {value}',
+    'etiquetas {value}',
+  ],
   eaglePlanMissingFolderMetadata: [
     'missing folder metadata {value}',
     '缺少文件夹元数据 {value}',
