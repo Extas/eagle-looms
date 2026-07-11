@@ -37,12 +37,12 @@ export async function requestText(url: string, options: {
       timeout: options.timeoutMs || 45000,
     });
   }
-  const response = await fetch(url, {
+  const response = await fetchWithTimeout(url, {
     method: options.method || 'GET',
     headers: options.headers,
     body: options.body,
     credentials: 'include',
-  });
+  }, options.timeoutMs || 45000);
   if (!response.ok) throw new Error(`${response.status} ${response.statusText}`);
   return response.text();
 }
@@ -56,7 +56,7 @@ export async function requestArrayBuffer(url: string, headers: Record<string, st
       timeout: 90000,
     });
   }
-  const response = await fetch(url, { credentials: 'include', headers });
+  const response = await fetchWithTimeout(url, { credentials: 'include', headers }, 90000);
   if (!response.ok) throw new Error(`${response.status} ${response.statusText}`);
   return response.arrayBuffer();
 }
@@ -73,6 +73,19 @@ export function arrayBufferToBase64(buffer: ArrayBuffer): string {
 
 function hasGmXhr(): boolean {
   return typeof GM_xmlhttpRequest === 'function';
+}
+
+async function fetchWithTimeout(url: string, init: RequestInit, timeoutMs: number): Promise<Response> {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    return await fetch(url, { ...init, signal: controller.signal });
+  } catch (error) {
+    if (controller.signal.aborted) throw new Error('request timed out');
+    throw error;
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 function gmRequest<T>(url: string, details: {
