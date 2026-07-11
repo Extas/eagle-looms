@@ -73,6 +73,16 @@ describe("ConfigPanel Eagle preview", () => {
     document.body.innerHTML = "";
   });
 
+  it("explains the remaining session protection when Eagle duplicate lookup is disabled", () => {
+    ADAPTER.globalConf.eagleSkipDuplicates = false;
+    ADAPTER.conf = { ...ADAPTER.globalConf };
+
+    const panel = createPanel();
+
+    expect(panel.panel.querySelector("#eagle-config-preview")?.textContent)
+      .toContain(i18n.eagleConfigPreviewAddDuplicates.get());
+  });
+
   it("tests the configured Eagle connection from the preview", async () => {
     probeMock.mockResolvedValue({ app: { version: "4.0.0" }, library: { name: "Test Library" } });
     const panel = createPanel();

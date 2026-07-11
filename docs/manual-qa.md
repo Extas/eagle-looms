@@ -244,6 +244,7 @@ Duplicate behavior:
 ```text
 rerunning import skips exact source/origin/legacy-raw-record/legacy-annotation duplicates
 same-session re-import skips before querying Eagle again
+turning off Skip Eagle Duplicates clearly states that existing-library matches are allowed while same-session repeats remain skipped
 same-plan duplicate stable keys are counted as session skips
 duplicate-only reruns do not create fresh empty destination folders
 multi-file subitems sharing an origin URL are not skipped unless itemKey/stable raw identity also matches

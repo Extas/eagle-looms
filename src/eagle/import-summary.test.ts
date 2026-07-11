@@ -249,6 +249,16 @@ describe('Eagle import summary', () => {
     expect(shouldConfirmImportPlan({ ...basePlan, writable: 1, explicitConfirm: true })).toBe(true);
   });
 
+  it('explains that disabling Eagle lookup does not disable same-session protection', () => {
+    expect(eaglePlanSummaryParts({
+      folderTemplate: 'Eagle Looms/{site}/{date}',
+      sourceTagLimit: 20,
+      skipDuplicates: false,
+      planned: 1,
+      writable: 1,
+    })).toContain('duplicates existing Eagle items allowed; session repeats skipped');
+  });
+
   it('distinguishes copyright preset fallback from missing custom folder metadata', () => {
     expect(eaglePlanSummary({
       folderTemplate: 'Eagle Looms/{site}/{copyright}',

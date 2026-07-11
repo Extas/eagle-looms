@@ -284,3 +284,4 @@ never merge, delete, retag, or update existing items silently
 
 Multi-file subitems with the same origin URL are not treated as duplicates of each other unless their `itemKey` / stable raw identity also matches.
 Likewise, separate images sharing one gallery/post page do not suppress one another during a partial-import retry.
+Disabling `Skip Eagle Duplicates` disables the library lookup only. Same-session and same-plan stable-key skips remain active as a write-safety invariant.
