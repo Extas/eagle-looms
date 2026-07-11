@@ -622,9 +622,14 @@ export function styleCSS() {
 }
 .download-eagle-result-title {
   display: flex;
+  flex-wrap: wrap;
   justify-content: space-between;
   align-items: center;
   gap: 0.8em;
+}
+.download-eagle-result-title strong {
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 .download-eagle-result-body {
   min-height: 0;
@@ -1042,6 +1047,7 @@ export function styleCSS() {
 .ehvp-modal-title {
   font-weight: 700;
   margin-bottom: 0.5em;
+  overflow-wrap: anywhere;
 }
 .ehvp-modal-body {
   text-align: left;
