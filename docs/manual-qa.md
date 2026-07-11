@@ -211,6 +211,7 @@ case-only tag and character-path variants collapse to one visible tag or folder 
 case-only folder paths share the same folder-ID and filename caches, avoiding repeated tree reads and inconsistent same-folder name suffixes
 general raw source tags are copied within the cap
 normal image item annotation is empty / clean
+author annotations contain only unique absolute HTTP(S) links and stop at 20 entries
 no _eagle-looms/Data folder or Eagle Looms raw bookmark item is created by the import
 legacy raw records, if already present from older versions, are only used for duplicate compatibility
 ```

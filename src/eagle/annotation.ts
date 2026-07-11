@@ -4,8 +4,11 @@ export type EagleAnnotationInput = EagleDuplicateAsset & {
   authorUrls?: string[];
 };
 
+const MAX_AUTHOR_URLS = 20;
+const MAX_AUTHOR_URL_LENGTH = 2048;
+
 export function eagleAnnotationForAsset(input: EagleAnnotationInput): string | undefined {
-  const authorUrls = unique(input.authorUrls || []);
+  const authorUrls = validAuthorUrls(input.authorUrls || []);
   if (!input.itemKey && authorUrls.length === 0) return undefined;
 
   const payload: Record<string, unknown> = {
@@ -19,6 +22,26 @@ export function eagleAnnotationForAsset(input: EagleAnnotationInput): string | u
   return JSON.stringify(payload);
 }
 
-function unique(values: string[]): string[] {
-  return [...new Set(values.map(value => value.trim()).filter(Boolean))];
+function validAuthorUrls(values: string[]): string[] {
+  const urls: string[] = [];
+  const seen = new Set<string>();
+
+  for (const value of values) {
+    const raw = value.trim();
+    if (!raw || raw.length > MAX_AUTHOR_URL_LENGTH) continue;
+
+    try {
+      const parsed = new URL(raw);
+      if (parsed.protocol !== "http:" && parsed.protocol !== "https:") continue;
+      const key = parsed.toString();
+      if (seen.has(key)) continue;
+      seen.add(key);
+      urls.push(raw);
+      if (urls.length >= MAX_AUTHOR_URLS) break;
+    } catch {
+      continue;
+    }
+  }
+
+  return urls;
 }

@@ -37,4 +37,24 @@ describe("Eagle annotation", () => {
       authorUrls: ["https://www.pixiv.net/users/42", "https://x.com/artist"],
     });
   });
+
+  it("ignores malformed and non-web author URLs", () => {
+    expect(eagleAnnotationForAsset({
+      ...asset,
+      authorUrls: ["/artist/42", "javascript:alert(1)", "data:text/plain,artist", `https://example.test/${"x".repeat(2048)}`],
+    })).toBeUndefined();
+  });
+
+  it("normalizes duplicate identity and caps author URL metadata", () => {
+    const urls = Array.from({ length: 25 }, (_, index) => `https://example.test/author/${index}`);
+    const annotation = eagleAnnotationForAsset({
+      ...asset,
+      authorUrls: ["https://EXAMPLE.test/author/0", ...urls, "https://other.test/ignored"],
+    });
+
+    expect(JSON.parse(annotation!).authorUrls).toEqual([
+      "https://EXAMPLE.test/author/0",
+      ...urls.slice(1, 20),
+    ]);
+  });
 });
