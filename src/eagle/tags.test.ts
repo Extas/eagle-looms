@@ -73,6 +73,18 @@ describe('Eagle tags', () => {
     )).toEqual(['eagle-looms', 'site:test', 'author:soha blan', 'multi line tag']);
   });
 
+  it('deduplicates tags case-insensitively while preserving the first readable form', () => {
+    expect(normalizeEagleTags(
+      ['source:published:2026-07-11'],
+      ['artist:Artist_Name', 'author:artist_name', 'Blue Eyes', 'blue eyes'],
+      10,
+    )).toEqual([
+      'source:published:2026-07-11',
+      'author:Artist_Name',
+      'Blue Eyes',
+    ]);
+  });
+
   it('removes source-site count suffixes from visible source tags', () => {
     expect(normalizeEagleItemTags([
       'blue eyes (120K)',

@@ -245,14 +245,20 @@ function resolveSingleFolderPath(template: string, tokens: EagleFolderTokens): s
 
 function tokenList(values?: string[], fallback?: string): string[] {
   const source = values?.length ? values : fallback ? [fallback] : [];
-  return [...new Set(source.map(cleanFolderName).filter(Boolean))];
+  const seen = new Set<string>();
+  return source.map(cleanFolderName).filter(value => {
+    const key = value.toLowerCase();
+    if (!value || seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
 }
 
 function uniquePaths(paths: string[][]): string[][] {
   const seen = new Set<string>();
   const unique: string[][] = [];
   for (const path of paths) {
-    const key = path.join("/");
+    const key = path.join("/").toLowerCase();
     if (!key || seen.has(key)) continue;
     seen.add(key);
     unique.push(path);

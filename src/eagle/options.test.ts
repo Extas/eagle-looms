@@ -79,7 +79,7 @@ describe('Eagle options', () => {
       chapter: '',
       copyright: 'bang dream',
       character: 'tomori takamatsu',
-      characters: ['tomori takamatsu', 'anon chihaya'],
+      characters: ['tomori takamatsu', 'Tomori Takamatsu', 'anon chihaya'],
     })).toEqual([
       ['Eagle Looms', 'anime-pictures.net', 'bang dream', 'tomori takamatsu'],
       ['Eagle Looms', 'anime-pictures.net', 'bang dream', 'anon chihaya'],

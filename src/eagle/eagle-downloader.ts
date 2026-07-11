@@ -716,7 +716,13 @@ function tagValues(tags: string[], prefix: "copyright" | "character" | "author")
     .map(tag => cleanFolderTagValue(tag.slice(prefix.length + 1)))
     .filter(Boolean)
     .sort((a, b) => a.length - b.length || a.localeCompare(b));
-  return [...new Set(values)];
+  const seen = new Set<string>();
+  return values.filter(value => {
+    const key = value.toLowerCase();
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
 }
 
 function shortestTagValue(values: string[]): string {

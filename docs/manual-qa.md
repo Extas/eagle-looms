@@ -206,6 +206,7 @@ items have original image url when Eagle preserves it
 visible tags contain source semantic tags only
 items do not force eagle-looms, site:*, gallery:*, chapter:*, ext:*, mime:*, or post:* tags
 copyright/character/author tags are normalized and prioritized within the cap
+case-only tag and character-path variants collapse to one visible tag or folder assignment while preserving the first readable spelling
 general raw source tags are copied within the cap
 normal image item annotation is empty / clean
 no _eagle-looms/Data folder or Eagle Looms raw bookmark item is created by the import

@@ -2,17 +2,24 @@ import type { GalleryMeta } from "../download/gallery-meta";
 import { sourceDatePrefix } from "./naming";
 
 export function normalizeEagleTags(required: string[], source: string[], maxSourceTags: number): string[] {
-  const tags = new Set<string>();
-  required.map(cleanTag).filter(Boolean).forEach(tag => tags.add(tag));
+  const tags: string[] = [];
+  const seen = new Set<string>();
+  const add = (tag: string) => {
+    const key = tag.toLowerCase();
+    if (seen.has(key)) return false;
+    seen.add(key);
+    tags.push(tag);
+    return true;
+  };
+  required.map(cleanTag).filter(Boolean).forEach(add);
   const limit = Number.isFinite(maxSourceTags) ? Math.max(0, Math.floor(maxSourceTags)) : 0;
   let added = 0;
   for (const tag of prioritizedSourceTags(source)) {
     if (added >= limit) break;
-    if (!tag || tags.has(tag)) continue;
-    tags.add(tag);
+    if (!tag || !add(tag)) continue;
     added += 1;
   }
-  return [...tags];
+  return tags;
 }
 
 export function normalizeEagleItemTags(source: string[], maxSourceTags: number): string[] {

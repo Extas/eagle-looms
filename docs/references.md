@@ -26,6 +26,7 @@ src/download/gallery-meta.ts  gallery metadata container
 - Item API: <https://developer.eagle.cool/web-api/api/item>
 - Folder API: <https://developer.eagle.cool/web-api/api/folder>
 - Tag API: <https://developer.eagle.cool/web-api/api/tag>
+- Plugin Tag API: <https://developer.eagle.cool/plugin-api/api/tag>
 - Tag Group API: <https://developer.eagle.cool/web-api/api/tag-group>
 - Library API: <https://developer.eagle.cool/web-api/api/library>
 - App API: <https://developer.eagle.cool/web-api/api/app>
@@ -39,6 +40,7 @@ localhost access does not require a token
 list endpoints are paginated; default limit 50, max limit 1000
 library/info returns the currently open library name and path
 remote API tokens must be kept private and should not be echoed in normal UI status text
+Eagle tag-name filtering is case-insensitive; imports preserve the first readable spelling and avoid case-only duplicates
 item/add accepts base64, url, path, or bookmarkURL plus name, tags, folders, annotation, website
 userscripts should use GM_xmlHttpRequest when page-context fetch is blocked by CORS
 ```

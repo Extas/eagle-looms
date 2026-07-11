@@ -89,6 +89,8 @@ character / char / 角色 / 人物                                              
 author / artist / creator / illustrator / writer / translator / editor / mangaka / group / circle / 作者 / 藝術家 / 社團  -> author:{name}
 ```
 
+Tags and resolved folder paths are deduplicated case-insensitively while preserving the first source spelling. This matches Eagle's case-insensitive tag lookup and prevents case-only source variations from creating duplicate visible tags or repeated folder assignments.
+
 The reliable `source:published:YYYY-MM-DD` metadata tag is preserved independently of the visible source-tag cap. Other reliable source tags are imported as raw tags. The cap defaults to 20 and is clamped to `0..100`; `0` copies no additional source tags. Within the cap, `copyright:`, `character:`, and `author:` are ordered before general visual tags.
 
 Object-shaped source tags extract common display fields such as `name`, `tag`, `tag_en`, `tag_name`, `slug`, `display`, `text`, `display_name`, `name_en`, and `translated_name`; source-provided `translation.en` / `localized.english` style fields are accepted when no direct display field exists; nested `tag`, `tags`, `values`, and `items` containers are flattened. Object-shaped category fields such as `category: { name: "artist" }` or `tag_type: { slug: "copyright" }` are normalized before import.
