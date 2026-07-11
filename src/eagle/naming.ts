@@ -60,7 +60,7 @@ export function buildStructuredEagleName(
   const displayParts = splitExtension(clean);
   const extension = normalizeStructuredExtension(rawExtension) || displayParts.extension || "png";
   const display = safeReservedName(displayParts.stem || fallbackName);
-  const pairs = structuredFieldPairs(fields);
+  const pairs = fitStructuredFieldPairs(structuredFieldPairs(fields), extension);
   if (!pairs.length) return joinName(truncateStem(display, extension), extension);
 
   const capsule = `el${STRUCTURED_NAME_VERSION}[${pairs.map(([key, value]) => `${key}=${value}`).join(";")}]`;
@@ -200,6 +200,23 @@ function structuredFieldPairs(fields: Record<string, unknown>): Array<[string, s
   return [...pairs.entries()].sort(([left], [right]) => structuredKeyRank(left) - structuredKeyRank(right) || left.localeCompare(right));
 }
 
+function fitStructuredFieldPairs(pairs: Array<[string, string]>, extension: string): Array<[string, string]> {
+  const extensionLength = extension ? extension.length + 1 : 0;
+  const envelopeLength = STRUCTURED_NAME_SEPARATOR.length + `el${STRUCTURED_NAME_VERSION}[]`.length;
+  const maxBodyLength = Math.max(0, MAX_EAGLE_ITEM_NAME_LENGTH - extensionLength - envelopeLength - 1);
+  const fitted: Array<[string, string]> = [];
+  let bodyLength = 0;
+  for (const [key, value] of pairs) {
+    const separatorLength = fitted.length ? 1 : 0;
+    const availableValueLength = maxBodyLength - bodyLength - separatorLength - key.length - 1;
+    if (availableValueLength < 1) continue;
+    const fittedValue = value.slice(0, availableValueLength);
+    fitted.push([key, fittedValue]);
+    bodyLength += separatorLength + key.length + 1 + fittedValue.length;
+  }
+  return fitted;
+}
+
 function normalizeStructuredKey(value: string): string {
   const key = value.trim().toLowerCase().replace(/[^a-z0-9-]+/g, "-").replace(/^-+|-+$/g, "");
   return STRUCTURED_NAME_KEY_RE.test(key) ? key : "";
@@ -258,7 +275,9 @@ function safeReservedName(stem: string): string {
 function truncateStem(stem: string, extension: string, suffix = ""): string {
   const extensionLength = extension ? extension.length + 1 : 0;
   const maxStemLength = Math.max(1, MAX_EAGLE_ITEM_NAME_LENGTH - extensionLength - suffix.length);
-  return stem.length > maxStemLength ? stem.slice(0, maxStemLength).replace(/[. ]+$/g, "") : stem;
+  const truncated = stem.length > maxStemLength ? stem.slice(0, maxStemLength) : stem;
+  const clean = truncated.replace(/[. ]+$/g, "");
+  return clean || "image".slice(0, maxStemLength);
 }
 
 function joinName(stem: string, extension: string, suffix = ""): string {

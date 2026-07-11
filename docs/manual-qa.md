@@ -200,6 +200,7 @@ After import, inspect Eagle:
 
 ```text
 item names use source identity, without generated 001_ order prefixes
+pathological punctuation-only titles and extensible structured names remain non-empty and at most 180 characters
 default MyGO folder resolves under Eagle Looms/anime-pictures.net/YYYY-MM-DD
 items have website pointing to source post URL
 items have original image url when Eagle preserves it

@@ -31,6 +31,7 @@ describe('Eagle item naming', () => {
     expect(normalizeEagleItemName('CON.png')).toBe('CON_.png');
     expect(normalizeEagleItemName('ＡＢＣ\u200b\u0007.png')).toBe('ABC.png');
     expect(normalizeEagleItemName('a'.repeat(220) + '.webp')).toHaveLength(180);
+    expect(normalizeEagleItemName('.'.repeat(220) + '.jpg')).toBe('image.jpg');
   });
 
   it('deduplicates case-insensitively while preserving readable copy suffixes', () => {
@@ -86,6 +87,25 @@ describe('Eagle item naming', () => {
     expect(name).toHaveLength(180);
     expect(name.endsWith(' -- el1[tool=novelai;at=20260617T001403Z;seq=02;src=SRC1].png')).toBe(true);
     expect(parseStructuredEagleName(name)?.fields.src).toBe('SRC1');
+  });
+
+  it('bounds extensible structured fields without producing an empty display stem', () => {
+    const name = buildStructuredEagleName('.'.repeat(260), 'png', {
+      tool: 'novelai',
+      at: '20260617T001403Z',
+      seq: '01',
+      src: 'S'.repeat(200),
+      prompt: 'P'.repeat(200),
+      'very-long-extra-field-name': 'E'.repeat(200),
+    });
+    const parsed = parseStructuredEagleName(name);
+
+    expect(name.length).toBeLessThanOrEqual(180);
+    expect(parsed).toBeDefined();
+    expect(parsed?.display).toBe('i');
+    expect(parsed?.fields.tool).toBe('novelai');
+    expect(parsed?.fields.at).toBe('20260617T001403Z');
+    expect(parsed?.fields.seq).toBe('01');
   });
 
   it('treats malformed structured-looking tails as ordinary names', () => {

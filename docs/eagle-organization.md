@@ -219,6 +219,7 @@ Arcalive
 ## Item Names
 
 Names are display labels, not duplicate identity.
+All names retain a non-empty display stem and stay within the 180-character limit, including structured tool capsules with future extension fields.
 
 Rules:
 
