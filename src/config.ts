@@ -266,11 +266,9 @@ export type SiteConfig = Partial<Config> & SiteProfile;
 
 export function getConf(): Config {
   const cfgStr = storage.getItem(CONFIG_KEY);
-  if (cfgStr) {
-    let cfg: Config = JSON.parse(cfgStr);
-    if (cfg.version === CONF_VERSION) {
-      return confHealthCheck(cfg);
-    }
+  const stored = parseStoredObject<Config>(cfgStr);
+  if (stored?.version === CONF_VERSION) {
+    return confHealthCheck(stored);
   }
   const cfg = defaultConf();
   saveConf(cfg);
@@ -278,9 +276,14 @@ export function getConf(): Config {
 }
 
 export function getSiteConfig(name: string): SiteConfig {
-  const cfgStr = storage.getItem(getConfigKey(name));
+  const configKey = getConfigKey(name);
+  const cfgStr = storage.getItem(configKey);
   if (!cfgStr) return {}
-  const cfg = JSON.parse(cfgStr) as SiteConfig;
+  const cfg = parseStoredObject<SiteConfig>(cfgStr);
+  if (!cfg) {
+    storage.setItem(configKey, "");
+    return {};
+  }
   if (patchSiteConfig(cfg)) saveConf(cfg, name);
   return cfg;
 }
@@ -506,10 +509,11 @@ export function resetConf(name?: string) {
 export function saveConf(c: SiteConfig, name?: string) {
   const configKey = getConfigKey(name);
   const raw = storage.getItem(configKey);
-  const config = raw ? JSON.parse(raw) : {};
-  ["selectedSiteNameConfig"].forEach(key => delete config[key]);
+  const config = parseStoredObject<Record<string, unknown>>(raw) || {};
+  delete config.selectedSiteNameConfig;
   if (name) {
-    ["keyboards", "siteProfiles"].forEach(key => delete config[key]);
+    delete config.keyboards;
+    delete config.siteProfiles;
   }
   const next = { ...config, ...c };
   if (name) next.configPatchVersion = CURRENT_CONFIG_PATCH_VERSION;
@@ -519,10 +523,20 @@ export function saveConf(c: SiteConfig, name?: string) {
 export function clearSiteConfigKeys(name: string, keys: readonly (keyof Config)[]): SiteConfig {
   const configKey = getConfigKey(name);
   const raw = storage.getItem(configKey);
-  const config = raw ? JSON.parse(raw) as SiteConfig : {};
+  const config = parseStoredObject<SiteConfig>(raw) || {};
   keys.forEach(key => delete config[key]);
   storage.setItem(configKey, JSON.stringify(config));
   return config;
+}
+
+function parseStoredObject<T extends object>(raw: string | null): T | undefined {
+  if (!raw) return undefined;
+  try {
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed as T : undefined;
+  } catch {
+    return undefined;
+  }
 }
 
 function getConfigKey(name?: string) {

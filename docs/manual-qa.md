@@ -93,6 +93,7 @@ switching between global and site config keeps exactly one Eagle import preview
 site-specific Eagle overrides can be cleared back to global values without resetting unrelated site settings
 clearing site-specific Eagle overrides requires confirmation and Cancel leaves stored settings unchanged
 settings persist after reload
+damaged or non-object stored configuration recovers to valid defaults instead of preventing the userscript from opening
 manual folder path edits switch preset to Custom path
 matching saved paths infer the correct built-in preset
 unknown custom folder tokens show a warning and block import before Eagle connection or folder creation

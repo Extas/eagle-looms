@@ -372,4 +372,27 @@ describe("config migrations", () => {
     expect(siteConfig.eagleFolderPath).toBeUndefined();
     expect(siteConfig.colCount).toBe(9);
   });
+
+  it("recovers the global configuration when stored JSON is damaged", () => {
+    storage.set(CONFIG_KEY, "{not-json");
+
+    const recovered = getConf();
+    const { id: recoveredId, ...recoveredValues } = recovered;
+    const { id: _defaultId, ...defaultValues } = defaultConf();
+
+    expect(recoveredValues).toEqual(defaultValues);
+    expect(recoveredId).toBeTruthy();
+    expect(() => JSON.parse(storage.get(CONFIG_KEY)!)).not.toThrow();
+  });
+
+  it("recovers site settings from malformed or non-object stored values", () => {
+    const key = siteConfigKey("Twitter | X");
+    storage.set(key, "{not-json");
+    expect(getSiteConfig("Twitter | X")).toEqual({});
+    expect(storage.get(key)).toBe("");
+
+    storage.set(key, "[]");
+    saveConf({ eagleMaxSourceTags: 7 }, "Twitter | X");
+    expect(getSiteConfig("Twitter | X").eagleMaxSourceTags).toBe(7);
+  });
 });
