@@ -679,6 +679,46 @@ describe('Eagle downloader duplicate checks', () => {
     clearSessionImportedAssets();
   });
 
+  it('reuses resolved folder ids across case-only path variants', async () => {
+    const getFolders = vi.fn().mockResolvedValue([{
+      id: 'root',
+      name: 'Eagle Looms',
+      children: [{
+        id: 'site',
+        name: 'Site',
+        children: [{ id: 'series', name: 'Series', children: [] }],
+      }],
+    }]);
+    const api = {
+      baseUrl: 'http://localhost:41595',
+      getFolders,
+      createFolder: vi.fn(),
+    };
+    const downloader = Object.assign(Object.create(EagleDownloader.prototype), {
+      importStopRequested: false,
+    }) as any;
+    const folderIds = new Map<string, string>();
+    const stats = {
+      folders: [],
+      folderLinks: [],
+    };
+
+    const first = await downloader.folderIdsForJob(api, folderIds, {
+      folderPaths: [['Eagle Looms', 'Site', 'Series']],
+      folderKeys: ['Eagle Looms/Site/Series'],
+    }, stats);
+    const second = await downloader.folderIdsForJob(api, folderIds, {
+      folderPaths: [['Eagle Looms', 'site', 'series']],
+      folderKeys: ['Eagle Looms/site/series'],
+    }, stats);
+
+    expect(first).toEqual(['series']);
+    expect(second).toEqual(['series']);
+    expect(getFolders).toHaveBeenCalledTimes(1);
+    expect(api.createFolder).not.toHaveBeenCalled();
+    expect(folderIds).toEqual(new Map([['eagle looms/site/series', 'series']]));
+  });
+
   it('stops after folder resolution without submitting the item write', async () => {
     ADAPTER.conf = defaultConf();
     const downloader = Object.assign(Object.create(EagleDownloader.prototype), {

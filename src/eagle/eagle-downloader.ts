@@ -512,11 +512,12 @@ export class EagleDownloader extends Downloader {
       this.assertImportActive();
       const folderPath = job.folderPaths[i];
       const folderKey = job.folderKeys[i];
-      let folderId = folderIds.get(folderKey);
+      const cacheKey = folderIdentityKey(folderKey);
+      let folderId = folderIds.get(cacheKey);
       if (!folderId) {
         folderId = await ensureFolderPath(api, folderPath);
         this.assertImportActive();
-        folderIds.set(folderKey, folderId);
+        folderIds.set(cacheKey, folderId);
       }
       recordUniqueLink(stats.folderLinks, folderKey, eagleFolderUrl(api, folderId));
       ids.push(folderId);
@@ -730,12 +731,17 @@ function shortestTagValue(values: string[]): string {
 }
 
 function usedNamesForFolder(folderNames: Map<string, Set<string>>, folderKey: string): Set<string> {
-  let usedNames = folderNames.get(folderKey);
+  const cacheKey = folderIdentityKey(folderKey);
+  let usedNames = folderNames.get(cacheKey);
   if (!usedNames) {
     usedNames = new Set<string>();
-    folderNames.set(folderKey, usedNames);
+    folderNames.set(cacheKey, usedNames);
   }
   return usedNames;
+}
+
+function folderIdentityKey(folderKey: string): string {
+  return folderKey.toLowerCase();
 }
 
 function applySkippedJob(stats: EagleImportStats, reason: EagleImportSkipReason, name: string): void {
