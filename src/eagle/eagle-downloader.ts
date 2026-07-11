@@ -18,6 +18,7 @@ import { eaglePlanCompactParts, eaglePlanCompactSummary, eaglePlanHeadline, eagl
 import { createEagleItemName, localDatePrefix, normalizeEagleItemNameWithDatePrefix } from "./naming";
 import { i18n } from "../utils/i18n";
 import { eagleAnnotationForAsset } from "./annotation";
+import { twitterEagleItemBaseName } from "./adapters/twitter";
 import pLimit from "p-limit";
 
 const FILENAME_INVALIDCHAR = /[\\/:*?"<>|\n\t]/g;
@@ -354,8 +355,8 @@ export class EagleDownloader extends Downloader {
     for (let i = 0; i < chapter.filteredQueue.length; i++) {
       const imf = chapter.filteredQueue[i];
       if (!picked.picked(i) || !isReadyForEagleImport(imf)) continue;
-      const baseName = [directory, imf.node.title].filter(Boolean).join(" - ");
       const sourceTags = eagleSourceTags(imf, meta);
+      const baseName = twitterEagleItemBaseName(directory, imf.node.title, imf.node.href, sourceTags);
       const tags = normalizeEagleItemTags(sourceTags, ADAPTER.conf.eagleMaxSourceTags);
       const folderTags = normalizeEagleTags([], semanticSourceTags(sourceTags), 1000);
       const common = {

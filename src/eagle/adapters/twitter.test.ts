@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { twitterEagleAuthorUrls, twitterEagleSourceTags, twitterItemAuthorUrls, twitterItemPublishedAt, twitterItemSourceTags } from "./twitter";
+import { twitterEagleAuthorUrls, twitterEagleItemBaseName, twitterEagleSourceTags, twitterItemAuthorUrls, twitterItemPublishedAt, twitterItemSourceTags } from "./twitter";
 
 describe("Twitter Eagle metadata adapter", () => {
   it("normalizes authors through the shared Eagle namespace rule", () => {
@@ -38,6 +38,22 @@ describe("Twitter Eagle metadata adapter", () => {
     expect(twitterItemSourceTags(item)).toEqual(["author:artist", "mygo"]);
     expect(twitterItemAuthorUrls(item)).toEqual(["https://x.com/artist"]);
     expect(twitterItemPublishedAt(item)).toBe("Thu Oct 11 20:19:24 +0000 2018");
+  });
+
+  it("uses the source author instead of the generic User Media name prefix", () => {
+    expect(twitterEagleItemBaseName(
+      "User Media",
+      "2075580226034434048-HM3xN_ubgAA6Hh5.jpg",
+      "https://x.com/Tsurumi_vov/status/2075580242895528190/photo/1",
+      ["author:Tsurumi_vov", "fanart"],
+    )).toBe("Tsurumi_vov - 2075580226034434048-HM3xN_ubgAA6Hh5.jpg");
+  });
+
+  it("keeps upstream naming for other sites and Twitter items without an author", () => {
+    expect(twitterEagleItemBaseName("Gallery", "image.jpg", "https://example.test/post/1", ["author:artist"]))
+      .toBe("Gallery - image.jpg");
+    expect(twitterEagleItemBaseName("User Media", "image.jpg", "https://x.com/user/status/1/photo/1", []))
+      .toBe("User Media - image.jpg");
   });
 });
 

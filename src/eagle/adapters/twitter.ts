@@ -95,6 +95,16 @@ export function twitterItemPublishedAt(item: TwitterEagleItem): string {
     .find(Boolean) || "";
 }
 
+export function twitterEagleItemBaseName(directory: string, title: string, sourceUrl: string, sourceTags: string[]): string {
+  const fallback = [directory, title].filter(Boolean).join(" - ");
+  if (!isTwitterSourceUrl(sourceUrl)) return fallback;
+  const author = sourceTags
+    .find(tag => tag.trim().toLowerCase().startsWith("author:"))
+    ?.slice("author:".length)
+    .trim();
+  return [author || directory, title].filter(Boolean).join(" - ");
+}
+
 function twitterEagleAuthorTag(screenName: unknown): string {
   return sourceMetadataTag("author", cleanTwitterScreenName(screenName));
 }
@@ -154,4 +164,13 @@ function cleanTwitterTag(value: unknown): string {
     .replace(/\s+/g, " ")
     .trim()
     .slice(0, 120);
+}
+
+function isTwitterSourceUrl(value: string): boolean {
+  try {
+    const host = new URL(value).hostname.toLowerCase();
+    return host === "x.com" || host.endsWith(".x.com") || host === "twitter.com" || host.endsWith(".twitter.com");
+  } catch {
+    return false;
+  }
 }

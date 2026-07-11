@@ -249,6 +249,7 @@ Folder naming behavior:
 ```text
 Twitter / X home folders use twitter-home-YYYY-MM-DD instead of parsed post/media counts
 Twitter / X user timelines use twitter-user-YYYY-MM-DD without the author name; list timelines include list identity plus local date
+Twitter / X item names use the media-bearing source author instead of generic User Media chapter text
 booru search/gallery fallback folders use semantic source labels and never parsed result counts
 anime-pictures detail pages do not use post id as gallery/folder fallback; post id stays item/source identity
 ArtStation user folders use artstation-{username}, without project/asset counters

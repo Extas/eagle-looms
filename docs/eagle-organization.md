@@ -226,6 +226,7 @@ Rules:
 ```text
 preserve source identity names such as anime-pictures-917184.png
 prefix item names with YYYY-MM-DD when the source publish/upload date is available
+use the source author for Twitter/X item prefixes instead of generic User Media chapter text
 do not add Comic Looms zip order prefixes such as 001_
 decode common URL and HTML noise
 normalize Unicode with NFKC
