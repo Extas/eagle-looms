@@ -623,6 +623,13 @@ describe('Eagle downloader duplicate checks', () => {
       originUrl: 'https://img.example.test/writable.jpg',
       folderTokens: { site: 'site', gallery: '', chapter: '', copyright: 'new work' },
     };
+    const omittedAsset = {
+      ...eagleAsset('omitted.jpg'),
+      tags: ['copyright:later work', 'later tag'],
+      sourceUrl: 'https://example.test/posts/omitted',
+      originUrl: 'https://img.example.test/omitted.jpg',
+      folderTokens: { site: 'site', gallery: '', chapter: '', copyright: 'later work' },
+    };
     const jobs = [
       {
         asset: skippedAsset,
@@ -636,6 +643,12 @@ describe('Eagle downloader duplicate checks', () => {
         folderKeys: ['Eagle Looms/site/new work'],
         folderKey: 'Eagle Looms/site/new work',
       },
+      {
+        asset: omittedAsset,
+        folderPaths: [['Eagle Looms', 'site', 'later work']],
+        folderKeys: ['Eagle Looms/site/later work'],
+        folderKey: 'Eagle Looms/site/later work',
+      },
     ];
     const panel = {
       flushUI: vi.fn(),
@@ -647,12 +660,12 @@ describe('Eagle downloader duplicate checks', () => {
       panel,
       pageFetcher: { chapters: [chapter] },
       meta: vi.fn().mockReturnValue({}),
-      assetsForChapter: vi.fn().mockReturnValue([skippedAsset, writableAsset]),
+      assetsForChapter: vi.fn().mockReturnValue([skippedAsset, writableAsset, omittedAsset]),
       jobForAsset: vi.fn((_: string, asset: typeof skippedAsset) => jobs.find(job => job.asset === asset)),
       preflightJobs: vi.fn().mockImplementation(async (_api, plannedJobs) => {
         plannedJobs[0].skipReason = 'duplicate';
         plannedJobs.forEach((job: { preflightChecked?: boolean }) => { job.preflightChecked = true; });
-        return { writable: 1, sessionSkipped: 0, duplicateSkipped: 1, failed: 0 };
+        return { writable: 2, sessionSkipped: 0, duplicateSkipped: 1, failed: 0 };
       }),
       writeJob: vi.fn(),
       abort: vi.fn(),
@@ -663,6 +676,7 @@ describe('Eagle downloader duplicate checks', () => {
       ...defaultConf(),
       eagleFolderPath: 'Eagle Looms/{site}/{copyright}',
       eagleConfirmMode: 'always',
+      eagleImportLimit: 1,
     };
     eagleProbeMock.mockReset();
     eagleProbeMock.mockResolvedValue({ library: { name: 'Test Library', path: 'D:/Test.library' } });
@@ -672,10 +686,13 @@ describe('Eagle downloader duplicate checks', () => {
     expect(panel.confirmEagleImportPlan).toHaveBeenCalledTimes(1);
     const [compact, , details] = panel.confirmEagleImportPlan.mock.calls[0];
     expect(compact.join(' ')).toContain('Eagle Looms/site/new work');
+    expect(compact.join(' ')).toContain('limit 1, omitted 1');
     expect(compact.join(' ')).not.toContain('Eagle Looms/site/old work');
+    expect(compact.join(' ')).not.toContain('Eagle Looms/site/later work');
     expect(details.join(' ')).toContain('copyright new work');
     expect(details.join(' ')).toContain('tags copyright:new work | new tag');
     expect(details.join(' ')).not.toContain('old work');
+    expect(details.join(' ')).not.toContain('later work');
     expect((downloader as any).writeJob).not.toHaveBeenCalled();
   });
 

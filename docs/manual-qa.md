@@ -120,6 +120,7 @@ Import loaded only uses the same Eagle preflight, confirmation, duplicate handli
 Eagle preflight checks duplicates and resolves destination folders before writing
 preflight stage shows Checking Eagle 0/N through N/N on the primary import action while duplicate queries run
 Eagle Import Limit caps new writes after duplicate preflight; duplicate/session-skipped items do not consume the write quota
+the same import limit applies when Import current to Eagle expands one logical item into multiple files
 writing stage shows current progress, such as Writing to Eagle 2/6, on the primary import action
 auto confirmation mode skips the confirmation when will-write is less than or equal to the configured threshold and there are no preflight failures or import-limit omissions
 with the default auto threshold, 1-image and 3-image imports write directly after preflight

@@ -287,20 +287,28 @@ export class EagleDownloader extends Downloader {
       stats.selected = assets.length;
       stats.planned = assets.length;
       if (assets.length === 0) throw new Error(i18n.eagleImportCurrentNotReady.get());
-      const jobs = assets.map(asset => this.jobForAsset(folderTemplate, asset));
-      const preflight = await this.preflightJobs(api, jobs, runId);
+      const selectedJobs = assets.map(asset => this.jobForAsset(folderTemplate, asset));
+      const preflight = await this.preflightJobs(api, selectedJobs, runId);
       this.assertImportActive(runId);
+      const importPlan = limitWritableImportJobs(selectedJobs, ADAPTER.conf.eagleImportLimit);
+      const jobs = importPlan.jobs;
+      stats.selected = importPlan.selected;
+      stats.omittedByLimit = importPlan.omittedByLimit;
+      stats.planned = jobs.length;
       prepareWritableJobNames(jobs);
       const organization = eaglePlanOrganization(folderTemplate, jobs);
       const plan = {
         folderTemplate,
         libraryName,
+        importLimit: importPlan.limit,
         sourceTagLimit: ADAPTER.conf.eagleMaxSourceTags,
         skipDuplicates: ADAPTER.conf.eagleSkipDuplicates,
         confirmMode: ADAPTER.conf.eagleConfirmMode,
         confirmThreshold: ADAPTER.conf.eagleConfirmThreshold,
+        selected: importPlan.selected,
         planned: jobs.length,
-        writable: preflight.writable,
+        omittedByLimit: importPlan.omittedByLimit,
+        writable: importPlan.writable,
         sessionSkipped: preflight.sessionSkipped,
         duplicateSkipped: preflight.duplicateSkipped,
         preflightFailed: preflight.failed,
@@ -315,16 +323,16 @@ export class EagleDownloader extends Downloader {
           return;
         }
       }
-      if (preflight.writable > 0) await assertEagleLibraryUnchanged(api, connection.library);
+      if (importPlan.writable > 0) await assertEagleLibraryUnchanged(api, connection.library);
       let writeIndex = 0;
       for (const job of jobs) {
         if (!this.downloading || this.importStopRequested) {
           cancelled = true;
           return;
         }
-        if (!job.skipReason && !job.preflightError && preflight.writable > 0) {
+        if (!job.skipReason && !job.preflightError && importPlan.writable > 0) {
           writeIndex += 1;
-          this.panel.setImportProgress(i18n.eagleImportWritingToEagle.get(), writeIndex, preflight.writable);
+          this.panel.setImportProgress(i18n.eagleImportWritingToEagle.get(), writeIndex, importPlan.writable);
         }
         await this.writeJob(api, folderIds, job, stats, usedNamesForFolder(folderNames, job.folderKey), runId);
       }
