@@ -448,6 +448,28 @@ describe('Eagle downloader duplicate checks', () => {
     })).rejects.toThrow('Library A');
   });
 
+  it('does not report a Windows library switch for equivalent path spelling', async () => {
+    const api = {
+      libraryInfo: vi.fn().mockResolvedValue({ name: 'Library A', path: 'd:/personaldata/eaglelib/library.library', folders: [] }),
+    };
+
+    await expect(assertEagleLibraryUnchanged(api as any, {
+      name: 'Library A',
+      path: 'D:\\PersonalData\\EagleLib\\Library.library\\',
+    })).resolves.toBeUndefined();
+  });
+
+  it('keeps POSIX library path comparison case-sensitive', async () => {
+    const api = {
+      libraryInfo: vi.fn().mockResolvedValue({ name: 'Library A', path: '/Users/name/eagle/library.library', folders: [] }),
+    };
+
+    await expect(assertEagleLibraryUnchanged(api as any, {
+      name: 'Library A',
+      path: '/Users/Name/Eagle/Library.library',
+    })).rejects.toThrow('Library A');
+  });
+
   it('writes collected author URLs into Eagle item annotations', () => {
     const input = toAddItemInput({
       ...eagleAsset('artist.jpg'),

@@ -115,6 +115,7 @@ chapter titles in the range selector render as plain text, even when the source 
 Config preview makes Eagle API URL, folder template, duplicate policy, source tag cap, and config scope visible before import
 every import preflight summary identifies the currently open target Eagle library, including auto-confirmed small imports
 if Eagle switches libraries during duplicate checking or confirmation, the importer stops before creating folders or items and asks the user to retry
+Windows library-path case, slash direction, and trailing separators do not produce a false library-switch warning
 Load missing & import loads selected gray missing images first, then writes loaded images to Eagle
 Import loaded only uses the same Eagle preflight, confirmation, duplicate handling, and stop behavior as Load missing & import, but only writes green loaded images and does not fetch additional images
 Eagle preflight checks duplicates and resolves destination folders before writing

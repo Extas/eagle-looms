@@ -631,13 +631,23 @@ export async function assertEagleLibraryUnchanged(api: EagleWebApi, initial: unk
   if (!initialPath && !initialName) return;
   const current = await api.libraryInfo();
   const changed = initialPath && current.path
-    ? initialPath !== current.path
+    ? !sameEagleLibraryPath(initialPath, current.path)
     : Boolean(initialName && current.name && initialName !== current.name);
   if (!changed) return;
   throw new Error(format(i18n.eagleImportLibraryChanged.get(), {
     before: initialName || i18n.eagleConfigUnknownLibrary.get(),
     after: current.name || i18n.eagleConfigUnknownLibrary.get(),
   }));
+}
+
+function sameEagleLibraryPath(left: string, right: string): boolean {
+  const normalize = (value: string) => value.trim().replace(/\\/g, "/").replace(/\/+$/g, "");
+  const normalizedLeft = normalize(left);
+  const normalizedRight = normalize(right);
+  const windowsPath = /^[a-z]:\//i.test(normalizedLeft) || normalizedLeft.startsWith("//");
+  return windowsPath
+    ? normalizedLeft.toLowerCase() === normalizedRight.toLowerCase()
+    : normalizedLeft === normalizedRight;
 }
 
 export function eagleImportResultLinks(stats: Pick<EagleImportStats, "imported" | "folderLinks" | "itemLinks">): EagleImportResultLink[] {
