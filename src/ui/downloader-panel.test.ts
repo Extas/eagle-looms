@@ -327,6 +327,28 @@ describe("DownloaderPanel Eagle import confirmation", () => {
     expect(panel.eagleResultElement.querySelector<HTMLButtonElement>('[data-action="copy"]')?.textContent).toBe(i18n.eagleImportResultCopied.get());
   });
 
+  it("falls back when Clipboard API rejects because the page is not focused", async () => {
+    const panel = createPanel();
+    const writeText = vi.fn().mockRejectedValue(new DOMException("Document is not focused", "NotAllowedError"));
+    const execCommand = vi.fn().mockReturnValue(true);
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      value: { writeText },
+    });
+    Object.defineProperty(document, "execCommand", {
+      configurable: true,
+      value: execCommand,
+    });
+
+    panel.showEagleImportResult(["imported 1"], false);
+    panel.eagleResultElement.querySelector<HTMLButtonElement>('[data-action="copy"]')?.click();
+    await vi.waitFor(() => expect(execCommand).toHaveBeenCalledWith("copy"));
+
+    expect(writeText).toHaveBeenCalledOnce();
+    expect(document.querySelector("textarea")).toBeNull();
+    expect(panel.eagleResultElement.querySelector<HTMLButtonElement>('[data-action="copy"]')?.textContent).toBe(i18n.eagleImportResultCopied.get());
+  });
+
   it("keeps result actions outside the scrollable detail body", () => {
     const panel = createPanel();
     const details = Array.from({ length: 30 }, (_, index) => `failure ${index + 1}`);

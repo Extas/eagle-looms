@@ -489,22 +489,27 @@ function eagleImportPlanText(details: string[], headline?: string): string {
 }
 
 async function copyText(value: string): Promise<boolean> {
-  try {
-    if (navigator.clipboard?.writeText) {
+  if (navigator.clipboard?.writeText) {
+    try {
       await navigator.clipboard.writeText(value);
       return true;
+    } catch {
+      // Clipboard API can reject when the page loses focus; use the browser fallback below.
     }
-    const textArea = document.createElement("textarea");
+  }
+
+  const textArea = document.createElement("textarea");
+  try {
     textArea.value = value;
     textArea.style.position = "fixed";
     textArea.style.left = "-9999px";
     document.body.appendChild(textArea);
     textArea.select();
-    const ok = document.execCommand?.("copy") ?? false;
-    textArea.remove();
-    return ok;
+    return document.execCommand?.("copy") ?? false;
   } catch {
     return false;
+  } finally {
+    textArea.remove();
   }
 }
 
