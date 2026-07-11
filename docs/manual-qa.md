@@ -162,6 +162,7 @@ right click / context menu Import current to Eagle reports missing current-image
 import panel keeps the latest Eagle import result visible until the user clears it or starts a new import
 import result panel can copy counts, skipped/failure details, and destination folder links for troubleshooting
 long import result details scroll inside the result body while Clear and Copy remain visible
+import results and confirmation dialogs stay inside their panel or viewport when padding is applied on narrow layouts
 failure details copied from the result panel use the current UI language for Eagle connection, timeout, missing image, canceled, and skipped-reason labels
 Eagle connection failures point users to start Eagle, check the Eagle API URL, and use Config > Test Eagle
 native fetch fallback requests time out with the same diagnosis as userscript GM requests instead of waiting indefinitely

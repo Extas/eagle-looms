@@ -603,6 +603,7 @@ export function styleCSS() {
   width: 100%;
 }
 .download-eagle-result {
+  box-sizing: border-box;
   width: calc(100% - 1em);
   max-height: min(18em, 45vh);
   overflow: hidden;
@@ -1020,6 +1021,7 @@ export function styleCSS() {
   color: rgb(120, 240, 80) !important;
 }
 .ehvp-modal {
+  box-sizing: border-box;
   position: fixed;
   z-index: 4100;
   max-width: min(42em, 92vw);
