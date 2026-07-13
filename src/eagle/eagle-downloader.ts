@@ -194,6 +194,7 @@ export class EagleDownloader extends Downloader {
       };
       EBUS.emit("notify-message", "info", eaglePlanCompactSummary(plan), 8000);
       if (shouldConfirmImportPlan(plan)) {
+        this.panel.setImportProgress(i18n.eagleImportConfirmTitle.get());
         const confirmed = await this.panel.confirmEagleImportPlan(eaglePlanCompactParts(plan), eaglePlanHeadline(plan), eaglePlanSummaryParts(plan));
         if (!confirmed) {
           cancelled = true;
@@ -318,6 +319,7 @@ export class EagleDownloader extends Downloader {
       };
       EBUS.emit("notify-message", "info", eaglePlanCompactSummary(plan), 5000);
       if (shouldConfirmImportPlan(plan)) {
+        this.panel.setImportProgress(i18n.eagleImportConfirmTitle.get());
         const confirmed = await this.panel.confirmEagleImportPlan(eaglePlanCompactParts(plan), eaglePlanHeadline(plan), eaglePlanSummaryParts(plan));
         if (!confirmed) {
           cancelled = true;

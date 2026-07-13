@@ -723,6 +723,7 @@ describe('Eagle downloader duplicate checks', () => {
     await downloader.importOne(0, 0);
 
     expect(panel.confirmEagleImportPlan).toHaveBeenCalledTimes(1);
+    expect(panel.setImportProgress).toHaveBeenCalledWith(i18n.eagleImportConfirmTitle.get());
     const [compact, , details] = panel.confirmEagleImportPlan.mock.calls[0];
     expect(compact.join(' ')).toContain('Eagle Looms/site/new work');
     expect(compact.join(' ')).toContain('limit 1, omitted 1');
