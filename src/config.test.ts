@@ -385,6 +385,17 @@ describe("config migrations", () => {
     expect(() => JSON.parse(storage.get(CONFIG_KEY)!)).not.toThrow();
   });
 
+  it("fills newly added upstream settings in an existing global configuration", () => {
+    const config = defaultConf();
+    delete (config as Partial<typeof config>).maxPreloadDistance;
+    storage.set(CONFIG_KEY, JSON.stringify(config));
+
+    const recovered = getConf();
+
+    expect(recovered.maxPreloadDistance).toBe(0);
+    expect(JSON.parse(storage.get(CONFIG_KEY) || "{}").maxPreloadDistance).toBe(0);
+  });
+
   it("recovers site settings from malformed or non-object stored values", () => {
     const key = siteConfigKey("Twitter | X");
     storage.set(key, "{not-json");
