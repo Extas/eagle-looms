@@ -10,6 +10,7 @@ const MAX_AUTHOR_URL_LENGTH = 2048;
 export function eagleAnnotationForAsset(input: EagleAnnotationInput): string | undefined {
   const authorUrls = validAuthorUrls(input.authorUrls || []);
   if (!input.itemKey && authorUrls.length === 0) return undefined;
+  if (!input.itemKey) return authorUrls.join("\n");
 
   const payload: Record<string, unknown> = {
     schema: "eagle-looms/item/v1",

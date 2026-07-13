@@ -46,7 +46,7 @@ website    source page URL, shown by Eagle as the item link
 url        original image URL submitted to V2; Eagle may normalize or preserve it
 folders    resolved Eagle folder IDs; multiple folders are allowed
 tags       capped source semantic tags only
-annotation compact source/original/subitem/author URL metadata only when needed
+annotation readable author URLs only; machine identity only for multi-file subitems
 ```
 
 普通图片 item 不强制写 `eagle-looms`、`site:*`、`gallery:*`、`chapter:*`、`ext:*`、`mime:*`、`post:*` 这类重复信息，也默认不写长 annotation。导入只创建正常图片资产和必要文件夹，不额外创建 `_eagle-looms` 这类 bookmark / raw record 资产污染资料库。旧版本 raw record 仍只读兼容，用于识别历史导入重复项。

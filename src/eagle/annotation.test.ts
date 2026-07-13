@@ -23,19 +23,13 @@ describe("Eagle annotation", () => {
     });
   });
 
-  it("keeps author URLs with the same stable identity envelope", () => {
+  it("keeps author URLs readable without exposing a machine identity envelope", () => {
     const annotation = eagleAnnotationForAsset({
       ...asset,
       authorUrls: [" https://www.pixiv.net/users/42 ", "https://www.pixiv.net/users/42", "https://x.com/artist"],
     });
 
-    expect(JSON.parse(annotation!)).toEqual({
-      schema: "eagle-looms/item/v1",
-      sourceUrl: asset.sourceUrl,
-      originUrl: asset.originUrl,
-      stableKey: stableKeyForAsset(asset),
-      authorUrls: ["https://www.pixiv.net/users/42", "https://x.com/artist"],
-    });
+    expect(annotation).toBe("https://www.pixiv.net/users/42\nhttps://x.com/artist");
   });
 
   it("ignores malformed and non-web author URLs", () => {
@@ -52,9 +46,26 @@ describe("Eagle annotation", () => {
       authorUrls: ["https://EXAMPLE.test/author/0", ...urls, "https://other.test/ignored"],
     });
 
-    expect(JSON.parse(annotation!).authorUrls).toEqual([
+    expect(annotation!.split("\n")).toEqual([
       "https://EXAMPLE.test/author/0",
       ...urls.slice(1, 20),
     ]);
+  });
+
+  it("keeps the machine identity envelope only for multi-file subitems", () => {
+    const input = {
+      ...asset,
+      itemKey: "frame-001.png",
+      authorUrls: ["https://x.com/artist"],
+    };
+
+    expect(JSON.parse(eagleAnnotationForAsset(input)!)).toEqual({
+      schema: "eagle-looms/item/v1",
+      sourceUrl: asset.sourceUrl,
+      originUrl: asset.originUrl,
+      stableKey: stableKeyForAsset(input),
+      itemKey: "frame-001.png",
+      authorUrls: ["https://x.com/artist"],
+    });
   });
 });

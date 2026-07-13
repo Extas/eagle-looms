@@ -139,6 +139,23 @@ describe('Eagle downloader duplicate checks', () => {
       name: '2026-07-13 hamaken. - yande.re-1265763',
       annotation: '',
     }, booruAsset)).toBe(true);
+
+    const pixivAsset = {
+      sourceUrl: 'https://www.pixiv.net/artworks/147051638',
+      originUrl: 'https://i.pximg.net/img-original/img/2026/07/11/00/00/16/147051638_p5.jpg',
+      sourceName: '147051638_p5.jpg',
+    };
+    const pixivExisting = {
+      url: pixivAsset.sourceUrl,
+      name: '2026-07-10 147051638_p5',
+      annotation: 'https://www.pixiv.net/users/111145760',
+    };
+    expect(isDuplicateItem(pixivExisting, pixivAsset)).toBe(true);
+    expect(isDuplicateItem(pixivExisting, {
+      ...pixivAsset,
+      originUrl: pixivAsset.originUrl.replace('_p5.', '_p4.'),
+      sourceName: '147051638_p4.jpg',
+    })).toBe(false);
   });
 
   it('does not treat one subitem origin URL match as every sibling subitem duplicate', () => {
@@ -498,21 +515,14 @@ describe('Eagle downloader duplicate checks', () => {
     })).rejects.toThrow('Library A');
   });
 
-  it('writes collected author URLs into Eagle item annotations', () => {
+  it('writes collected author URLs as a compact readable annotation', () => {
     const input = toAddItemInput({
       ...eagleAsset('artist.jpg'),
       meta: { authorUrls: ['https://exhentai.org/tag/artist:soha_blan'] },
       node: { authorUrls: [' https://www.pixiv.net/users/42 ', 'https://www.pixiv.net/users/42'] },
     } as any, ['folder-id']);
 
-    expect(input.annotation).toBeTruthy();
-    expect(JSON.parse(input.annotation!)).toEqual({
-      schema: 'eagle-looms/item/v1',
-      sourceUrl: asset.sourceUrl,
-      originUrl: asset.originUrl,
-      stableKey: stableKeyForAsset(asset),
-      authorUrls: ['https://www.pixiv.net/users/42', 'https://exhentai.org/tag/artist:soha_blan'],
-    });
+    expect(input.annotation).toBe('https://www.pixiv.net/users/42\nhttps://exhentai.org/tag/artist:soha_blan');
     expect(input.folders).toEqual(['folder-id']);
   });
 
