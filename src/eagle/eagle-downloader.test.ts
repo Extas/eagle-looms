@@ -128,6 +128,17 @@ describe('Eagle downloader duplicate checks', () => {
     expect(isDuplicateItem(existing, twitterAsset)).toBe(true);
     expect(isDuplicateItem(existing, { ...twitterAsset, sourceName: '2075739304324935681-other.jpg' })).toBe(false);
     expect(isDuplicateItem({ ...existing, url: 'https://x.com/other/status/1/photo/1' }, twitterAsset)).toBe(false);
+
+    const booruAsset = {
+      sourceUrl: 'https://yande.re/post/show/1265763',
+      originUrl: 'https://files.yande.re/image/example.jpg',
+      sourceName: '1265763.jpg',
+    };
+    expect(isDuplicateItem({
+      url: booruAsset.sourceUrl,
+      name: '2026-07-13 hamaken. - yande.re-1265763',
+      annotation: '',
+    }, booruAsset)).toBe(true);
   });
 
   it('does not treat one subitem origin URL match as every sibling subitem duplicate', () => {
@@ -536,6 +547,45 @@ describe('Eagle downloader duplicate checks', () => {
     expect(assets).toHaveLength(1);
     expect(assets[0].folderTokens.date).toBe('2026-06-16');
     expect(assets[0].tags).toContain('source:published:1999-01-02');
+  });
+
+  it('uses semantic booru names while preserving date and scoped source identity', () => {
+    const chapter = {
+      title: 'Posts',
+      filteredQueue: [{
+        stage: EAGLE_IMPORT_DONE_STAGE,
+        data: new Uint8Array([1]),
+        contentType: 'image/jpeg',
+        node: {
+          title: '1265763.jpg',
+          href: 'https://yande.re/post/show/1265763',
+          originSrc: 'https://files.yande.re/image/example.jpg',
+          tags: new Set<string>(['author:hamaken.', 'cleavage', 'wet']),
+          authorUrls: ['https://yande.re/post?tags=hamaken.'],
+          publishedAt: '1783937415',
+        },
+      }],
+    };
+    const downloader = Object.create(EagleDownloader.prototype) as EagleDownloader;
+    ADAPTER.conf = defaultConf();
+    const previousMatcher = ADAPTER.matcher;
+    ADAPTER.matcher = { name: 'yande.re', workURLs: [/.*/], constructor: vi.fn() as any };
+
+    try {
+      const assets = (downloader as any).assetsForChapter(
+        chapter,
+        { picked: () => true },
+        '',
+        new GalleryMeta('https://yande.re/post/show/1265763', 'yande.re-posts'),
+        '2026-07-13',
+      );
+
+      expect(assets).toHaveLength(1);
+      expect(assets[0].name).toBe('2026-07-13 hamaken. - yande.re-1265763.jpg');
+      expect(assets[0].folderTokens).toMatchObject({ site: 'yande.re', date: '2026-07-13', gallery: 'yande.re-posts' });
+    } finally {
+      ADAPTER.matcher = previousMatcher;
+    }
   });
 
   it('keeps normal Eagle item payloads annotation-free when no extra identity is needed', () => {

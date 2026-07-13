@@ -62,7 +62,7 @@ describe("Moebooru matcher metadata", () => {
       "character:kusanagi_nene",
       "blue_eyes",
     ]);
-    expect(matcher.galleryMeta().title).toBe("yande.re-post-100");
+    expect(matcher.galleryMeta().title).toBe("yande.re-posts");
   });
 
   it("supports konachan post detail pages through the same Post.register parser", async () => {

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { sourceTagsFromGalleryMeta } from "../tags";
-import { booruGalleryMetaFromState, booruPublishedAtFromDocument, extractBooruAuthorUrls, extractBooruSourceTags, normalizeBooruSourceTags } from "./booru";
+import { booruEagleItemBaseName, booruGalleryMetaFromState, booruPublishedAtFromDocument, extractBooruAuthorUrls, extractBooruSourceTags, normalizeBooruSourceTags } from "./booru";
 
 describe("booru source tags", () => {
   it("normalizes known booru categories and keeps other tags raw", () => {
@@ -218,9 +218,29 @@ describe("booru source tags", () => {
       { "100": ["copyright:project_sekai"] },
     );
 
-    expect(meta.title).toBe("danbooru-post-100");
+    expect(meta.title).toBe("danbooru-posts");
     expect(sourceTagsFromGalleryMeta(meta, "https://danbooru.donmai.us/posts/100")).toEqual([
       "copyright:project_sekai",
     ]);
+  });
+
+  it("keeps single-post item identity readable without treating the asset as a gallery", () => {
+    expect(booruEagleItemBaseName(
+      "1265763.jpg",
+      "https://yande.re/post/show/1265763",
+      ["author:hamaken.", "cleavage", "wet"],
+    )).toBe("hamaken. - yande.re-1265763.jpg");
+
+    expect(booruEagleItemBaseName(
+      "987654.png",
+      "https://gelbooru.com/index.php?page=post&s=view&id=987654",
+      ["author:a_very_long_artist", "author:soha_blan", "copyright:project_sekai", "copyright:vocaloid"],
+    )).toBe("soha blan - vocaloid - gelbooru-987654.png");
+
+    expect(booruEagleItemBaseName(
+      "source-image.webp",
+      "https://example.test/posts/1",
+      ["author:artist_name"],
+    )).toBe("source-image.webp");
   });
 });

@@ -69,7 +69,7 @@ export function moebooruAuthorUrlsFromTags(rawTags: string | undefined, tagTypes
 
 export function moebooruGalleryMetaFromState(site: string, href: string, infos: Record<string, MoebooruPostInfo>, tagTypes: MoebooruTagTypes): GalleryMeta {
   const postId = moebooruPostIdFromUrl(href);
-  const title = postId ? `${site}-post-${postId}` : searchGalleryTitle(site, searchTagsFromUrl(href));
+  const title = searchGalleryTitle(site, postId ? undefined : searchTagsFromUrl(href));
   const meta = new GalleryMeta(href, title);
   meta.tags = Object.fromEntries(
     Object.values(infos)

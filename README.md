@@ -32,7 +32,7 @@ default folder date: local date when the import starts
 default import limit: 100
 default additional source tag limit: 20; source publication date is retained independently
 duplicate skip: enabled by default
-item names: source date prefix when available, then source identity
+item names: source date prefix when available, then readable source identity; booru posts include concise author/copyright context and a site-scoped post id
 config preview: shows config scope, resolved example folder, visible tag policy, and extra-asset policy
 bulk import: uses automatic confirmation for small clean batches and shows a compact plan for larger or exceptional batches
 result review: keeps the latest Eagle import result in the import panel until cleared

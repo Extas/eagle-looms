@@ -171,7 +171,7 @@ describe("moebooru source tags", () => {
       { project_sekai: "copyright" },
     );
 
-    expect(meta.title).toBe("konachan-post-100");
+    expect(meta.title).toBe("konachan-posts");
     expect(sourceTagsFromGalleryMeta(meta, "https://konachan.com/post/show/100")).toEqual([
       "copyright:project_sekai",
     ]);

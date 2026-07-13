@@ -97,7 +97,7 @@ function candidateNameMatchesItemKey(name: string | undefined, itemKey: string):
     normalizeComparableName(itemKey),
     normalizeComparableName(itemKey.replace(/\.[a-z0-9]{1,12}$/i, "")),
   ].filter((value, index, values) => value && values.indexOf(value) === index);
-  return normalizedItemKeys.some(key => normalizedName === key || normalizedName.endsWith(` ${key}`));
+  return normalizedItemKeys.some(key => normalizedName === key || normalizedName.endsWith(` ${key}`) || normalizedName.endsWith(`-${key}`));
 }
 
 function normalizeComparableName(value: string): string {

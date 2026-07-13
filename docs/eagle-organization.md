@@ -59,6 +59,7 @@ keep qualified names used to distinguish different characters, and merely prefix
 do not include parsed item counts, page numbers, retry state, or other run-state values in folder tokens
 feed/home/user timelines without a stable collection title use semantic name plus local date, such as twitter-home-2026-05-31 or twitter-user-2026-05-31
 search/list pages use source taxonomy labels, such as danbooru-search-bang_dream, not result counts
+booru detail pages use the shared gallery context danbooru-posts, gelbooru-posts, yande.re-posts, or konachan-posts; the post id belongs to the asset identity, not the gallery
 ```
 
 The default stays at site/date level to avoid creating too many taxonomy-derived subfolders. Tags carry copyright, character, author, and other source semantics for search. Users can opt into copyright, gallery, author, or character folders when they want that browsing model.
@@ -227,6 +228,7 @@ Rules:
 preserve source identity names such as anime-pictures-917184.png
 prefix item names with YYYY-MM-DD when the source publish/upload date is available
 use the source author for Twitter/X item prefixes instead of generic User Media chapter text
+name booru assets as the shortest author, shortest copyright when present, and a site-scoped post id, such as hamaken. - yande.re-1265763.jpg
 do not add Comic Looms zip order prefixes such as 001_
 decode common URL and HTML noise
 normalize Unicode with NFKC

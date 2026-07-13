@@ -269,10 +269,23 @@ export function booruPublishedAtFromDocument(doc: Document): string | undefined 
 export function booruGalleryMetaFromState(site: string, href: string, postId: string | undefined, sourceTagsById: Record<string, string[]>): GalleryMeta {
   const normalizedSite = site.toLowerCase().replace(/\s+/g, "-");
   const searchTags = searchTagsFromUrl(href);
-  const title = postId ? `${normalizedSite}-post-${postId}` : searchGalleryTitle(normalizedSite, searchTags);
+  const title = searchGalleryTitle(normalizedSite, postId ? undefined : searchTags);
   const meta = new GalleryMeta(href, title);
   meta.tags = sourceTagsById;
   return meta;
+}
+
+export function booruEagleItemBaseName(fallback: string, sourceUrl: string, sourceTags: string[]): string {
+  const identity = booruIdentityFromUrl(sourceUrl);
+  if (!identity) return fallback;
+
+  const labels = [
+    shortestSourceTag(sourceTags, "author"),
+    shortestSourceTag(sourceTags, "copyright"),
+    `${identity.site}-${identity.id}`,
+  ].filter(Boolean);
+  const extension = fallback.match(/\.([a-z0-9]{1,12})$/i)?.[1]?.toLowerCase() || "jpg";
+  return `${[...new Set(labels)].join(" - ")}.${extension}`;
 }
 
 function searchTagsFromUrl(href: string): string | undefined {
@@ -281,6 +294,38 @@ function searchTagsFromUrl(href: string): string | undefined {
   } catch {
     return undefined;
   }
+}
+
+function booruIdentityFromUrl(value: string): { site: string, id: string } | undefined {
+  try {
+    const url = new URL(value, window.location.href);
+    const host = url.hostname.toLowerCase().replace(/^www\./, "");
+    const sites: Record<string, string> = {
+      "danbooru.donmai.us": "danbooru",
+      "gelbooru.com": "gelbooru",
+      "yande.re": "yande.re",
+      "konachan.com": "konachan",
+    };
+    const site = sites[host];
+    if (!site) return undefined;
+    const id = url.pathname.match(/\/(?:posts|post\/show)\/(\d+)/)?.[1]
+      || (url.searchParams.get("page") === "post" && url.searchParams.get("s") === "view" ? url.searchParams.get("id") : "");
+    return id && /^\d+$/.test(id) ? { site, id } : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+function shortestSourceTag(tags: string[], namespace: "author" | "copyright"): string {
+  return tags
+    .filter(tag => tag.toLowerCase().startsWith(`${namespace}:`))
+    .map(tag => cleanSourceLabel(tag.slice(namespace.length + 1)))
+    .filter(Boolean)
+    .sort((left, right) => left.length - right.length || left.localeCompare(right))[0] || "";
+}
+
+function cleanSourceLabel(value: string): string {
+  return value.replace(/_+/g, " ").replace(/\s+/g, " ").trim().slice(0, 120);
 }
 
 function elementsWithAnyAttribute(root: ParentNode, attrs: readonly string[]): Element[] {
