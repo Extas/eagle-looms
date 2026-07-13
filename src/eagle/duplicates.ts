@@ -22,8 +22,7 @@ export function stableKeyForAsset(asset: EagleDuplicateAsset): string {
 
 export function duplicateQueries(asset: EagleDuplicateAsset): string[] {
   const terms = new Set([
-    stableKeyForAsset(asset),
-    asset.itemKey ? "" : legacyStableKeyForAsset(asset),
+    asset.itemKey ? stableKeyForAsset(asset) : "",
     asset.sourceUrl,
     asset.originUrl,
   ].filter(Boolean));

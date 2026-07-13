@@ -63,10 +63,8 @@ describe('Eagle downloader duplicate checks', () => {
     expect(downloader.downloading).toBe(false);
   });
 
-  it('uses simple exact queries instead of relying on Eagle search OR syntax', () => {
+  it('queries observable V2 identity and reserves stable-key lookup for subitems', () => {
     expect(duplicateQueries(asset)).toEqual([
-      '"eagle-looms:v2:https://anime-pictures.net/posts/917184|https://images.anime-pictures.net/pictures/917184.jpg|"',
-      '"eagle-looms:https://anime-pictures.net/posts/917184"',
       '"https://anime-pictures.net/posts/917184"',
       '"https://images.anime-pictures.net/pictures/917184.jpg"',
     ]);
@@ -74,6 +72,9 @@ describe('Eagle downloader duplicate checks', () => {
       '"eagle-looms:v2:https://anime-pictures.net/posts/917184|https://images.anime-pictures.net/pictures/917184.jpg|frame-002.png"',
       '"https://anime-pictures.net/posts/917184"',
       '"https://images.anime-pictures.net/pictures/917184.jpg"',
+    ]);
+    expect(duplicateQueries({ sourceUrl: asset.sourceUrl })).toEqual([
+      '"https://anime-pictures.net/posts/917184"',
     ]);
   });
 
@@ -309,7 +310,11 @@ describe('Eagle downloader duplicate checks', () => {
     const result = await (downloader as any).preflightJobs(api, jobs);
 
     expect(result).toEqual({ writable: 1, sessionSkipped: 1, duplicateSkipped: 0, failed: 0 });
-    expect(api.queryItems).toHaveBeenCalledTimes(4);
+    expect(api.queryItems).toHaveBeenCalledTimes(2);
+    expect(api.queryItems.mock.calls.map(([query]) => query)).toEqual([
+      `"${repeated.sourceUrl}"`,
+      `"${repeated.originUrl}"`,
+    ]);
     expect(jobs[1].asset).toBeDefined();
     expect((jobs[1] as any).skipReason).toBe('session');
   });
