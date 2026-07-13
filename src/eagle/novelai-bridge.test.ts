@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
   buildNovelAiGeneratedItemInput,
   eagleItemIdFromSourceUrl,
@@ -170,11 +170,27 @@ describe("NovelAI Eagle bridge", () => {
   });
 
   it("normalizes NovelAI result blobs from binary signatures", async () => {
+    vi.stubGlobal("createImageBitmap", vi.fn().mockResolvedValue({ width: 1024, height: 1024, close: vi.fn() }));
     const jpegHeader = new Uint8Array([0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10]);
-    const result = await normalizeNovelAiResultBlob(new Blob([jpegHeader], { type: "image/png" }), "blob:https://novelai.net/result");
+    try {
+      const result = await normalizeNovelAiResultBlob(new Blob([jpegHeader], { type: "image/png" }), "blob:https://novelai.net/result");
 
-    expect(result.contentType).toBe("image/jpeg");
-    expect(result.blob.type).toBe("image/jpeg");
+      expect(result.contentType).toBe("image/jpeg");
+      expect(result.blob.type).toBe("image/jpeg");
+    } finally {
+      vi.unstubAllGlobals();
+    }
+  });
+
+  it("rejects one-pixel placeholders before they can be written to Eagle", async () => {
+    vi.stubGlobal("createImageBitmap", vi.fn().mockResolvedValue({ width: 1, height: 1, close: vi.fn() }));
+    const pngHeader = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+    try {
+      await expect(normalizeNovelAiResultBlob(new Blob([pngHeader], { type: "image/png" }), "blob:https://novelai.net/placeholder"))
+        .rejects.toThrow("image dimensions 1x1 are too small for a NovelAI result");
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 
   it("uses the NovelAI page bridge before isolated-world fallbacks", async () => {

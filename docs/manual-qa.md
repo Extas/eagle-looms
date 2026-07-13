@@ -274,6 +274,13 @@ detail pages prefer direct images.anime-pictures.net candidates over api downloa
 Cloudflare challenge HTML should trigger candidate retry/failure messaging, not a false successful image import
 ```
 
+NovelAI bridge behavior:
+
+```text
+Eagle item links inherit the source item's existing folder assignments for generated results
+generated results smaller than 64 pixels on either edge are rejected and do not consume the monitor result limit
+```
+
 ## Known External Limitation
 
 Command-line requests to anime-pictures may return HTTP 403 from this environment. The collector is designed to run inside the real browser page context and use userscript requests for pagination, detail pages, and image/API fetches.

@@ -10,6 +10,7 @@ const STORAGE_KEY = "eagle-looms:novelai-bridge";
 const DEFAULT_MONITOR_LIMIT = 2;
 const MAX_MONITOR_LIMIT = 20;
 const NAI_IMPORT_CONFIRM_TIMEOUT_MS = 2200;
+const MIN_NOVELAI_RESULT_EDGE = 64;
 const PANEL_ID = "eagle-looms-novelai-bridge";
 const NAI_DEBUG_PREFIX = "[Eagle Looms][NovelAI]";
 const NAI_DEBUG_STORAGE_KEY = "eagle-looms:novelai-debug";
@@ -1502,6 +1503,8 @@ function resultImageSources(): string[] {
     if (image.closest(`#${PANEL_ID}`)) continue;
     const src = image.currentSrc || image.src;
     if (!src || sources.includes(src)) continue;
+    if (image.naturalWidth > 0 && image.naturalHeight > 0
+      && (image.naturalWidth < MIN_NOVELAI_RESULT_EDGE || image.naturalHeight < MIN_NOVELAI_RESULT_EDGE)) continue;
     if (src.startsWith("blob:") || src.startsWith("data:image/") || visibleImageArea(image) >= 4096) {
       sources.push(src);
     }
@@ -1571,10 +1574,22 @@ async function readNovelAiResultImage(src: string, traceId: string): Promise<Nov
 export async function normalizeNovelAiResultBlob(blob: Blob, url: string): Promise<{ blob: Blob; contentType: string }> {
   const signature = await assertLikelyImageBlob(blob, url);
   const contentType = mimeFromImageSignature(signature) || normalizeImageMime(blob.type, "image/png");
+  await assertNovelAiResultDimensions(blob);
   return {
     blob: forceImageType(blob, contentType),
     contentType,
   };
+}
+
+async function assertNovelAiResultDimensions(blob: Blob): Promise<void> {
+  const bitmap = await createImageBitmap(blob);
+  try {
+    if (bitmap.width < MIN_NOVELAI_RESULT_EDGE || bitmap.height < MIN_NOVELAI_RESULT_EDGE) {
+      throw new Error(`image dimensions ${bitmap.width}x${bitmap.height} are too small for a NovelAI result`);
+    }
+  } finally {
+    bitmap.close();
+  }
 }
 
 async function assertLikelyImageBlob(blob: Blob, url: string): Promise<string> {
