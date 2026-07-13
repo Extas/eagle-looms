@@ -105,6 +105,13 @@ export function twitterEagleItemBaseName(directory: string, title: string, sourc
   return [author || directory, title].filter(Boolean).join(" - ");
 }
 
+export function twitterSafePageHelperBottom(sourceUrl: string, right: string, bottom: string): string | undefined {
+  if (!isTwitterSourceUrl(sourceUrl) || right === "unset") return undefined;
+  const bottomPixels = cssPixels(bottom);
+  if (bottomPixels === undefined || bottomPixels >= 84) return undefined;
+  return "84px";
+}
+
 function twitterEagleAuthorTag(screenName: unknown): string {
   return sourceMetadataTag("author", cleanTwitterScreenName(screenName));
 }
@@ -173,4 +180,9 @@ function isTwitterSourceUrl(value: string): boolean {
   } catch {
     return false;
   }
+}
+
+function cssPixels(value: string): number | undefined {
+  const match = value.trim().match(/^(-?\d+(?:\.\d+)?)px$/);
+  return match ? Number(match[1]) : undefined;
 }

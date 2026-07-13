@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { twitterEagleAuthorUrls, twitterEagleItemBaseName, twitterEagleSourceTags, twitterItemAuthorUrls, twitterItemPublishedAt, twitterItemSourceTags } from "./twitter";
+import { twitterEagleAuthorUrls, twitterEagleItemBaseName, twitterEagleSourceTags, twitterItemAuthorUrls, twitterItemPublishedAt, twitterItemSourceTags, twitterSafePageHelperBottom } from "./twitter";
 
 describe("Twitter Eagle metadata adapter", () => {
   it("normalizes authors through the shared Eagle namespace rule", () => {
@@ -54,6 +54,14 @@ describe("Twitter Eagle metadata adapter", () => {
       .toBe("Gallery - image.jpg");
     expect(twitterEagleItemBaseName("User Media", "image.jpg", "https://x.com/user/status/1/photo/1", []))
       .toBe("User Media - image.jpg");
+  });
+
+  it("raises a bottom-right entry above the native X Chat launcher", () => {
+    expect(twitterSafePageHelperBottom("https://x.com/artist/status/1", "20px", "20px")).toBe("84px");
+    expect(twitterSafePageHelperBottom("https://twitter.com/artist", "0px", "0px")).toBe("84px");
+    expect(twitterSafePageHelperBottom("https://x.com/artist", "20px", "100px")).toBeUndefined();
+    expect(twitterSafePageHelperBottom("https://x.com/artist", "unset", "20px")).toBeUndefined();
+    expect(twitterSafePageHelperBottom("https://example.test/artist", "20px", "20px")).toBeUndefined();
   });
 });
 

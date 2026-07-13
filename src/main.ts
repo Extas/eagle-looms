@@ -18,6 +18,7 @@ import { Filter } from "./filter";
 import { ContextMenu } from "./ui/context-menu";
 import { ReadingProgress } from "./reading-progress";
 import { initNovelAiEagleBridge } from "./eagle/novelai-bridge";
+import { twitterSafePageHelperBottom } from "./eagle/adapters/twitter";
 
 // Dynamically import the modules under ./platform/matchers, in which ADAPTER.addSetup will be executed
 const modules = import.meta.glob('./platform/matchers/*.ts', { eager: true });
@@ -30,6 +31,12 @@ function setup(): DestoryFunc {
   const MATCHER = ADAPTER.matcher!.constructor();
   const FL: Filter = new Filter();
   const HTML = createHTML(FL);
+  const twitterEntryBottom = twitterSafePageHelperBottom(
+    window.location.href,
+    ADAPTER.conf.pageHelperAbRight,
+    ADAPTER.conf.pageHelperAbBottom,
+  );
+  if (twitterEntryBottom) HTML.pageHelper.style.bottom = twitterEntryBottom;
   [HTML.fullViewGrid, HTML.bigImageFrame].forEach(e => revertMonkeyPatch(e));
 
   const IFQ: IMGFetcherQueue = IMGFetcherQueue.newQueue();
