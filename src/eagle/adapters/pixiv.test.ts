@@ -6,6 +6,7 @@ import {
   pixivEagleAuthorTag,
   pixivEagleAuthorUrl,
   pixivEagleGalleryMetaFromState,
+  pixivEagleItemTitle,
   pixivEagleSourceTags,
 } from "./pixiv";
 
@@ -37,6 +38,16 @@ describe("Pixiv Eagle metadata adapter", () => {
       "bang dream",
       "mygo",
     ]);
+  });
+
+  it("keeps Pixiv item names readable without losing the stable work and page suffix", () => {
+    expect(pixivEagleItemTitle({
+      title: "Blue Vacation",
+      userId: "1960050",
+      userName: "torino",
+    }, "147051637_p0.jpg")).toBe("torino - Blue Vacation - 147051637_p0.jpg");
+
+    expect(pixivEagleItemTitle(undefined, "147051637_p0.jpg")).toBe("147051637_p0.jpg");
   });
 
   it("builds user gallery metadata with per-artwork buckets", () => {

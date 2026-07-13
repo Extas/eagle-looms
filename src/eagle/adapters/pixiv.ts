@@ -4,6 +4,7 @@ import { pixivAuthorLabel, pixivAuthorUrl } from "../../platform/pixiv-tags";
 import { sourceMetadataTag } from "../tags";
 
 export type PixivEagleWorkMetadata = {
+  title?: unknown;
   tags?: string[];
   userId?: unknown;
   userName?: unknown;
@@ -25,6 +26,12 @@ export function pixivEagleAuthorUrl(work: PixivEagleWorkMetadata | undefined, fa
   return pixivAuthorUrl(work, fallbackUserId);
 }
 
+export function pixivEagleItemTitle(work: PixivEagleWorkMetadata | undefined, sourceFileName: string): string {
+  const author = pixivAuthorLabel(work).slice(0, 40);
+  const artwork = cleanDisplayPart(work?.title).slice(0, 80);
+  return uniqueDisplayParts([author, artwork, sourceFileName]).join(" - ") || sourceFileName;
+}
+
 export function pixivEagleArtworkMetadataBuckets(works: Record<string, PixivEagleWorkMetadata>): Record<string, string[]> {
   return Object.entries(works).reduce<Record<string, string[]>>((tags, [pid, work]) => {
     tags[pid] = pixivEagleSourceTags(work);
@@ -41,4 +48,21 @@ export function pixivEagleGalleryMetaFromState(href: string, sourceTitle: string
   );
   meta.tags = pixivEagleArtworkMetadataBuckets(works);
   return meta;
+}
+
+function cleanDisplayPart(value: unknown): string {
+  return String(value ?? "")
+    .replace(/[\n\r\t]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function uniqueDisplayParts(parts: string[]): string[] {
+  const seen = new Set<string>();
+  return parts.filter(part => {
+    const key = part.trim().toLowerCase();
+    if (!key || seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
 }

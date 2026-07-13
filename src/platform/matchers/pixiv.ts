@@ -11,7 +11,7 @@ import { ADAPTER } from "../adapt";
 import { i18n } from "../../utils/i18n";
 import { HTMLUgoiraElement } from "../../utils/ugoira";
 import { replaceHost } from "../../utils/url";
-import { pixivEagleAuthorUrl, pixivEagleGalleryMetaFromState, pixivEagleSourceTags } from "../../eagle/adapters/pixiv";
+import { pixivEagleAuthorUrl, pixivEagleGalleryMetaFromState, pixivEagleItemTitle, pixivEagleSourceTags } from "../../eagle/adapters/pixiv";
 import { normalizePixivWorkTags } from "../pixiv-tags";
 
 type ArtistPIDs = {
@@ -399,14 +399,17 @@ export class PixivMatcher extends BaseMatcher<ArtistPIDs[]> {
       });
       this.pageCount += data.body.length;
       const digits = data.body.length.toString().length;
-      let j = -1;
+      let j = 0;
       for (const p of data.body) {
-        let title = p.urls.original.split("/").pop() || `${pid}_p${j.toString().padStart(digits)}.jpg`
+        let sourceFileName = p.urls.original.split("/").pop() || `${pid}_p${j.toString().padStart(digits, "0")}.jpg`;
         const matches = p.urls.original.match(PID_EXTRACT);
         if (matches && matches.length > 2 && matches[2] && matches[2] === "ugoira") {
-          title = title.replace(/\.\w+$/, ".gif");
+          sourceFileName = sourceFileName.replace(/\.\w+$/, ".gif");
         }
         j++;
+        const artistId = artistByPid[pid];
+        const work = this.works[pid];
+        const title = pixivEagleItemTitle(work, sourceFileName);
         const node = new ImageNode(
           replaceHost(p.urls.small, ADAPTER.conf.pixivMirrorHost),
           `${window.location.origin}/artworks/${pid}`,
@@ -415,8 +418,6 @@ export class PixivMatcher extends BaseMatcher<ArtistPIDs[]> {
           replaceHost(p.urls.original, ADAPTER.conf.pixivMirrorHost),
           { w: p.width, h: p.height }
         );
-        const artistId = artistByPid[pid];
-        const work = this.works[pid];
         const authorUrl = pixivEagleAuthorUrl(work, artistId);
         node.setTags(...pixivEagleSourceTags(work, artistId));
         if (authorUrl) node.setAuthorUrls(authorUrl);
