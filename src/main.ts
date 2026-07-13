@@ -31,10 +31,11 @@ function setup(): DestoryFunc {
   const MATCHER = ADAPTER.matcher!.constructor();
   const FL: Filter = new Filter();
   const HTML = createHTML(FL);
+  const pageHelperBounds = HTML.pageHelper.getBoundingClientRect();
   const twitterEntryBottom = twitterSafePageHelperBottom(
     window.location.href,
-    ADAPTER.conf.pageHelperAbRight,
-    ADAPTER.conf.pageHelperAbBottom,
+    window.innerWidth - pageHelperBounds.right < pageHelperBounds.left,
+    getComputedStyle(HTML.pageHelper).bottom,
   );
   if (twitterEntryBottom) HTML.pageHelper.style.bottom = twitterEntryBottom;
   [HTML.fullViewGrid, HTML.bigImageFrame].forEach(e => revertMonkeyPatch(e));

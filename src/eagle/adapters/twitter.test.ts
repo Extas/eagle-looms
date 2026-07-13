@@ -76,11 +76,11 @@ describe("Twitter Eagle metadata adapter", () => {
   });
 
   it("raises a bottom-right entry above the native X Chat launcher", () => {
-    expect(twitterSafePageHelperBottom("https://x.com/artist/status/1", "20px", "20px")).toBe("84px");
-    expect(twitterSafePageHelperBottom("https://twitter.com/artist", "0px", "0px")).toBe("84px");
-    expect(twitterSafePageHelperBottom("https://x.com/artist", "20px", "100px")).toBeUndefined();
-    expect(twitterSafePageHelperBottom("https://x.com/artist", "unset", "20px")).toBeUndefined();
-    expect(twitterSafePageHelperBottom("https://example.test/artist", "20px", "20px")).toBeUndefined();
+    expect(twitterSafePageHelperBottom("https://x.com/artist/status/1", true, "20px")).toBe("84px");
+    expect(twitterSafePageHelperBottom("https://twitter.com/artist", true, "0px")).toBe("84px");
+    expect(twitterSafePageHelperBottom("https://x.com/artist", true, "100px")).toBeUndefined();
+    expect(twitterSafePageHelperBottom("https://x.com/artist", false, "20px")).toBeUndefined();
+    expect(twitterSafePageHelperBottom("https://example.test/artist", true, "20px")).toBeUndefined();
   });
 });
 

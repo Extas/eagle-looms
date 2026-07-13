@@ -110,8 +110,8 @@ export function twitterEagleItemBaseName(directory: string, title: string, sourc
   return [author || directory, title].filter(Boolean).join(" - ");
 }
 
-export function twitterSafePageHelperBottom(sourceUrl: string, right: string, bottom: string): string | undefined {
-  if (!isTwitterSourceUrl(sourceUrl) || right === "unset") return undefined;
+export function twitterSafePageHelperBottom(sourceUrl: string, rightAnchored: boolean, bottom: string): string | undefined {
+  if (!isTwitterSourceUrl(sourceUrl) || !rightAnchored) return undefined;
   const bottomPixels = cssPixels(bottom);
   if (bottomPixels === undefined || bottomPixels >= 84) return undefined;
   return "84px";
