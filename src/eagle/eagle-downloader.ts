@@ -162,11 +162,12 @@ export class EagleDownloader extends Downloader {
       this.panel.setImportProgress(i18n.eagleImportCheckingEagle.get());
       const connection = await api.probe();
       const libraryName = extractEagleLibraryName(connection.library) || i18n.eagleConfigUnknownLibrary.get();
+      const sessionLibraryKey = eagleLibrarySessionKey(connection.library, api.baseUrl);
       stats.libraryName = libraryName;
       if (ADAPTER.conf.eagleSkipDuplicates && selectedJobs.length > 1) {
         EBUS.emit("notify-message", "info", i18n.eagleImportCheckingDuplicates.get(), 4000);
       }
-      const preflight = await this.preflightJobs(api, selectedJobs, runId);
+      const preflight = await this.preflightJobs(api, selectedJobs, runId, sessionLibraryKey);
       this.assertImportActive(runId);
       const importPlan = limitWritableImportJobs(selectedJobs, ADAPTER.conf.eagleImportLimit);
       const jobs = importPlan.jobs;
@@ -211,7 +212,7 @@ export class EagleDownloader extends Downloader {
           writeIndex += 1;
           this.panel.setImportProgress(i18n.eagleImportWritingToEagle.get(), writeIndex, importPlan.writable);
         }
-        await this.writeJob(api, folderIds, job, stats, usedNamesForFolder(folderNames, job.folderKey), runId);
+        await this.writeJob(api, folderIds, job, stats, usedNamesForFolder(folderNames, job.folderKey), runId, sessionLibraryKey);
       }
 
       this.done = stats.failed === 0;
@@ -280,6 +281,7 @@ export class EagleDownloader extends Downloader {
       this.panel.setImportProgress(i18n.eagleImportCheckingEagle.get());
       const connection = await api.probe();
       const libraryName = extractEagleLibraryName(connection.library) || i18n.eagleConfigUnknownLibrary.get();
+      const sessionLibraryKey = eagleLibrarySessionKey(connection.library, api.baseUrl);
       stats.libraryName = libraryName;
       const chapterTitle = safeTitle(titleToString(chapter.title));
       const singleChapter = this.pageFetcher.chapters.length === 1;
@@ -291,7 +293,7 @@ export class EagleDownloader extends Downloader {
       stats.planned = assets.length;
       if (assets.length === 0) throw new Error(i18n.eagleImportCurrentNotReady.get());
       const selectedJobs = assets.map(asset => this.jobForAsset(folderTemplate, asset));
-      const preflight = await this.preflightJobs(api, selectedJobs, runId);
+      const preflight = await this.preflightJobs(api, selectedJobs, runId, sessionLibraryKey);
       this.assertImportActive(runId);
       const importPlan = limitWritableImportJobs(selectedJobs, ADAPTER.conf.eagleImportLimit);
       const jobs = importPlan.jobs;
@@ -338,7 +340,7 @@ export class EagleDownloader extends Downloader {
           writeIndex += 1;
           this.panel.setImportProgress(i18n.eagleImportWritingToEagle.get(), writeIndex, importPlan.writable);
         }
-        await this.writeJob(api, folderIds, job, stats, usedNamesForFolder(folderNames, job.folderKey), runId);
+        await this.writeJob(api, folderIds, job, stats, usedNamesForFolder(folderNames, job.folderKey), runId, sessionLibraryKey);
       }
       this.done = stats.failed === 0;
       endStage = eagleImportEndStage(stats);
@@ -424,7 +426,7 @@ export class EagleDownloader extends Downloader {
     return false;
   }
 
-  private async preflightJobs(api: EagleWebApi, jobs: EagleImportJob[], runId = this.importRunId): Promise<EagleImportPreflight> {
+  private async preflightJobs(api: EagleWebApi, jobs: EagleImportJob[], runId = this.importRunId, sessionLibraryKey = ""): Promise<EagleImportPreflight> {
     this.assertImportActive(runId);
     const preflight: EagleImportPreflight = { writable: 0, sessionSkipped: 0, duplicateSkipped: 0, failed: 0 };
     const plannedKeys = new Set<string>();
@@ -435,7 +437,7 @@ export class EagleDownloader extends Downloader {
     for (const job of jobs) {
       this.assertImportActive(runId);
       job.preflightChecked = true;
-      if (hasPlannedAssetKey(job.asset, plannedKeys) || isSessionImported(job.asset)) {
+      if (hasPlannedAssetKey(job.asset, plannedKeys) || isSessionImported(job.asset, sessionLibraryKey)) {
         job.skipReason = "session";
         preflight.sessionSkipped += 1;
         checked += 1;
@@ -502,7 +504,7 @@ export class EagleDownloader extends Downloader {
     EBUS.emit("notify-message", "info", message, handled > 0 ? 8000 : 4000);
   }
 
-  private async writeJob(api: EagleWebApi, folderIds: Map<string, string>, job: EagleImportJob, stats: EagleImportStats, usedNames: Set<string>, runId = this.importRunId): Promise<void> {
+  private async writeJob(api: EagleWebApi, folderIds: Map<string, string>, job: EagleImportJob, stats: EagleImportStats, usedNames: Set<string>, runId = this.importRunId, sessionLibraryKey = ""): Promise<void> {
     const asset = job.asset;
     try {
       this.assertImportActive(runId);
@@ -511,7 +513,7 @@ export class EagleDownloader extends Downloader {
         applySkippedJob(stats, job.skipReason, job.finalName || asset.name);
         return;
       }
-      if (isSessionImported(asset)) {
+      if (isSessionImported(asset, sessionLibraryKey)) {
         applySkippedJob(stats, "session", job.finalName || asset.name);
         return;
       }
@@ -527,7 +529,7 @@ export class EagleDownloader extends Downloader {
       const id = await api.addItem(toAddItemInput(asset, jobFolderIds));
       if (!id) throw new Error("Eagle did not return an item ID.");
       recordUniqueLink(stats.itemLinks, asset.name, eagleItemUrl(api, id));
-      markSessionImported(asset);
+      markSessionImported(asset, sessionLibraryKey);
       stats.imported += 1;
       this.assertImportActive(runId);
     } catch (error) {
@@ -653,14 +655,31 @@ export async function assertEagleLibraryUnchanged(api: EagleWebApi, initial: unk
   }));
 }
 
+export function eagleLibrarySessionKey(library: unknown, baseUrl = ""): string {
+  const path = extractEagleLibraryPath(library);
+  if (path) return `path:${normalizeEagleLibraryPath(path)}`;
+  const name = extractEagleLibraryName(library).trim();
+  if (name) return `name:${name.normalize("NFKC")}`;
+  try {
+    return `api:${new URL(baseUrl).origin.toLowerCase()}`;
+  } catch {
+    return `api:${baseUrl.trim().toLowerCase()}`;
+  }
+}
+
 function sameEagleLibraryPath(left: string, right: string): boolean {
-  const normalize = (value: string) => value.trim().replace(/\\/g, "/").replace(/\/+$/g, "");
-  const normalizedLeft = normalize(left);
-  const normalizedRight = normalize(right);
+  const normalizedLeft = normalizeEagleLibraryPath(left);
+  const normalizedRight = normalizeEagleLibraryPath(right);
   const windowsPath = /^[a-z]:\//i.test(normalizedLeft) || normalizedLeft.startsWith("//");
   return windowsPath
     ? normalizedLeft.toLowerCase() === normalizedRight.toLowerCase()
     : normalizedLeft === normalizedRight;
+}
+
+function normalizeEagleLibraryPath(value: string): string {
+  const normalized = value.trim().replace(/\\/g, "/").replace(/\/+$/g, "");
+  const windowsPath = /^[a-z]:\//i.test(normalized) || normalized.startsWith("//");
+  return windowsPath ? normalized.toLowerCase() : normalized;
 }
 
 export function eagleImportResultLinks(stats: Pick<EagleImportStats, "imported" | "folderLinks" | "itemLinks">): EagleImportResultLink[] {

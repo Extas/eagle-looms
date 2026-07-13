@@ -58,12 +58,12 @@ function rawRecordMatchesAsset(record: EagleRawRecord, asset: EagleDuplicateAsse
   return true;
 }
 
-export function isSessionImported(asset: EagleDuplicateAsset): boolean {
-  return SESSION_IMPORTED_ASSET_KEYS.has(stableKeyForAsset(asset));
+export function isSessionImported(asset: EagleDuplicateAsset, libraryKey = ""): boolean {
+  return SESSION_IMPORTED_ASSET_KEYS.has(sessionImportedAssetKey(asset, libraryKey));
 }
 
-export function markSessionImported(asset: EagleDuplicateAsset): void {
-  SESSION_IMPORTED_ASSET_KEYS.add(stableKeyForAsset(asset));
+export function markSessionImported(asset: EagleDuplicateAsset, libraryKey = ""): void {
+  SESSION_IMPORTED_ASSET_KEYS.add(sessionImportedAssetKey(asset, libraryKey));
 }
 
 export function hasPlannedAssetKey(asset: EagleDuplicateAsset, plannedKeys: Set<string>): boolean {
@@ -76,6 +76,10 @@ export function markPlannedAssetKey(asset: EagleDuplicateAsset, plannedKeys: Set
 
 export function clearSessionImportedAssets(): void {
   SESSION_IMPORTED_ASSET_KEYS.clear();
+}
+
+function sessionImportedAssetKey(asset: EagleDuplicateAsset, libraryKey: string): string {
+  return `${libraryKey}\0${stableKeyForAsset(asset)}`;
 }
 
 function legacyStableKeyForAsset(asset: EagleDuplicateAsset): string {

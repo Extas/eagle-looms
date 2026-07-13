@@ -4,7 +4,7 @@ import { GalleryMeta } from '../download/gallery-meta';
 import { ADAPTER } from '../platform/adapt';
 import { i18n } from '../utils/i18n';
 import { clearSessionImportedAssets, duplicateQueries, duplicateUrls, hasPlannedAssetKey, isDuplicateItem, isSessionImported, markPlannedAssetKey, markSessionImported, stableKeyForAsset } from './duplicates';
-import { assertEagleLibraryUnchanged, EagleDownloader, eagleFolderTemplateForImport, eagleImportEndStage, eagleImportErrorMessage, eagleImportResultLinks, hasIncompleteImportResult, limitWritableImportJobs, toAddItemInput } from './eagle-downloader';
+import { assertEagleLibraryUnchanged, EagleDownloader, eagleFolderTemplateForImport, eagleImportEndStage, eagleImportErrorMessage, eagleImportResultLinks, eagleLibrarySessionKey, hasIncompleteImportResult, limitWritableImportJobs, toAddItemInput } from './eagle-downloader';
 import { EAGLE_IMPORT_DONE_STAGE, isReadyForEagleImport } from './import-readiness';
 import { EAGLE_RAW_RECORD_SCHEMA, type EagleRawRecord } from './raw-record';
 
@@ -223,6 +223,44 @@ describe('Eagle downloader duplicate checks', () => {
     expect(isSessionImported({ ...asset, originUrl: 'https://images.anime-pictures.net/pictures/other.jpg' })).toBe(false);
     expect(isSessionImported({ ...asset, itemKey: 'frame-2.jpg' })).toBe(false);
 
+    clearSessionImportedAssets();
+  });
+
+  it('scopes same-session duplicate protection to the target Eagle library', () => {
+    clearSessionImportedAssets();
+    const firstLibrary = eagleLibrarySessionKey({ path: 'C:\\Libraries\\Primary.library\\' });
+    const equivalentFirstLibrary = eagleLibrarySessionKey({ path: 'c:/libraries/primary.library' });
+    const secondLibrary = eagleLibrarySessionKey({ path: 'C:/Libraries/Secondary.library' });
+
+    markSessionImported(asset, firstLibrary);
+
+    expect(isSessionImported(asset, equivalentFirstLibrary)).toBe(true);
+    expect(isSessionImported(asset, secondLibrary)).toBe(false);
+    clearSessionImportedAssets();
+  });
+
+  it('allows the same source to be planned for a different Eagle library', async () => {
+    clearSessionImportedAssets();
+    ADAPTER.conf = defaultConf();
+    const panel = { setImportProgress: vi.fn() };
+    const downloader = Object.assign(Object.create(EagleDownloader.prototype), {
+      panel,
+      importRunId: 0,
+      importStopRequested: false,
+    }) as EagleDownloader;
+    const api = { itemsByUrl: vi.fn().mockResolvedValue([]) };
+    const imported = eagleAsset('same-source.jpg');
+    markSessionImported(imported, 'path:c:/libraries/primary.library');
+
+    const result = await (downloader as any).preflightJobs(
+      api,
+      [{ asset: { ...imported } }],
+      0,
+      'path:c:/libraries/secondary.library',
+    );
+
+    expect(result).toEqual({ writable: 1, sessionSkipped: 0, duplicateSkipped: 0, failed: 0 });
+    expect(api.itemsByUrl).toHaveBeenCalledTimes(2);
     clearSessionImportedAssets();
   });
 
@@ -722,6 +760,7 @@ describe('Eagle downloader duplicate checks', () => {
       expect.objectContaining({ planned: 1 }),
       expect.any(Set),
       expect.any(Number),
+      'path:d:/test.library',
     );
     expect(panel.showEagleImportResult).toHaveBeenCalledWith(
       expect.arrayContaining(['library Test Library']),

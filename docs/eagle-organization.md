@@ -280,6 +280,7 @@ match legacy raw records only when assetItemId exists and identity matches
 when an origin URL exists, require exact origin or structured identity instead of source-page equality alone
 use source-page-only matches only when the asset has no stronger origin/subitem identity
 skip same-session and same-plan stable keys before creating folders
+scope same-session keys to the target Eagle library; the same source may be imported once into each library
 do not query by display name or low-signal subitem filename alone
 never merge, delete, retag, or update existing items silently
 ```
