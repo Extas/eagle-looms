@@ -45,6 +45,7 @@ type EagleImportAsset = {
   sourceUrl: string;
   originUrl?: string;
   itemKey?: string;
+  sourceName: string;
   tags: string[];
   website: string;
   folderTokens: EagleFolderTokens;
@@ -370,6 +371,7 @@ export class EagleDownloader extends Downloader {
       const common = {
         sourceUrl: imf.node.href,
         originUrl: imf.node.originSrc,
+        sourceName: imf.node.title,
         tags,
         website: imf.node.href,
         folderTokens: eagleFolderTokens([...tags, ...folderTags], meta, chapter, directory, importDate),
@@ -387,6 +389,7 @@ export class EagleDownloader extends Downloader {
             data: item.data,
             contentType: item.contentType,
             itemKey: item.name,
+            sourceName: `${imf.node.title} - ${item.name}`,
           });
         }
       } else {

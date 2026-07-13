@@ -250,6 +250,7 @@ same-plan duplicate stable keys are counted as session skips
 duplicate-only reruns do not create fresh empty destination folders
 multi-file subitems sharing an origin URL are not skipped unless itemKey/stable raw identity also matches
 normal images sharing a source page require an exact origin or structured identity, so a partial retry does not skip unimported siblings
+annotation-free V2 items can use exact source URL plus the stable source media name as a compatibility identity without collapsing sibling media
 ```
 
 Folder naming behavior:
@@ -258,6 +259,7 @@ Folder naming behavior:
 Twitter / X home folders use twitter-home-YYYY-MM-DD instead of parsed post/media counts
 Twitter / X user timelines use twitter-user-YYYY-MM-DD without the author name; list timelines include list identity plus local date
 Twitter / X item names use the media-bearing source author instead of generic User Media chapter text
+Twitter / X falls back to the media source URL for author name, tag, and profile URL when GraphQL user metadata is missing
 Twitter / X keeps a saved bottom-right collapsed entry above the native X Chat launcher
 booru search/gallery fallback folders use semantic source labels and never parsed result counts
 anime-pictures detail pages do not use post id as gallery/folder fallback; post id stays item/source identity

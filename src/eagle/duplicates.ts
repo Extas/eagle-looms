@@ -4,6 +4,7 @@ export type EagleDuplicateAsset = {
   sourceUrl: string;
   originUrl?: string;
   itemKey?: string;
+  sourceName?: string;
 };
 
 export type EagleDuplicateCandidate = {
@@ -40,6 +41,9 @@ export function isDuplicateItem(item: EagleDuplicateCandidate, asset: EagleDupli
   if (sourceOnlyIdentity && (item.annotation?.includes(legacyStableKey) || payload?.stableKey === legacyStableKey)) return true;
   if (payload && payloadMatchesAsset(payload, asset)) return true;
   if (sourceOnlyIdentity && (item.website === asset.sourceUrl || item.url === asset.sourceUrl)) return true;
+  if (asset.sourceName
+    && (item.website === asset.sourceUrl || item.url === asset.sourceUrl)
+    && candidateNameMatchesItemKey(item.name, asset.sourceName)) return true;
   if (asset.originUrl && !asset.itemKey && item.url === asset.originUrl) return true;
   if (asset.itemKey && asset.originUrl && item.url === asset.originUrl && candidateNameMatchesItemKey(item.name, asset.itemKey)) return true;
   return false;
@@ -89,8 +93,11 @@ function payloadMatchesAsset(payload: Record<string, unknown>, asset: EagleDupli
 function candidateNameMatchesItemKey(name: string | undefined, itemKey: string): boolean {
   if (!name || !itemKey) return false;
   const normalizedName = normalizeComparableName(name);
-  const normalizedItemKey = normalizeComparableName(itemKey);
-  return normalizedName === normalizedItemKey || normalizedName.endsWith(` ${normalizedItemKey}`);
+  const normalizedItemKeys = [
+    normalizeComparableName(itemKey),
+    normalizeComparableName(itemKey.replace(/\.[a-z0-9]{1,12}$/i, "")),
+  ].filter((value, index, values) => value && values.indexOf(value) === index);
+  return normalizedItemKeys.some(key => normalizedName === key || normalizedName.endsWith(` ${key}`));
 }
 
 function normalizeComparableName(value: string): string {

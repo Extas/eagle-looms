@@ -8,7 +8,7 @@ export type TwitterEagleMetadata = {
 type TwitterLegacy = {
   created_at?: string,
   entities?: {
-    media?: unknown[],
+    media?: { expanded_url?: string }[],
     hashtags?: { text?: string }[],
   },
   retweeted_status_result?: {
@@ -66,7 +66,9 @@ export function twitterEagleAuthorUrls(screenName: unknown): string[] {
 
 export function twitterItemSourceTags(item: TwitterEagleItem): string[] {
   const sourceCandidates = twitterMediaSourceCandidates(item);
-  const user = twitterScreenNameFromCandidates(sourceCandidates) || twitterScreenName(item);
+  const user = twitterScreenNameFromCandidates(sourceCandidates)
+    || twitterScreenNameFromMediaCandidates(sourceCandidates)
+    || twitterScreenName(item);
   const legacyCandidates = sourceCandidates.length
     ? sourceCandidates.map(candidate => candidate.legacy)
     : twitterLegacyCandidates(item);
@@ -81,7 +83,10 @@ export function twitterItemSourceTags(item: TwitterEagleItem): string[] {
 }
 
 export function twitterItemAuthorUrls(item: TwitterEagleItem): string[] {
-  const user = twitterScreenNameFromCandidates(twitterMediaSourceCandidates(item)) || twitterScreenName(item);
+  const sourceCandidates = twitterMediaSourceCandidates(item);
+  const user = twitterScreenNameFromCandidates(sourceCandidates)
+    || twitterScreenNameFromMediaCandidates(sourceCandidates)
+    || twitterScreenName(item);
   return twitterEagleAuthorUrls(user);
 }
 
@@ -101,7 +106,7 @@ export function twitterEagleItemBaseName(directory: string, title: string, sourc
   const author = sourceTags
     .find(tag => tag.trim().toLowerCase().startsWith("author:"))
     ?.slice("author:".length)
-    .trim();
+    .trim() || twitterScreenNameFromUrl(sourceUrl);
   return [author || directory, title].filter(Boolean).join(" - ");
 }
 
@@ -144,6 +149,16 @@ function twitterScreenNameFromCandidates(candidates: TwitterSourceCandidate[]): 
     .find(Boolean) || "";
 }
 
+function twitterScreenNameFromMediaCandidates(candidates: TwitterSourceCandidate[]): string {
+  for (const candidate of candidates) {
+    for (const media of candidate.legacy?.entities?.media || []) {
+      const user = twitterScreenNameFromUrl(media.expanded_url);
+      if (user) return user;
+    }
+  }
+  return "";
+}
+
 function twitterLegacyCandidates(item: TwitterEagleItem): Array<TwitterLegacy | undefined> {
   const result = item.itemContent?.tweet_results?.result;
   return [
@@ -175,11 +190,25 @@ function cleanTwitterTag(value: unknown): string {
 
 function isTwitterSourceUrl(value: string): boolean {
   try {
-    const host = new URL(value).hostname.toLowerCase();
-    return host === "x.com" || host.endsWith(".x.com") || host === "twitter.com" || host.endsWith(".twitter.com");
+    return isTwitterHost(new URL(value).hostname);
   } catch {
     return false;
   }
+}
+
+function twitterScreenNameFromUrl(value: unknown): string {
+  try {
+    const url = new URL(String(value ?? ""));
+    if (!isTwitterHost(url.hostname)) return "";
+    return cleanTwitterScreenName(url.pathname.match(/^\/([^/]+)\/status\/\d+(?:\/|$)/i)?.[1]);
+  } catch {
+    return "";
+  }
+}
+
+function isTwitterHost(value: string): boolean {
+  const host = value.toLowerCase();
+  return host === "x.com" || host.endsWith(".x.com") || host === "twitter.com" || host.endsWith(".twitter.com");
 }
 
 function cssPixels(value: string): number | undefined {

@@ -113,6 +113,23 @@ describe('Eagle downloader duplicate checks', () => {
     expect(isDuplicateItem({ url: sibling.originUrl }, sibling)).toBe(true);
   });
 
+  it('recovers annotation-free V2 duplicates from exact source URL and source media name', () => {
+    const twitterAsset = {
+      sourceUrl: 'https://x.com/ajsjm140648/status/2075739332229710294/photo/1',
+      originUrl: 'https://pbs.twimg.com/media/HM6B5kiasAA7cy5?format=jpg&name=large',
+      sourceName: '2075739304324935680-HM6B5kiasAA7cy5.jpg',
+    };
+    const existing = {
+      url: twitterAsset.sourceUrl,
+      name: '2026-07-11 User Media - 2075739304324935680-HM6B5kiasAA7cy5',
+      annotation: '',
+    };
+
+    expect(isDuplicateItem(existing, twitterAsset)).toBe(true);
+    expect(isDuplicateItem(existing, { ...twitterAsset, sourceName: '2075739304324935681-other.jpg' })).toBe(false);
+    expect(isDuplicateItem({ ...existing, url: 'https://x.com/other/status/1/photo/1' }, twitterAsset)).toBe(false);
+  });
+
   it('does not treat one subitem origin URL match as every sibling subitem duplicate', () => {
     const subitem = { ...asset, itemKey: 'frame-002.png' };
     const siblingAnnotation = JSON.stringify({

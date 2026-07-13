@@ -49,11 +49,30 @@ describe("Twitter Eagle metadata adapter", () => {
     )).toBe("Tsurumi_vov - 2075580226034434048-HM3xN_ubgAA6Hh5.jpg");
   });
 
-  it("keeps upstream naming for other sites and Twitter items without an author", () => {
+  it("recovers a missing GraphQL author from the media source URL", () => {
+    const item = twitterItem({
+      outerUser: "",
+      outerLegacy: {
+        id_str: "2075739332229710294",
+        entities: {
+          hashtags: [{ text: "ヨスガノソラ" }],
+          media: [{
+            ...twitterMedia("2075739304324935680"),
+            expanded_url: "https://x.com/ajsjm140648/status/2075739332229710294/photo/1",
+          }],
+        },
+      },
+    });
+
+    expect(twitterItemSourceTags(item)).toEqual(["author:ajsjm140648", "ヨスガノソラ"]);
+    expect(twitterItemAuthorUrls(item)).toEqual(["https://x.com/ajsjm140648"]);
+  });
+
+  it("keeps upstream naming for other sites and uses the Twitter URL as the final author fallback", () => {
     expect(twitterEagleItemBaseName("Gallery", "image.jpg", "https://example.test/post/1", ["author:artist"]))
       .toBe("Gallery - image.jpg");
     expect(twitterEagleItemBaseName("User Media", "image.jpg", "https://x.com/user/status/1/photo/1", []))
-      .toBe("User Media - image.jpg");
+      .toBe("user - image.jpg");
   });
 
   it("raises a bottom-right entry above the native X Chat launcher", () => {
