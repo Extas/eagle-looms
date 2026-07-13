@@ -11,7 +11,7 @@ import { ADAPTER } from "../adapt";
 import { i18n } from "../../utils/i18n";
 import { HTMLUgoiraElement } from "../../utils/ugoira";
 import { replaceHost } from "../../utils/url";
-import { pixivEagleAuthorUrl, pixivEagleGalleryMetaFromState, pixivEagleItemTitle, pixivEagleSourceTags } from "../../eagle/adapters/pixiv";
+import { pixivEagleAuthorUrl, pixivEagleGalleryMetaFromState, pixivEagleItemTitle, pixivEaglePublishedAt, pixivEagleSourceTags } from "../../eagle/adapters/pixiv";
 import { normalizePixivWorkTags } from "../pixiv-tags";
 
 type ArtistPIDs = {
@@ -421,7 +421,7 @@ export class PixivMatcher extends BaseMatcher<ArtistPIDs[]> {
         const authorUrl = pixivEagleAuthorUrl(work, artistId);
         node.setTags(...pixivEagleSourceTags(work, artistId));
         if (authorUrl) node.setAuthorUrls(authorUrl);
-        node.setPublishedAt(this.works[pid]?.createDate || this.works[pid]?.uploadDate);
+        node.setPublishedAt(pixivEaglePublishedAt(this.works[pid]?.createDate || this.works[pid]?.uploadDate));
         node.actions.push(actionLike);
         node.actions.push(actionBookmark);
         list.push(node);

@@ -7,6 +7,7 @@ import {
   pixivEagleAuthorUrl,
   pixivEagleGalleryMetaFromState,
   pixivEagleItemTitle,
+  pixivEaglePublishedAt,
   pixivEagleSourceTags,
 } from "./pixiv";
 
@@ -48,6 +49,13 @@ describe("Pixiv Eagle metadata adapter", () => {
     }, "147051637_p0.jpg")).toBe("torino - Blue Vacation - 147051637_p0.jpg");
 
     expect(pixivEagleItemTitle(undefined, "147051637_p0.jpg")).toBe("147051637_p0.jpg");
+  });
+
+  it("normalizes equivalent Pixiv timestamps to the source site's Japan time", () => {
+    expect(pixivEaglePublishedAt("2026-07-10T15:00:00+00:00")).toBe("2026-07-11T00:00:00+09:00");
+    expect(pixivEaglePublishedAt("2026-07-11T00:00:16+09:00")).toBe("2026-07-11T00:00:16+09:00");
+    expect(pixivEaglePublishedAt("")).toBe("");
+    expect(pixivEaglePublishedAt("unknown")).toBe("unknown");
   });
 
   it("builds user gallery metadata with per-artwork buckets", () => {

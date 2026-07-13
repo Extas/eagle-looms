@@ -3,6 +3,8 @@ import { datedGalleryTitle, galleryTitle } from "../../platform/gallery-title";
 import { pixivAuthorLabel, pixivAuthorUrl } from "../../platform/pixiv-tags";
 import { sourceMetadataTag } from "../tags";
 
+const PIXIV_TIMEZONE_OFFSET_MS = 9 * 60 * 60 * 1000;
+
 export type PixivEagleWorkMetadata = {
   title?: unknown;
   tags?: string[];
@@ -30,6 +32,15 @@ export function pixivEagleItemTitle(work: PixivEagleWorkMetadata | undefined, so
   const author = pixivAuthorLabel(work).slice(0, 40);
   const artwork = cleanDisplayPart(work?.title).slice(0, 80);
   return uniqueDisplayParts([author, artwork, sourceFileName]).join(" - ") || sourceFileName;
+}
+
+export function pixivEaglePublishedAt(value: unknown): string {
+  const raw = String(value ?? "").trim();
+  if (!raw) return "";
+  const timestamp = Date.parse(raw);
+  if (!Number.isFinite(timestamp)) return raw;
+  const japanTime = new Date(timestamp + PIXIV_TIMEZONE_OFFSET_MS).toISOString();
+  return `${japanTime.slice(0, 19)}+09:00`;
 }
 
 export function pixivEagleArtworkMetadataBuckets(works: Record<string, PixivEagleWorkMetadata>): Record<string, string[]> {
