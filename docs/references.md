@@ -70,3 +70,25 @@ source metadata should be parsed before deriving visible Eagle organization
 avoid creating per-gallery or per-author tag groups by default
 avoid creating extra bookkeeping assets in the Eagle library for ordinary imports
 ```
+
+## Delivery Method: Palantir Ontology
+
+Official references used for the project's delivery vocabulary:
+
+- Ontology overview, semantic and kinetic elements: <https://www.palantir.com/docs/foundry/ontology/overview>
+- Ontology design best practices and rule of three: <https://www.palantir.com/docs/foundry/ontology/ontology-best-practices>
+- Use-case lifecycle and outcome-first scoping: <https://www.palantir.com/docs/foundry/use-case-life-cycle/overview>
+- Action types as governed, reusable writeback operations: <https://www.palantir.com/docs/foundry/action-types/overview>
+- Global Branching for isolated end-to-end workflow validation: <https://www.palantir.com/docs/foundry/global-branching/overview>
+
+Eagle Looms adapts these ideas without introducing Palantir infrastructure:
+
+```text
+model user-domain concepts rather than source schemas
+separate source observations from stable asset identity
+organize work around a user action and measurable outcome, not a site integration
+keep one canonical import action from plan through Eagle writeback
+apply the rule of three before extracting shared abstractions
+extend stable contracts through adapters and focused capabilities
+validate the operational loop, not only the parser
+```

@@ -2,7 +2,7 @@
 project: Eagle Looms
 status: 1.0 implementation
 type: userscript-eagle-import-bridge
-updated: 2026-07-11
+updated: 2026-07-13
 primary_language: zh-CN
 ---
 
@@ -78,7 +78,7 @@ https://anime-pictures.net/posts?page=0&search_tag=bang+dream!+it%27s+mygo!!!!!
 
 ```text
 docs/architecture.md
-  code boundaries, import flow, upstream workflow, site coverage
+  code boundaries, operational ontology, delivery rhythm, import flow, upstream workflow, site coverage
 
 docs/eagle-organization.md
   folder, tag, naming, extra-asset, and duplicate policy

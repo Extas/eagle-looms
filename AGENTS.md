@@ -56,6 +56,57 @@ for common utilities, search for a focused maintained dependency before writing 
 keep custom helpers narrow, project-specific, and tested
 ```
 
+## Ontology-Guided Delivery
+
+Use Ontology as a design and delivery vocabulary, not as a new runtime framework or dependency. Model the user's real import workflow instead of mirroring every source site's DOM or API shape.
+
+Canonical concepts:
+
+```text
+Source Context   site, page, gallery, chapter, and collection meaning
+Source Asset     one importable media identity plus its source observation
+Import Policy    the remembered user choices that govern an import
+Import Plan      the derived names, folders, tags, duplicate state, and warnings
+Eagle Item       the committed asset and its Eagle identity
+```
+
+Canonical relationships and action:
+
+```text
+Source Context contains Source Assets
+Import Policy transforms Source Assets into an Import Plan
+Import to Eagle confirms and commits an Import Plan into Eagle Items
+Eagle Items retain links to their source context and destination folders
+```
+
+These concepts do not require matching classes or persistence records. Add a type or abstraction only when the implementation needs it at multiple real call sites.
+
+Advance one closed operational loop at a time:
+
+```text
+1. Observe   reproduce one concrete user scenario and record the incorrect outcome
+2. Model     identify the canonical property, relationship, action, or invariant involved
+3. Map       normalize site-specific evidence at the matcher/adapter boundary
+4. Act       implement the smallest complete user-visible import behavior
+5. Verify    compare the plan with the actual Eagle item, folder, tags, and source fields
+```
+
+An iteration is not complete merely because a parser test passes. It should prove the affected user action end to end with the narrowest reliable evidence available. A larger use case may span several commits, but keep working on the same operational loop until its outcome is verified instead of switching sites after a local test turns green. Keep the existing full-validation cadence, but run targeted tests and build checks for every patch.
+
+Do not turn a broad reliability goal into a stream of unrelated micro-hardening changes. At each continuation, choose the highest-impact open loop from observed user evidence. If there is no reported defect, audit one complete path from a real source page through the import plan to the resulting Eagle item, then fix the first material break or stop with recorded evidence that the path is sound.
+
+Prioritize work in this order:
+
+```text
+broken or misleading import actions
+identity, provenance, duplicate, and additive-write invariants
+configuration clarity and plan/result feedback
+shared behavior seen at three real call sites
+new site coverage and optional refinements
+```
+
+Apply the rule of three: one site-specific case may stay local, two similar cases signal a pattern, and the third is the point to consolidate a canonical helper or adapter contract. Protect stable core contracts and extend through `src/eagle/adapters/` or small capability-oriented helpers rather than widening the downloader or creating site inheritance trees.
+
 ## Eagle Write Policy
 
 Writes must be additive by default:
