@@ -21,12 +21,12 @@ export function stableKeyForAsset(asset: EagleDuplicateAsset): string {
 }
 
 export function duplicateQueries(asset: EagleDuplicateAsset): string[] {
-  const terms = new Set([
-    asset.itemKey ? stableKeyForAsset(asset) : "",
-    asset.sourceUrl,
-    asset.originUrl,
-  ].filter(Boolean));
-  return [...terms].map(value => `"${String(value).replaceAll('"', '\\"')}"`);
+  if (!asset.itemKey) return [];
+  return [`"${stableKeyForAsset(asset).replaceAll('"', '\\"')}"`];
+}
+
+export function duplicateUrls(asset: EagleDuplicateAsset): string[] {
+  return [...new Set([asset.sourceUrl, asset.originUrl].filter((value): value is string => Boolean(value)))];
 }
 
 export function isDuplicateItem(item: EagleDuplicateCandidate, asset: EagleDuplicateAsset): boolean {

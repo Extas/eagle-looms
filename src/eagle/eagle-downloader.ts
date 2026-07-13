@@ -11,7 +11,7 @@ import { classifyEagleApiError, EagleWebApi, AddItemInput, extractEagleLibraryNa
 import { ensureFolderPath } from "./folders";
 import { arrayBufferToBase64 } from "./transport";
 import { cleanFolderTagValue, collapseCharacterFolderValues, EAGLE_FOLDER_PRESET_TEMPLATES, EagleFolderTokens, findUnknownEagleFolderTokens, hasMalformedEagleFolderTokenSyntax, normalizeEagleBaseUrl, normalizeEagleFolderTemplate, normalizeEagleImportLimit, resolveEagleFolderPaths } from "./options";
-import { duplicateQueries, hasPlannedAssetKey, isDuplicateItem, isSessionImported, markPlannedAssetKey, markSessionImported } from "./duplicates";
+import { duplicateQueries, duplicateUrls, hasPlannedAssetKey, isDuplicateItem, isSessionImported, markPlannedAssetKey, markSessionImported } from "./duplicates";
 import { normalizeEagleItemTags, normalizeEagleTags, semanticSourceTags, sourcePublishedAtTags, sourceTagsFromGalleryMeta } from "./tags";
 import { isReadyForEagleImport } from "./import-readiness";
 import { eaglePlanCompactParts, eaglePlanCompactSummary, eaglePlanHeadline, eaglePlanSummaryParts, eagleSummaryParts, eagleToastSummary, EagleImportSummaryStats, shouldConfirmImportPlan } from "./import-summary";
@@ -412,6 +412,12 @@ export class EagleDownloader extends Downloader {
     for (const query of duplicateQueries(asset)) {
       this.assertImportActive(runId);
       const items = await api.queryItems(query, 20);
+      this.assertImportActive(runId);
+      if (items.some(item => isDuplicateItem(item, asset))) return true;
+    }
+    for (const url of duplicateUrls(asset)) {
+      this.assertImportActive(runId);
+      const items = await api.itemsByUrl(url);
       this.assertImportActive(runId);
       if (items.some(item => isDuplicateItem(item, asset))) return true;
     }

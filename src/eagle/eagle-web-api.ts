@@ -75,6 +75,16 @@ export class EagleWebApi {
     return unwrapRows(data).filter((item) => !item.isDeleted);
   }
 
+  async itemsByUrl(url: string): Promise<EagleItem[]> {
+    const data = await this.post<Paged<EagleItem>>('/api/v2/item/get', {
+      url,
+      fields: ['id', 'name', 'url', 'website', 'annotation', 'isDeleted'],
+      limit: 1000,
+      offset: 0,
+    });
+    return unwrapRows(data).filter((item) => !item.isDeleted);
+  }
+
   async itemInfo(id: string): Promise<EagleItem> {
     const itemId = id.trim();
     if (!itemId) throw new Error('missing Eagle item id');

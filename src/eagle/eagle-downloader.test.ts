@@ -3,7 +3,7 @@ import { defaultConf } from '../config';
 import { GalleryMeta } from '../download/gallery-meta';
 import { ADAPTER } from '../platform/adapt';
 import { i18n } from '../utils/i18n';
-import { clearSessionImportedAssets, duplicateQueries, hasPlannedAssetKey, isDuplicateItem, isSessionImported, markPlannedAssetKey, markSessionImported, stableKeyForAsset } from './duplicates';
+import { clearSessionImportedAssets, duplicateQueries, duplicateUrls, hasPlannedAssetKey, isDuplicateItem, isSessionImported, markPlannedAssetKey, markSessionImported, stableKeyForAsset } from './duplicates';
 import { assertEagleLibraryUnchanged, EagleDownloader, eagleFolderTemplateForImport, eagleImportEndStage, eagleImportErrorMessage, eagleImportResultLinks, hasIncompleteImportResult, limitWritableImportJobs, toAddItemInput } from './eagle-downloader';
 import { EAGLE_IMPORT_DONE_STAGE, isReadyForEagleImport } from './import-readiness';
 import { EAGLE_RAW_RECORD_SCHEMA, type EagleRawRecord } from './raw-record';
@@ -64,18 +64,12 @@ describe('Eagle downloader duplicate checks', () => {
   });
 
   it('queries observable V2 identity and reserves stable-key lookup for subitems', () => {
-    expect(duplicateQueries(asset)).toEqual([
-      '"https://anime-pictures.net/posts/917184"',
-      '"https://images.anime-pictures.net/pictures/917184.jpg"',
-    ]);
+    expect(duplicateQueries(asset)).toEqual([]);
     expect(duplicateQueries({ ...asset, itemKey: 'frame-002.png' })).toEqual([
       '"eagle-looms:v2:https://anime-pictures.net/posts/917184|https://images.anime-pictures.net/pictures/917184.jpg|frame-002.png"',
-      '"https://anime-pictures.net/posts/917184"',
-      '"https://images.anime-pictures.net/pictures/917184.jpg"',
     ]);
-    expect(duplicateQueries({ sourceUrl: asset.sourceUrl })).toEqual([
-      '"https://anime-pictures.net/posts/917184"',
-    ]);
+    expect(duplicateUrls(asset)).toEqual([asset.sourceUrl, asset.originUrl]);
+    expect(duplicateUrls({ sourceUrl: asset.sourceUrl, originUrl: asset.sourceUrl })).toEqual([asset.sourceUrl]);
   });
 
   it('matches existing Eagle items by precise URL or annotation identity', () => {
@@ -159,6 +153,30 @@ describe('Eagle downloader duplicate checks', () => {
     })).toBe(false);
   });
 
+  it('finds a matching sibling beyond the old 20-result search window', async () => {
+    const pixivAsset = {
+      sourceUrl: 'https://www.pixiv.net/artworks/147051638',
+      originUrl: 'https://i.pximg.net/img-original/147051638_p24.jpg',
+      sourceName: '147051638_p24.jpg',
+    };
+    const api = {
+      queryItems: vi.fn(),
+      itemsByUrl: vi.fn().mockResolvedValue(Array.from({ length: 25 }, (_, index) => ({
+        url: pixivAsset.sourceUrl,
+        name: `2026-07-13 147051638_p${index}`,
+      }))),
+    };
+    const downloader = Object.assign(Object.create(EagleDownloader.prototype), {
+      importRunId: 0,
+      importStopRequested: false,
+    }) as EagleDownloader;
+
+    await expect((downloader as any).isDuplicate(api, pixivAsset)).resolves.toBe(true);
+    expect(api.queryItems).not.toHaveBeenCalled();
+    expect(api.itemsByUrl).toHaveBeenCalledOnce();
+    expect(api.itemsByUrl).toHaveBeenCalledWith(pixivAsset.sourceUrl);
+  });
+
   it('does not treat one subitem origin URL match as every sibling subitem duplicate', () => {
     const subitem = { ...asset, itemKey: 'frame-002.png' };
     const siblingAnnotation = JSON.stringify({
@@ -228,7 +246,7 @@ describe('Eagle downloader duplicate checks', () => {
     let active = 0;
     let maxActive = 0;
     const api = {
-      queryItems: vi.fn(async () => {
+      itemsByUrl: vi.fn(async () => {
         active += 1;
         maxActive = Math.max(maxActive, active);
         await new Promise(resolve => setTimeout(resolve, 5));
@@ -254,14 +272,14 @@ describe('Eagle downloader duplicate checks', () => {
   it('cancels duplicate preflight before queued Eagle queries continue', async () => {
     ADAPTER.conf = defaultConf();
     const panel = { setImportProgress: vi.fn() };
-    const api = { queryItems: vi.fn().mockResolvedValue([]) };
+    const api = { itemsByUrl: vi.fn().mockResolvedValue([]) };
     const downloader = Object.assign(Object.create(EagleDownloader.prototype), {
       panel,
       importStopRequested: true,
     }) as EagleDownloader;
 
     await expect((downloader as any).preflightJobs(api, [{ asset: eagleAsset('image.jpg') }])).rejects.toThrow('abort');
-    expect(api.queryItems).not.toHaveBeenCalled();
+    expect(api.itemsByUrl).not.toHaveBeenCalled();
   });
 
   it('does not let requests from a canceled run resume inside the next import run', async () => {
@@ -271,7 +289,7 @@ describe('Eagle downloader duplicate checks', () => {
     const blocked = new Promise<void>(resolve => {
       releaseQueries = resolve;
     });
-    const api = { queryItems: vi.fn(async () => {
+    const api = { itemsByUrl: vi.fn(async () => {
       await blocked;
       return [];
     }) };
@@ -289,13 +307,13 @@ describe('Eagle downloader duplicate checks', () => {
     }));
 
     const preflight = (downloader as any).preflightJobs(api, jobs, 1);
-    await vi.waitFor(() => expect(api.queryItems).toHaveBeenCalledTimes(4));
+    await vi.waitFor(() => expect(api.itemsByUrl).toHaveBeenCalledTimes(4));
     (downloader as any).importRunId = 2;
     releaseQueries();
 
     await expect(preflight).rejects.toThrow('abort');
     await Promise.resolve();
-    expect(api.queryItems).toHaveBeenCalledTimes(4);
+    expect(api.itemsByUrl).toHaveBeenCalledTimes(4);
   });
 
   it('skips repeated assets in one plan before querying Eagle', async () => {
@@ -303,17 +321,17 @@ describe('Eagle downloader duplicate checks', () => {
     ADAPTER.conf = defaultConf();
     const panel = { setImportProgress: vi.fn() };
     const downloader = Object.assign(Object.create(EagleDownloader.prototype), { panel }) as EagleDownloader;
-    const api = { queryItems: vi.fn().mockResolvedValue([]) };
+    const api = { itemsByUrl: vi.fn().mockResolvedValue([]) };
     const repeated = eagleAsset('same.jpg');
     const jobs = [{ asset: repeated }, { asset: { ...repeated } }];
 
     const result = await (downloader as any).preflightJobs(api, jobs);
 
     expect(result).toEqual({ writable: 1, sessionSkipped: 1, duplicateSkipped: 0, failed: 0 });
-    expect(api.queryItems).toHaveBeenCalledTimes(2);
-    expect(api.queryItems.mock.calls.map(([query]) => query)).toEqual([
-      `"${repeated.sourceUrl}"`,
-      `"${repeated.originUrl}"`,
+    expect(api.itemsByUrl).toHaveBeenCalledTimes(2);
+    expect(api.itemsByUrl.mock.calls.map(([url]) => url)).toEqual([
+      repeated.sourceUrl,
+      repeated.originUrl,
     ]);
     expect(jobs[1].asset).toBeDefined();
     expect((jobs[1] as any).skipReason).toBe('session');
