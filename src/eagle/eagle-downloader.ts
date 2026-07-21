@@ -216,12 +216,11 @@ export class EagleDownloader extends Downloader {
       for (const job of jobs) {
         if (abortable && !this.downloading) throw new Error("abort");
         if (!job.skipReason && !job.preflightError && importPlan.writable > 0) {
-          await assertEagleLibraryUnchanged(api, connection.library);
           this.assertImportActive(runId);
           writeIndex += 1;
           this.panel.setImportProgress(i18n.eagleImportWritingToEagle.get(), writeIndex, importPlan.writable);
         }
-        await this.writeJob(api, folderIds, job, stats, usedNamesForFolder(folderNames, job.folderKey), runId, sessionLibraryKey);
+        await this.writeJob(api, folderIds, job, stats, usedNamesForFolder(folderNames, job.folderKey), runId, sessionLibraryKey, connection.library);
       }
 
       this.done = stats.failed === 0;
@@ -352,12 +351,11 @@ export class EagleDownloader extends Downloader {
           return;
         }
         if (!job.skipReason && !job.preflightError && importPlan.writable > 0) {
-          await assertEagleLibraryUnchanged(api, connection.library);
           this.assertImportActive(runId);
           writeIndex += 1;
           this.panel.setImportProgress(i18n.eagleImportWritingToEagle.get(), writeIndex, importPlan.writable);
         }
-        await this.writeJob(api, folderIds, job, stats, usedNamesForFolder(folderNames, job.folderKey), runId, sessionLibraryKey);
+        await this.writeJob(api, folderIds, job, stats, usedNamesForFolder(folderNames, job.folderKey), runId, sessionLibraryKey, connection.library);
       }
       this.done = stats.failed === 0;
       endStage = eagleImportEndStage(stats);
@@ -531,7 +529,7 @@ export class EagleDownloader extends Downloader {
     EBUS.emit("notify-message", "info", message, handled > 0 ? 8000 : 4000);
   }
 
-  private async writeJob(api: EagleWebApi, folderIds: Map<string, string>, job: EagleImportJob, stats: EagleImportStats, usedNames: Set<string>, runId = this.importRunId, sessionLibraryKey = ""): Promise<void> {
+  private async writeJob(api: EagleWebApi, folderIds: Map<string, string>, job: EagleImportJob, stats: EagleImportStats, usedNames: Set<string>, runId = this.importRunId, sessionLibraryKey = "", initialLibrary?: unknown): Promise<void> {
     const asset = job.asset;
     try {
       this.assertImportActive(runId);
@@ -551,7 +549,9 @@ export class EagleDownloader extends Downloader {
         }
       }
       asset.name = job.finalName || createEagleItemName(asset.name, usedNames);
-      const jobFolderIds = await this.folderIdsForJob(api, folderIds, job, stats, runId);
+      const jobFolderIds = await this.folderIdsForJob(api, folderIds, job, stats, runId, initialLibrary);
+      this.assertImportActive(runId);
+      if (initialLibrary) await assertEagleLibraryUnchanged(api, initialLibrary);
       this.assertImportActive(runId);
       let id: string;
       try {
@@ -570,6 +570,7 @@ export class EagleDownloader extends Downloader {
       this.assertImportActive(runId);
     } catch (error) {
       if (this.importStopRequested || (error instanceof Error && error.message === "abort")) throw error;
+      if (error instanceof EagleLibraryChangedError) throw error;
       recordImportFailure(stats, job.finalName || asset.name, error);
       if (error instanceof EagleItemWriteOutcomeUnknownError) throw error;
     }
@@ -586,8 +587,13 @@ export class EagleDownloader extends Downloader {
     };
   }
 
-  private async folderIdsForJob(api: EagleWebApi, folderIds: Map<string, string>, job: EagleImportJob, stats: EagleImportStats, runId = this.importRunId): Promise<string[]> {
+  private async folderIdsForJob(api: EagleWebApi, folderIds: Map<string, string>, job: EagleImportJob, stats: EagleImportStats, runId = this.importRunId, initialLibrary?: unknown): Promise<string[]> {
     this.assertImportActive(runId);
+    const assertReady = async () => {
+      this.assertImportActive(runId);
+      if (initialLibrary) await assertEagleLibraryUnchanged(api, initialLibrary);
+      this.assertImportActive(runId);
+    };
     const ids: string[] = [];
     for (let i = 0; i < job.folderPaths.length; i++) {
       this.assertImportActive(runId);
@@ -596,7 +602,7 @@ export class EagleDownloader extends Downloader {
       const cacheKey = folderIdentityKey(folderKey);
       let folderId = folderIds.get(cacheKey);
       if (!folderId) {
-        folderId = await ensureFolderPath(api, folderPath, () => this.assertImportActive(runId));
+        folderId = await ensureFolderPath(api, folderPath, assertReady);
         folderIds.set(cacheKey, folderId);
       }
       stats.folders.push(folderKey);
@@ -698,10 +704,14 @@ export async function assertEagleLibraryUnchanged(api: EagleWebApi, initial: unk
     ? !sameEagleLibraryPath(initialPath, current.path)
     : Boolean(initialName && current.name && initialName !== current.name);
   if (!changed) return;
-  throw new Error(format(i18n.eagleImportLibraryChanged.get(), {
+  throw new EagleLibraryChangedError(format(i18n.eagleImportLibraryChanged.get(), {
     before: initialName || i18n.eagleConfigUnknownLibrary.get(),
     after: current.name || i18n.eagleConfigUnknownLibrary.get(),
   }));
+}
+
+export class EagleLibraryChangedError extends Error {
+  override readonly name = "EagleLibraryChangedError";
 }
 
 export function eagleLibrarySessionKey(library: unknown, baseUrl = ""): string {

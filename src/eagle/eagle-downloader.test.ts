@@ -875,6 +875,7 @@ describe('Eagle downloader duplicate checks', () => {
       expect.any(Set),
       expect.any(Number),
       'path:d:/test.library',
+      { name: 'Test Library', path: 'D:/Test.library' },
     );
     expect(panel.showEagleImportResult).toHaveBeenCalledWith(
       expect.arrayContaining(['library Test Library']),
@@ -1140,7 +1141,8 @@ describe('Eagle downloader duplicate checks', () => {
       confirmEagleImportPlan: vi.fn(),
       showEagleImportResult: vi.fn(),
     };
-    const writeJob = vi.fn(async (_api, _folderIds, _job, stats) => {
+    const writeJob = vi.fn(async (api, _folderIds, _job, stats, _usedNames, _runId, _sessionLibraryKey, initialLibrary) => {
+      await assertEagleLibraryUnchanged(api, initialLibrary);
       stats.imported += 1;
     });
     const downloader = Object.assign(Object.create(EagleDownloader.prototype), {
@@ -1167,7 +1169,7 @@ describe('Eagle downloader duplicate checks', () => {
     await expect(downloader.download([chapter as any])).rejects.toThrow('Library A');
 
     expect(eagleLibraryInfoMock).toHaveBeenCalledTimes(2);
-    expect(writeJob).toHaveBeenCalledTimes(1);
+    expect(writeJob).toHaveBeenCalledTimes(2);
     expect(panel.showEagleImportResult).toHaveBeenCalledWith(
       expect.arrayContaining(['stopped before completion', 'planned 3', 'imported 1', 'failed 1', expect.stringContaining('Library A')]),
       true,
@@ -1282,6 +1284,75 @@ describe('Eagle downloader duplicate checks', () => {
       label: 'Eagle Looms/site/first',
       url: 'http://localhost:41595/folder?id=first',
     }]);
+  });
+
+  it('stops before the next folder creation when Eagle switches libraries during tree resolution', async () => {
+    const api = {
+      baseUrl: 'http://localhost:41595',
+      getFolders: vi.fn().mockResolvedValue([]),
+      createFolder: vi.fn().mockResolvedValue({ id: 'root', name: 'Eagle Looms', children: [] }),
+      libraryInfo: vi.fn()
+        .mockResolvedValueOnce({ name: 'Library A', path: 'D:/A.library', folders: [] })
+        .mockResolvedValueOnce({ name: 'Library B', path: 'D:/B.library', folders: [] }),
+    };
+    const downloader = Object.assign(Object.create(EagleDownloader.prototype), {
+      importStopRequested: false,
+    }) as any;
+    const stats = {
+      folders: [],
+      folderLinks: [],
+    };
+
+    await expect(downloader.folderIdsForJob(api, new Map(), {
+      folderPaths: [['Eagle Looms', 'site', 'date']],
+      folderKeys: ['Eagle Looms/site/date'],
+    }, stats, undefined, { name: 'Library A', path: 'D:/A.library' })).rejects.toThrow('Library A');
+
+    expect(api.getFolders).toHaveBeenCalledTimes(1);
+    expect(api.createFolder).toHaveBeenCalledTimes(1);
+    expect(api.createFolder).toHaveBeenCalledWith('Eagle Looms', undefined);
+    expect(stats.folders).toEqual([]);
+  });
+
+  it('rechecks the target library after folder resolution and before item submission', async () => {
+    ADAPTER.conf = defaultConf();
+    const downloader = Object.assign(Object.create(EagleDownloader.prototype), {
+      importStopRequested: false,
+      folderIdsForJob: vi.fn().mockResolvedValue(['folder-id']),
+    }) as any;
+    const api = {
+      baseUrl: 'http://localhost:41595',
+      libraryInfo: vi.fn().mockResolvedValue({ name: 'Library B', path: 'D:/B.library', folders: [] }),
+      addItem: vi.fn().mockResolvedValue('item-id'),
+    };
+    const stats = {
+      planned: 1,
+      imported: 0,
+      skipped: 0,
+      sessionSkipped: 0,
+      duplicateSkipped: 0,
+      failed: 0,
+      folders: [],
+      folderLinks: [],
+      itemLinks: [],
+      skippedItems: [],
+      failures: [],
+    };
+
+    await expect(downloader.writeJob(api, new Map(), {
+      asset: {
+        ...eagleAsset('source image.jpg'),
+        node: { authorUrls: [] },
+        meta: { authorUrls: [] },
+      },
+      folderPaths: [['Eagle Looms', 'site', 'date']],
+      folderKeys: ['Eagle Looms/site/date'],
+      folderKey: 'Eagle Looms/site/date',
+      preflightChecked: true,
+    }, stats, new Set(), undefined, '', { name: 'Library A', path: 'D:/A.library' })).rejects.toThrow('Library A');
+
+    expect(api.addItem).not.toHaveBeenCalled();
+    expect(stats.failed).toBe(0);
   });
 
   it('stops after folder resolution without submitting the item write', async () => {
