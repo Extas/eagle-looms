@@ -49,6 +49,8 @@ describe('Eagle item naming', () => {
   it('normalizes common source date formats for sortable prefixes', () => {
     expect(sourceDatePrefix('2025/7/8 12:34:56')).toBe('2025-07-08');
     expect(sourceDatePrefix('2026-05-25 6:00 AM')).toBe('2026-05-25');
+    expect(sourceDatePrefix('2026-07-11T00:00:16+09:00')).toBe('2026-07-11');
+    expect(sourceDatePrefix('2026-07-20T22:03-04:00')).toBe('2026-07-20');
     expect(sourceDatePrefix('Wed Oct 10 20:19:24 +0000 2018')).toBe('2018-10-10');
     expect(sourceDatePrefix(1719792000)).toBe('2024-07-01');
     expect(sourceDatePrefix('2025-02-31')).toBe('');

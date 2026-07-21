@@ -144,7 +144,7 @@ class PixivArtistWorksAPI implements PixivAPI {
     this.artist = await this.findArtistID();
     if (!this.artist) throw new Error("Cannot find artist id!");
 
-    const currArtWork = window.location.href.match(/artworks\/(\d+)$/)?.[1];
+    const currArtWork = window.location.href.match(/artworks\/(\d+)(?:[/?#]|$)/)?.[1];
     if (currArtWork) {
       const chapter = new Chapter(1, i18n.currentArtWorks.get(), "");
       this.chapterPids.set(chapter.id, [currArtWork]);

@@ -101,7 +101,7 @@ export function parseStructuredEagleName(name: string): EagleStructuredName | un
 export function sourceDatePrefix(value: unknown): string {
   const raw = String(value ?? "").trim();
   if (!raw) return "";
-  const directDate = raw.match(/\b(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})\b/);
+  const directDate = raw.match(/\b(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})(?=$|[T\s])/);
   if (directDate) return datePartsToPrefix(directDate[1], directDate[2], directDate[3]);
   const numeric = Number(raw);
   const time = Number.isFinite(numeric)

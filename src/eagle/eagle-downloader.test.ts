@@ -805,7 +805,7 @@ describe('Eagle downloader duplicate checks', () => {
       );
 
       expect(asset).toMatchObject({
-        name: '2026-07-21 kanadenishizawa - project sekai - danbooru-11832347.jpg',
+        name: '2026-07-20 kanadenishizawa - project sekai - danbooru-11832347.jpg',
         sourceUrl: 'https://danbooru.donmai.us/posts/11832347',
         website: 'https://danbooru.donmai.us/posts/11832347',
         originUrl: 'https://cdn.donmai.us/original/31/43/__shinonome_ena_project_sekai_drawn_by_kanadenishizawa__314317f88b5282586c79a769838e7398.jpg',
@@ -821,7 +821,7 @@ describe('Eagle downloader duplicate checks', () => {
         'character:shinonome ena',
         '1girl',
         'highres',
-        'source:published:2026-07-21',
+        'source:published:2026-07-20',
       ]));
       expect(toAddItemInput(asset, ['folder-id'])).toMatchObject({
         name: asset.name,
@@ -829,6 +829,71 @@ describe('Eagle downloader duplicate checks', () => {
         url: asset.originUrl,
         folders: ['folder-id'],
         annotation: 'https://danbooru.donmai.us/posts?tags=kanadenishizawa&z=1',
+      });
+    } finally {
+      ADAPTER.matcher = previousMatcher;
+    }
+  });
+
+  it('keeps Pixiv artwork pages distinct while preserving the source-site publish date', () => {
+    const sourceUrl = 'https://www.pixiv.net/en/artworks/147051638?utm_source=share#viewer';
+    const page = (index: number) => ({
+      stage: EAGLE_IMPORT_DONE_STAGE,
+      data: new Uint8Array([index + 1]),
+      contentType: 'image/jpeg',
+      node: {
+        title: `白弥姜 - 七夕の夜 - 147051638_p${index}.jpg`,
+        href: sourceUrl,
+        originSrc: `https://i.pximg.net/img-original/img/2026/07/11/00/00/16/147051638_p${index}.jpg`,
+        tags: new Set<string>(['author:白弥姜', '妄想', '七夕']),
+        authorUrls: ['https://www.pixiv.net/users/111145760'],
+        publishedAt: '2026-07-11T00:00:16+09:00',
+      },
+    });
+    const chapter = {
+      title: 'Current artwork',
+      source: sourceUrl,
+      filteredQueue: [page(0), page(1)],
+    };
+    const downloader = Object.create(EagleDownloader.prototype) as EagleDownloader;
+    ADAPTER.conf = defaultConf();
+    const previousMatcher = ADAPTER.matcher;
+    ADAPTER.matcher = { name: 'Pixiv', workURLs: [/.*/], constructor: vi.fn() as any };
+
+    try {
+      const assets = (downloader as any).assetsForChapter(
+        chapter,
+        { picked: () => true },
+        '',
+        new GalleryMeta(sourceUrl, 'pixiv-user-111145760'),
+        '2026-07-21',
+      );
+
+      expect(assets).toHaveLength(2);
+      expect(assets.map((asset: any) => asset.name)).toEqual([
+        '2026-07-11 白弥姜 - 七夕の夜 - 147051638_p0.jpg',
+        '2026-07-11 白弥姜 - 七夕の夜 - 147051638_p1.jpg',
+      ]);
+      expect(assets.map((asset: any) => asset.sourceUrl)).toEqual([
+        'https://www.pixiv.net/artworks/147051638',
+        'https://www.pixiv.net/artworks/147051638',
+      ]);
+      expect(assets.map((asset: any) => asset.originUrl)).toEqual([
+        'https://i.pximg.net/img-original/img/2026/07/11/00/00/16/147051638_p0.jpg',
+        'https://i.pximg.net/img-original/img/2026/07/11/00/00/16/147051638_p1.jpg',
+      ]);
+      expect(stableKeyForAsset(assets[0])).not.toBe(stableKeyForAsset(assets[1]));
+      expect(assets[0].folderTokens).toMatchObject({ site: 'Pixiv', date: '2026-07-21' });
+      expect(assets[0].tags).toEqual(expect.arrayContaining([
+        'author:白弥姜',
+        '妄想',
+        '七夕',
+        'source:published:2026-07-11',
+      ]));
+      expect(toAddItemInput(assets[0], ['folder-id'])).toMatchObject({
+        website: 'https://www.pixiv.net/artworks/147051638',
+        url: assets[0].originUrl,
+        annotation: 'https://www.pixiv.net/users/111145760',
       });
     } finally {
       ADAPTER.matcher = previousMatcher;
