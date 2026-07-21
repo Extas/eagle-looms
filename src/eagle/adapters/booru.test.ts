@@ -85,6 +85,19 @@ describe("booru source tags", () => {
     ]);
   });
 
+  it("does not import Rule34.us statistics and moderation actions as source tags", () => {
+    document.body.innerHTML = `
+      <ul class="tag-list-left">
+        <li class="general-tag"><a href="/index.php?r=posts/index&q=blue_eyes">blue eyes</a></li>
+        <li class="metadata-tag">Added by: <a href="index.php?r=account/profile&id=2">Anonymous</a></li>
+        <li class="general-tag"><div><a href="#" onclick="pflag('13192921')">Flag for Deletion</a></div></li>
+        <li class="general-tag">Source: <a href="https://example.test/source/13192921">external source</a></li>
+      </ul>
+    `;
+
+    expect(extractBooruSourceTags(document, [])).toEqual(["blue eyes"]);
+  });
+
   it("ignores Gelbooru tag controls and reads its textual Posted timestamp", () => {
     document.body.innerHTML = `
       <ul class="tag-list" id="tag-list">

@@ -296,6 +296,14 @@ Wiki `?` and add/remove-search controls never become Eagle tags or author URLs
 detail-page `Posted:` time becomes the source:published tag and optional item-name date prefix
 ```
 
+Rule34.us behavior:
+
+```text
+statistics such as Added by, Source, and Score do not become source tags
+moderation actions such as Flag for Deletion do not become source tags or author URLs
+actual copyright, character, artist, general, and metadata tag links remain importable
+```
+
 NovelAI bridge behavior:
 
 ```text

@@ -386,7 +386,9 @@ function sourceTagComparisonKey(value: string): string {
 function sourceTagValueFromAnchor(anchor: Element): string {
   const href = (anchor.getAttribute("href") || "").trim();
   const title = (anchor.getAttribute("title") || "").trim();
-  if (/^javascript:/i.test(href) || /(?:^|[?&])page=wiki(?:&|$)/i.test(href)) return "";
+  const rowText = (anchor.closest("li")?.textContent || "").replace(/\s+/g, " ").trim();
+  if (/^(?:#|javascript:)/i.test(href) || /(?:^|[?&])page=wiki(?:&|$)/i.test(href)) return "";
+  if (/^(?:Added by|Created|Score|Size|Source|Id):/i.test(rowText) || /^(?:Flag for Deletion|Edit Post|Remove)$/i.test(rowText)) return "";
   if (/^(?:wiki|add to search|remove from search)$/i.test(title)) return "";
   return cleanSourceTag(anchor.textContent || "");
 }
