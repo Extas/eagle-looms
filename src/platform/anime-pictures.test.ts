@@ -28,6 +28,27 @@ describe('anime-pictures matcher', () => {
     expect(posts[1].thumbnailUrl).toBe('https://cdn.anime-pictures.net/preview/917185.jpg');
   });
 
+  it('keeps the first 100 search results across variable source page sizes', () => {
+    const page = (start: number, count: number) => new DOMParser().parseFromString(`
+      <main>
+        ${Array.from({ length: count }, (_, index) => {
+          const id = String(start + index);
+          return `<a href="/posts/${id}?by_tag=201352&lang=en"><img src="/preview/${id}.jpg"></a>`;
+        }).join('')}
+      </main>
+    `, 'text/html');
+
+    const firstPage = parseAnimePicturesPostEntries(page(100000, 80), 'https://anime-pictures.net/posts?page=0&search_tag=bang+dream', 100);
+    const secondPage = parseAnimePicturesPostEntries(page(200000, 69), 'https://anime-pictures.net/posts?page=1&search_tag=bang+dream', 100 - firstPage.length);
+    const posts = [...firstPage, ...secondPage];
+
+    expect(posts).toHaveLength(100);
+    expect(posts[0].id).toBe('100000');
+    expect(posts[79].id).toBe('100079');
+    expect(posts[99].id).toBe('200019');
+    expect(new Set(posts.map(post => post.id)).size).toBe(100);
+  });
+
   it('ignores non-result post links below the anime-pictures search grid', () => {
     const doc = new DOMParser().parseFromString(`
       <div class="posts">

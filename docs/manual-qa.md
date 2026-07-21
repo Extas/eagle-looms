@@ -290,6 +290,7 @@ anime-pictures behavior:
 
 ```text
 posts search excludes Last stars/sidebar thumbnails
+posts search follows variable source page sizes and stops at the configured candidate limit without overlapping pages
 /stars?page=0 imports the main stars list while excluding recommendation sidebars
 /posts/{id} imports only the current detail-page image
 detail pages prefer direct images.anime-pictures.net candidates over api download_image endpoints
