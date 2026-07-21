@@ -28,7 +28,7 @@ describe("NovelAI Eagle bridge", () => {
     expect(isNovelAiImageToolsUrl("https://example.test/imagetools")).toBe(false);
   });
 
-  it("keeps monitoring off until a source resolves successfully", async () => {
+  it("ignores legacy monitor state and reflects the active observer", async () => {
     document.body.innerHTML = "";
     localStorage.setItem("eagle-looms:novelai-bridge", JSON.stringify({
       eagleBaseUrl: "http://localhost:41595",
@@ -49,6 +49,15 @@ describe("NovelAI Eagle bridge", () => {
 
       expect(monitor.textContent).toBe("Watch Off");
       expect(source.textContent).toBe("Target: not set | Source: not set");
+      expect(monitor.title).toBe("Set a source before monitoring NovelAI results");
+      input.value = "https://x.com/example/status/123";
+      sourceButton.click();
+      await vi.waitFor(() => expect(monitor.textContent).toBe("Watch On"));
+      expect(source.textContent).toContain("Source: x.com example status 123");
+      monitor.click();
+      expect(monitor.textContent).toBe("Watch Off");
+      expect(monitor.title).toBe("Stopped for this source; resume up to 2 result(s)");
+      expect(status.textContent).toBe("Auto monitor is off.");
       input.value = "not-a-source-url";
       sourceButton.click();
       await vi.waitFor(() => expect(status.textContent).toBe("Paste a valid http(s) source URL."));

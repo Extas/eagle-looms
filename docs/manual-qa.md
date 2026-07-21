@@ -347,6 +347,8 @@ NovelAI bridge behavior:
 the panel is titled NovelAI -> Eagle; Set source resolves lineage and starts monitoring, while Watch On/Off only pauses or resumes that monitor
 monitor state is session-only: a fresh NovelAI page starts Watch Off because no source context is persisted
 setting an invalid or unreachable source leaves Watch Off and clears the previous target/source feedback instead of silently retaining stale lineage
+Watch On means the result observer is actually running; pausing, reaching the configured limit, or stopping after an Eagle write failure changes it to Watch Off
+turning Watch Off during a save allows only that in-flight save to settle, blocks later candidates, and rejects source changes until the save finishes
 Eagle item links inherit the source item's existing folder assignments for generated results
 the compact panel shows readable target folder paths before monitoring instead of only folder counts or opaque ids
 generated results keep the source identity in the structured name and source page in Website without a machine JSON annotation

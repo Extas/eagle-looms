@@ -28,7 +28,6 @@ const NON_SEMANTIC_INHERITED_TAG_PREFIXES = [
 
 interface NovelAiBridgeConfig {
   eagleBaseUrl: string;
-  monitorEnabled: boolean;
   monitorLimit: number;
 }
 
@@ -667,17 +666,13 @@ class NovelAiEagleBridge {
       }
     });
     elements.monitorButton.addEventListener("click", () => {
-      const nextEnabled = !this.config.monitorEnabled;
-      if (nextEnabled && !this.source) {
-        this.config.monitorEnabled = false;
-        void saveConfig(this.config);
+      const shouldStart = !this.monitorActive;
+      if (shouldStart && !this.source) {
         this.setStatus("Paste a source URL before enabling watch.", true);
         this.updateMonitorUi();
         return;
       }
-      this.config.monitorEnabled = nextEnabled;
-      void saveConfig(this.config);
-      if (nextEnabled) {
+      if (shouldStart) {
         this.monitorBaseline = snapshotNovelAiImageSources();
         this.importedResultCount = 0;
         this.savedResultIds = [];
@@ -701,11 +696,14 @@ class NovelAiEagleBridge {
   private async setSourceAndWatch(): Promise<void> {
     const elements = this.elements;
     if (!elements) return;
+    if (this.importingResultSources.size > 0) {
+      this.setStatus("Wait for the current Eagle save to finish before changing source.", true);
+      return;
+    }
     const rawSourceUrl = elements.urlInput.value.trim();
 
     this.setBusy(true);
     this.stopMonitor();
-    this.config.monitorEnabled = false;
     this.source = undefined;
     this.importedResultSources.clear();
     this.importingResultSources.clear();
@@ -725,7 +723,6 @@ class NovelAiEagleBridge {
       }
 
       this.source = source;
-      this.config.monitorEnabled = true;
       await saveConfig(this.config);
       elements.urlInput.value = source.url;
       this.renderSource();
@@ -733,7 +730,6 @@ class NovelAiEagleBridge {
       this.startMonitor();
       this.setStatus(`Watching ${source.site}: 0/${this.config.monitorLimit}. Run NovelAI manually.`);
     } catch (error) {
-      this.config.monitorEnabled = false;
       this.source = undefined;
       this.renderSource();
       await saveConfig(this.config);
@@ -785,7 +781,7 @@ class NovelAiEagleBridge {
         .filter((src) => !this.importingResultSources.has(src));
 
       for (const src of candidates) {
-        if (this.importedResultCount >= this.config.monitorLimit) break;
+        if (!this.monitorActive || this.importedResultCount >= this.config.monitorLimit) break;
         try {
           await this.importNovelAiResult(src);
         } catch (error) {
@@ -978,11 +974,13 @@ class NovelAiEagleBridge {
   private updateMonitorUi(): void {
     const elements = this.elements;
     if (!elements) return;
-    elements.monitorButton.textContent = this.config.monitorEnabled ? "Watch On" : "Watch Off";
-    elements.monitorButton.dataset.enabled = this.config.monitorEnabled ? "true" : "false";
+    elements.monitorButton.textContent = this.monitorActive ? "Watch On" : "Watch Off";
+    elements.monitorButton.dataset.enabled = this.monitorActive ? "true" : "false";
     elements.monitorButton.title = this.monitorActive
       ? `Active, imported ${this.importedResultCount}/${this.config.monitorLimit}`
-      : `Armed for ${this.config.monitorLimit} result(s) after each source import`;
+      : this.source
+        ? `Stopped for this source; resume up to ${this.config.monitorLimit} result(s)`
+        : "Set a source before monitoring NovelAI results";
   }
 }
 
@@ -1832,7 +1830,6 @@ function utcCompactTimestamp(date: Date): string {
 function defaultConfig(): NovelAiBridgeConfig {
   return {
     eagleBaseUrl: "http://localhost:41595",
-    monitorEnabled: false,
     monitorLimit: DEFAULT_MONITOR_LIMIT,
   };
 }
@@ -1845,7 +1842,6 @@ async function loadConfig(): Promise<NovelAiBridgeConfig> {
     const parsed = JSON.parse(raw) as Partial<NovelAiBridgeConfig>;
     return {
       eagleBaseUrl: normalizeEagleBaseUrl(parsed.eagleBaseUrl),
-      monitorEnabled: false,
       monitorLimit: normalizeMonitorLimit(parsed.monitorLimit),
     };
   } catch {
