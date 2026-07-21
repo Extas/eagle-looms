@@ -196,10 +196,12 @@ function cleanTwitterScreenName(value: unknown): string {
 
 function cleanTwitterTag(value: unknown): string {
   return String(value ?? "")
+    .normalize("NFKC")
     .replace(/^#+/, "")
     .replace(/[\n\r\t]+/g, " ")
     .replace(/\s+/g, " ")
     .trim()
+    .toLowerCase()
     .slice(0, 120);
 }
 

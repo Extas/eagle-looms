@@ -58,6 +58,7 @@ References behind the `copyright:` / `character:` / `author:` namespace policy:
 - Hydrus tag namespaces and tag-management practice: <https://wiki.hydrus.network/books/hydrus-manual/page/getting-started-tags>
 - DeepDanbooru-style automatic tagging docs: <https://dghs-imgutils.deepghs.org/main/api_doc/tagging/deepdanbooru.html>
 - X API data dictionary for tweet/user fields: <https://docs.x.com/x-api/fundamentals/data-dictionary>
+- X Help case-insensitive word/hashtag matching behavior used for canonical hashtag identity: <https://help.x.com/en/using-x/advanced-x-mute-options>
 - X.com Enhanced Gallery 2.1.2 (MIT), focused `TweetResultByRestId` media extraction and highest-bitrate MP4 selection: <https://github.com/PiesP/xcom-enhanced-gallery>
 - Vercel react-tweet (MIT), public embed syndication URL/token behavior used only as a fallback when the signed-in X query fails: <https://github.com/vercel/react-tweet/blob/main/packages/react-tweet/src/api/fetch-tweet.ts>
 

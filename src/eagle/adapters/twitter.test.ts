@@ -16,6 +16,11 @@ describe("Twitter Eagle metadata adapter", () => {
     expect(twitterEagleAuthorUrls("")).toEqual([]);
   });
 
+  it("uses one canonical identity for case-only X hashtag variants", () => {
+    expect(twitterEagleSourceTags({ hashtags: ["Heartheartart", "#heartheartart", "東方Project"] }))
+      .toEqual(["heartheartart", "東方project"]);
+  });
+
   it("uses the media-bearing tweet as the source metadata owner", () => {
     const item = twitterItem({
       outerUser: "reposter",
