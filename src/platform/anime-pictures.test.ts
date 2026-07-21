@@ -243,6 +243,48 @@ describe('anime-pictures matcher', () => {
     });
   });
 
+  it('extracts metadata from the current anime-pictures detail layout', () => {
+    const doc = new DOMParser().parseFromString(`
+      <span class="info-item"><span class="light">Date upload:</span> 05/25/2026 3:06 AM</span>
+      <span class="info-item"><span class="light">Date published:</span> 05/25/2026 6:00 AM</span>
+      <aside>
+        <div>Tags</div>
+        <span>game copyright</span>
+        <a href="/posts?search_tag=bakemonogatari">bakemonogatari</a><span>100</span>
+        <span>other copyright</span>
+        <a href="/posts?search_tag=shaft">shaft (studio)</a><span>20</span>
+        <a href="/posts?search_tag=monogatari">monogatari (series)</a><span>30</span>
+        <span>character</span>
+        <a href="/posts?search_tag=oshino+shinobu">oshino shinobu</a><span>40</span>
+        <span>author</span>
+        <a href="/posts?search_tag=juu+roku+gen">juu roku gen</a><span>5</span>
+        <span>reference</span>
+        <a href="/posts?search_tag=single">single</a><span>500</span>
+      </aside>
+      <div class="post_content">
+        <div class="title">About artists</div>
+        <div class="body">
+          <meta itemprop="author" content="juu roku gen">
+          <strong>juu roku gen:</strong><br>
+          <a href="https://www.pixiv.net/users/3658789">https://www.pixiv.net/users/3658789</a>
+        </div>
+      </div>
+    `, 'text/html');
+
+    expect(extractAnimePicturesSourceMetadata(doc, 'https://anime-pictures.net/posts/919002?lang=en')).toEqual({
+      tags: [
+        'copyright:bakemonogatari',
+        'copyright:shaft (studio)',
+        'copyright:monogatari (series)',
+        'character:oshino shinobu',
+        'author:juu roku gen',
+        'single',
+      ],
+      authorUrls: ['https://www.pixiv.net/users/3658789'],
+      publishedAt: '2026-05-25 6:00 AM',
+    });
+  });
+
   it('normalizes decorated anime-pictures tag categories from detail pages', () => {
     const doc = new DOMParser().parseFromString(`
       <aside>

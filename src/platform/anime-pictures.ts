@@ -106,7 +106,10 @@ export function parseAnimePicturesPostEntries(document: Document, pageUrl = wind
 
 export function extractAnimePicturesSourceMetadata(document: Document, pageUrl = window.location.href): AnimePicturesSourceMetadata {
   const tagPanel = findSmallestPanel(document, ["tags"], ["game copyright", "copyright", "character", "author", "artist"]);
-  const authorPanel = findSmallestPanel(document, ["about artists"], []);
+  let authorPanel = findSmallestPanel(document, ["about artists"], []);
+  if (authorPanel && !authorPanel.querySelector("a[href]") && authorPanel.parentElement?.querySelector("a[href]")) {
+    authorPanel = authorPanel.parentElement;
+  }
   const metadata: AnimePicturesSourceMetadata = {
     tags: tagPanel ? dedupeStrings(extractCategorizedTags(tagPanel, pageUrl)) : [],
     authorUrls: authorPanel ? dedupeStrings(extractAuthorUrls(authorPanel, pageUrl)) : [],
@@ -315,7 +318,12 @@ function extractPublishedAt(document: Document): string | undefined {
   const metaValue = meta?.getAttribute("content") || "";
   if (metaValue) return metaValue;
   const text = compactText(document.body?.textContent || "");
-  return text.match(/\b(?:posted|published|uploaded|date)\s*:?\s*(\d{4}[-/.]\d{1,2}[-/.]\d{1,2}(?:\s+\d{1,2}:\d{2}(?::\d{2})?)?)/i)?.[1];
+  const visiblePublishedAt = text.match(/\bdate\s+published\s*:?\s*(\d{1,2})\/(\d{1,2})\/(\d{4})(?:\s+(\d{1,2}:\d{2}(?::\d{2})?\s*[AP]M))?/i);
+  if (visiblePublishedAt) {
+    const [, month, day, year, time] = visiblePublishedAt;
+    return `${year}-${month.padStart(2, "0")}-${day.padStart(2, "0")}${time ? ` ${compactText(time).toUpperCase()}` : ""}`;
+  }
+  return text.match(/\b(?:posted|published|uploaded|date)\s*:?\s*(\d{4}[-/.]\d{1,2}[-/.]\d{1,2}(?:\s+\d{1,2}:\d{2}(?::\d{2})?(?:\s*[AP]M)?)?)/i)?.[1];
 }
 
 function apiPublishedAt(raw: Record<string, any>): string | undefined {
