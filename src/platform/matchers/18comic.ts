@@ -159,6 +159,7 @@ ADAPTER.addSetup({
   workURLs: [
     /(18|jm)comic.*?\/album\/\d+/,
     /jm18c-.*?\/album\/\d+/,
+    /comic18j-codi.net\/album\/\d+/,
   ],
   match: ["https://18comic.vip/*"],
   constructor: () => new Comic18Matcher(),

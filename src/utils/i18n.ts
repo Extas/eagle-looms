@@ -1240,10 +1240,10 @@ pero desactivará la lupa y la capacidad de arrastrar y mover imágenes.`,
     'Excluir videos'
   ],
   excludeVideoTooltip: [
-    'Exclude videos, now only applies to x.com and kemono.su.',
-    '排除视频，现在仅作用于x.com和kemono.su',
-    '비디오 제외, 현재 x.com과 kemono.su에만 적용됩니다.',
-    'Excluir videos, ahora solo se aplica a x.com y kemono.su.'
+    'Exclude videos, now only applies to x.com and pawchive.pw.',
+    '排除视频，现在仅作用于 x.com 和 pawchive.pw',
+    '비디오 제외, 현재 x.com과 pawchive.pw에만 적용됩니다.',
+    'Excluir videos, ahora solo se aplica a x.com y pawchive.pw.'
   ],
   filenameOrder: [
     'Filename Order',

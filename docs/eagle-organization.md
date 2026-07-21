@@ -177,7 +177,7 @@ Twitter / X
 Instagram
   author comes from username; caption hashtags stay raw
 
-Kemono
+Pawchive
   author comes from API artist/creator identity when available, otherwise stable service/user identity; post tags stay raw; author URL points to the source creator page
 
 Jandan

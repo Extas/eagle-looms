@@ -74,6 +74,12 @@ Target smoke page:
 https://anime-pictures.net/posts?page=0&search_tag=bang+dream!+it%27s+mygo!!!!!
 ```
 
+## Upstream Contribution Docs
+
+If you want to add support for certain sites, refer to the [contributing guide](CONTRIBUTING.md).
+
+The upstream architecture and project layout references are available in [CONTRIBUTING_ARCHITECTURE.md](.assets/CONTRIBUTING_ARCHITECTURE.md) and [PROJECT_STRUCTURE.md](.assets/PROJECT_STRUCTURE.md).
+
 ## Project Docs
 
 ```text

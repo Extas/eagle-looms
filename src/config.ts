@@ -664,7 +664,7 @@ export const ConfigItems: ConfigItem[] = [
   { key: "pixivMirrorHost", typ: "input", gridColumnRange: [1, 11], placeholder: "https://i.pixiv.re", displayInSite: /pixiv.net/ },
   { key: "ehentaiMirrorHost", typ: "input", gridColumnRange: [1, 11], placeholder: "https://e-hentai.org", displayInSite: /e[\-x]hentai.org/ },
   { key: "reverseMultipleImagesPost", typ: "boolean", gridColumnRange: [1, 11], displayInSite: /(x.com|twitter.com)\// },
-  { key: "excludeVideo", typ: "boolean", gridColumnRange: [1, 11], displayInSite: /(x.com|twitter.com|kemono.cr)\// },
+  { key: "excludeVideo", typ: "boolean", gridColumnRange: [1, 11], displayInSite: /(x.com|twitter.com|pawchive.pw)\// },
   {
     key: "readMode", typ: "select", options: [
       { value: "pagination", display: "Pagination" },
