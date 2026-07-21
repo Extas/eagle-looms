@@ -4,7 +4,7 @@ This document is the source of truth for how Eagle Looms writes Eagle image item
 
 ## Principles
 
-Folders answer where a batch belongs. Tags answer what an asset is. Eagle fields hold provenance that Eagle already models, such as website and original URL.
+Folders answer where a batch belongs. Tags answer what an asset is. Eagle fields hold provenance that Eagle already models, such as the source website and an original URL when V2 preserves it.
 
 Avoid turning infrastructure into visible tags. `site`, `gallery`, `chapter`, file extension, MIME type, and stable keys are already represented by folders, fields, media data, or duplicate logic. Duplicating them in the user-visible tag list makes Eagle harder to browse.
 
@@ -241,7 +241,7 @@ trim trailing spaces/periods and cap long names
 dedupe visible sibling names in the current import batch with suffixes
 ```
 
-Duplicate identity remains `sourceUrl`, `originUrl`, `itemKey`, and legacy stable-key annotations for backward compatibility.
+Duplicate identity remains `sourceUrl`, `originUrl`, `itemKey`, stable source media names/site ids used for annotation-free V2 compatibility, and legacy stable-key annotations.
 
 ## Extra Assets
 

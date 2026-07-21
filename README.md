@@ -18,7 +18,7 @@ Open supported source page
 -> Comic Looms queue fetches original binary data in the browser session
 -> user selects ranges in the existing UI
 -> EagleDownloader writes base64 data URLs to Eagle Web API
--> Eagle stores image items with folders, website/original URL, and semantic tags
+-> Eagle stores image items with folders, source links, and semantic tags
 ```
 
 Eagle Looms 不绕过 Comic Looms 的采集链路，也不让 Eagle 后台直接下载受保护图片 URL。图片二进制先在源页面浏览器会话中抓取，再通过 Eagle Web API 写入。
@@ -43,7 +43,7 @@ result review: keeps the latest Eagle import result in the import panel until cl
 ```text
 name       source identity name, no 001_ zip order prefix
 website    source page URL, shown by Eagle as the item link
-url        original image URL submitted to V2; Eagle may normalize or preserve it
+url        original image URL submitted to V2; current Eagle may normalize it to the source website instead of preserving it
 folders    resolved Eagle folder IDs; multiple folders are allowed
 tags       capped source semantic tags only
 annotation readable author URLs only; machine identity only for multi-file subitems

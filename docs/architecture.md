@@ -94,7 +94,7 @@ Import Plan
   commits through -> Import to Eagle
 
 Eagle Item
-  resulting asset: Eagle id, folders, tags, website, original URL
+  resulting asset: Eagle id, folders, tags, source link, and original URL only when Eagle preserves it
   traces back to -> Source Context and Source Asset
 ```
 
