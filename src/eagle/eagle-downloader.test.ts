@@ -982,6 +982,75 @@ describe('Eagle downloader duplicate checks', () => {
     expect(getFolders).toHaveBeenCalledTimes(1);
     expect(api.createFolder).not.toHaveBeenCalled();
     expect(folderIds).toEqual(new Map([['eagle looms/site/series', 'series']]));
+    expect(stats.folders).toEqual([
+      'Eagle Looms/Site/Series',
+      'Eagle Looms/site/series',
+    ]);
+  });
+
+  it('does not report a destination folder that failed to resolve', async () => {
+    const api = {
+      baseUrl: 'http://localhost:41595',
+      getFolders: vi.fn().mockRejectedValue(new Error('folder lookup failed')),
+      createFolder: vi.fn(),
+    };
+    const downloader = Object.assign(Object.create(EagleDownloader.prototype), {
+      importStopRequested: false,
+    }) as any;
+    const stats = {
+      folders: [],
+      folderLinks: [],
+    };
+
+    await expect(downloader.folderIdsForJob(api, new Map(), {
+      folderPaths: [['Eagle Looms', 'site', 'unresolved']],
+      folderKeys: ['Eagle Looms/site/unresolved'],
+    }, stats)).rejects.toThrow('folder lookup failed');
+
+    expect(stats.folders).toEqual([]);
+    expect(stats.folderLinks).toEqual([]);
+  });
+
+  it('reports only destination folders resolved before a later path fails', async () => {
+    const api = {
+      baseUrl: 'http://localhost:41595',
+      getFolders: vi.fn()
+        .mockResolvedValueOnce([{
+          id: 'root',
+          name: 'Eagle Looms',
+          children: [{
+            id: 'site',
+            name: 'site',
+            children: [{ id: 'first', name: 'first', children: [] }],
+          }],
+        }])
+        .mockRejectedValueOnce(new Error('second folder lookup failed')),
+      createFolder: vi.fn(),
+    };
+    const downloader = Object.assign(Object.create(EagleDownloader.prototype), {
+      importStopRequested: false,
+    }) as any;
+    const stats = {
+      folders: [],
+      folderLinks: [],
+    };
+
+    await expect(downloader.folderIdsForJob(api, new Map(), {
+      folderPaths: [
+        ['Eagle Looms', 'site', 'first'],
+        ['Eagle Looms', 'site', 'second'],
+      ],
+      folderKeys: [
+        'Eagle Looms/site/first',
+        'Eagle Looms/site/second',
+      ],
+    }, stats)).rejects.toThrow('second folder lookup failed');
+
+    expect(stats.folders).toEqual(['Eagle Looms/site/first']);
+    expect(stats.folderLinks).toEqual([{
+      label: 'Eagle Looms/site/first',
+      url: 'http://localhost:41595/folder?id=first',
+    }]);
   });
 
   it('stops after folder resolution without submitting the item write', async () => {

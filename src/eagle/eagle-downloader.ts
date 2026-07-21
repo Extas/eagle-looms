@@ -553,7 +553,6 @@ export class EagleDownloader extends Downloader {
 
   private async folderIdsForJob(api: EagleWebApi, folderIds: Map<string, string>, job: EagleImportJob, stats: EagleImportStats, runId = this.importRunId): Promise<string[]> {
     this.assertImportActive(runId);
-    stats.folders.push(...job.folderKeys);
     const ids: string[] = [];
     for (let i = 0; i < job.folderPaths.length; i++) {
       this.assertImportActive(runId);
@@ -565,6 +564,7 @@ export class EagleDownloader extends Downloader {
         folderId = await ensureFolderPath(api, folderPath, () => this.assertImportActive(runId));
         folderIds.set(cacheKey, folderId);
       }
+      stats.folders.push(folderKey);
       recordUniqueLink(stats.folderLinks, folderKey, eagleFolderUrl(api, folderId));
       ids.push(folderId);
       this.assertImportActive(runId);

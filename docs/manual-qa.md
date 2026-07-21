@@ -159,7 +159,7 @@ canceling during an Eagle folder-tree read prevents subsequent folder creation; 
 stopping after some items were written keeps a persistent result marked as partial, with actual imported/skipped/failed counts and links
 stopping during single-image fetch, Eagle preflight, or confirmation keeps a persistent canceled result even when no item was handled yet
 Write to Eagle creates image items only, plus the destination folders required by those items
-final summary reports planned, imported, skipped, failed, and destination folders
+final summary reports planned, imported, skipped, failed, and only destination folders that were successfully resolved before any failure or cancellation
 final summary and toast retain selected and over-limit omission counts instead of making a limited batch look complete
 final result panel and copied diagnostics retain the target Eagle library name after the transient plan notification closes
 API errors redact `?token=...` consistently in import results, connection tests, NovelAI status, and console diagnostics
