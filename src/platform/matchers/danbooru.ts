@@ -285,7 +285,15 @@ export class GelBooruMatcher extends DanbooruMatcher {
       });
       node.actions.push(addFav);
     }
-    return [node, img.getAttribute("alt") || img.getAttribute("title") || ""];
+    const canonicalTags = (img.getAttribute("title") || "")
+      .split(/\s+/)
+      .filter(tag => tag && !/^(?:score|rating):/i.test(tag))
+      .join(" ");
+    const readableTags = (img.getAttribute("alt") || "").replace(/^Rule 34\s*\|\s*/i, "");
+    const fallbackTags = readableTags.includes(",")
+      ? normalizeCommaSeparatedBooruTagText(readableTags)
+      : readableTags;
+    return [node, canonicalTags || fallbackTags];
   }
   getOriginalURL(doc: Document): string | null {
     return doc.querySelector("head > meta[property='og:image']")?.getAttribute("content") || null;

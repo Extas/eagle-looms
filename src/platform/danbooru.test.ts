@@ -50,14 +50,15 @@ describe("Gelbooru matcher metadata", () => {
     ]);
   });
 
-  it("reads tags from the title attribute used by current Gelbooru cards", async () => {
+  it("prefers canonical tags from current Gelbooru cards without card-only metadata", async () => {
     const doc = parseDocument(`
       <div class="thumbnail-container">
         <article class="thumbnail-preview">
           <a id="p14528850" href="https://gelbooru.com/index.php?page=post&amp;s=view&amp;id=14528850&amp;tags=landscape">
             <img
               src="https://img4.gelbooru.com/thumbnails/23/d3/thumbnail_23d3fae7e4a05ae3ffc03607a728cbcf.jpg"
-              title="2boys black_hair landscape"
+              title="2boys black_hair landscape score:32 rating:sensitive"
+              alt="Rule 34 | 2boys, black hair, landscape"
             >
           </a>
         </article>
@@ -68,6 +69,30 @@ describe("Gelbooru matcher metadata", () => {
 
     expect(nodes).toHaveLength(1);
     expect(nodes[0].title).toBe("14528850.jpg");
+    expect([...nodes[0].tags]).toEqual([
+      "ext:jpg",
+      "2boys",
+      "black_hair",
+      "landscape",
+    ]);
+  });
+
+  it("normalizes Gelbooru's readable alt text when canonical card tags are absent", async () => {
+    const doc = parseDocument(`
+      <div class="thumbnail-container">
+        <article class="thumbnail-preview">
+          <a id="p14528850" href="https://gelbooru.com/index.php?page=post&amp;s=view&amp;id=14528850">
+            <img
+              src="https://img4.gelbooru.com/thumbnails/23/d3/thumbnail_23d3fae7e4a05ae3ffc03607a728cbcf.jpg"
+              alt="Rule 34 | 2boys, black hair, landscape"
+            >
+          </a>
+        </article>
+      </div>
+    `);
+
+    const nodes = await new GelBooruMatcher().parseImgNodes(doc);
+
     expect([...nodes[0].tags]).toEqual([
       "ext:jpg",
       "2boys",

@@ -701,6 +701,72 @@ describe('Eagle downloader duplicate checks', () => {
     });
   });
 
+  it('maps current Gelbooru detail metadata into a readable additive import plan', () => {
+    const chapter = {
+      title: 'Posts',
+      filteredQueue: [{
+        stage: EAGLE_IMPORT_DONE_STAGE,
+        data: new Uint8Array([1]),
+        contentType: 'image/jpeg',
+        node: {
+          title: '14528850.jpg',
+          href: 'https://gelbooru.com/index.php?page=post&s=view&id=14528850',
+          originSrc: 'https://img4.gelbooru.com//images/23/d3/23d3fae7e4a05ae3ffc03607a728cbcf.jpg',
+          tags: new Set<string>([
+            'author:banakotakemaru',
+            'copyright:original',
+            'black hair',
+            'highres',
+          ]),
+          authorUrls: ['https://gelbooru.com/index.php?page=post&s=list&tags=banakotakemaru'],
+          publishedAt: '2026-07-19 19:46:08',
+        },
+      }],
+    };
+    const downloader = Object.create(EagleDownloader.prototype) as EagleDownloader;
+    ADAPTER.conf = defaultConf();
+    const previousMatcher = ADAPTER.matcher;
+    ADAPTER.matcher = { name: 'gelbooru', workURLs: [/.*/], constructor: vi.fn() as any };
+
+    try {
+      const [asset] = (downloader as any).assetsForChapter(
+        chapter,
+        { picked: () => true },
+        '',
+        new GalleryMeta('https://gelbooru.com/index.php?page=post&s=list&tags=project_sekai', 'gelbooru-search-project_sekai'),
+        '2026-07-21',
+      );
+
+      expect(asset).toMatchObject({
+        name: '2026-07-19 banakotakemaru - original - gelbooru-14528850.jpg',
+        sourceUrl: 'https://gelbooru.com/index.php?page=post&s=view&id=14528850',
+        website: 'https://gelbooru.com/index.php?page=post&s=view&id=14528850',
+        originUrl: 'https://img4.gelbooru.com//images/23/d3/23d3fae7e4a05ae3ffc03607a728cbcf.jpg',
+        folderTokens: {
+          site: 'gelbooru',
+          date: '2026-07-21',
+          gallery: 'gelbooru-search-project_sekai',
+        },
+      });
+      expect(asset.tags).toEqual(expect.arrayContaining([
+        'author:banakotakemaru',
+        'copyright:original',
+        'black hair',
+        'highres',
+        'source:published:2026-07-19',
+      ]));
+      expect(toAddItemInput(asset, ['folder-id'])).toMatchObject({
+        name: asset.name,
+        website: asset.sourceUrl,
+        url: asset.originUrl,
+        folders: ['folder-id'],
+        annotation: 'https://gelbooru.com/index.php?page=post&s=list&tags=banakotakemaru',
+      });
+    } finally {
+      ADAPTER.matcher = previousMatcher;
+    }
+  });
+
   it('uses one stable Anime Pictures post URL across navigation variants', () => {
     const chapter = {
       title: 'Posts',

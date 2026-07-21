@@ -228,6 +228,7 @@ default MyGO folder resolves under Eagle Looms/anime-pictures.net/YYYY-MM-DD
 items have website pointing to source post URL
 items have original image url when Eagle preserves it
 visible tags contain source semantic tags only
+Gelbooru list imports keep canonical underscore-delimited tags and do not create Rule/34/score:*/rating:* noise from thumbnail labels
 items do not force eagle-looms, site:*, gallery:*, chapter:*, ext:*, mime:*, or post:* tags
 copyright/character/author tags are normalized and prioritized within the cap
 case-only tag and character-path variants collapse to one visible tag or folder assignment while preserving the first readable spelling
