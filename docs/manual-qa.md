@@ -345,6 +345,8 @@ NovelAI bridge behavior:
 
 ```text
 Eagle item links inherit the source item's existing folder assignments for generated results
+generated results keep the source identity in the structured name and source page in Website without a machine JSON annotation
+infrastructure tags such as site/gallery/chapter/ext/mime are not copied to generated results
 generated results smaller than 64 pixels on either edge are rejected and do not consume the monitor result limit
 ```
 

@@ -82,10 +82,6 @@ describe("NovelAI Eagle bridge", () => {
       url: "https://twitter.com/knokzm/status/2066471849245208805/photo/1",
       site: "x.com",
       tags: ["site:x.com", "author:knokzm"],
-      metadata: {
-        sourceAuthor: "knokzm",
-        sourceWorkId: "2066471849245208805",
-      },
     });
     expect(novelAiSourceFromUrl("eagle://item/ABC")).toBeUndefined();
   });
@@ -94,7 +90,6 @@ describe("NovelAI Eagle bridge", () => {
     const source = novelAiSourceFromUrl("https://x.com/knokzm/status/2066471849245208805/photo/1")!;
     const input = buildNovelAiGeneratedItemInput({
       source,
-      pageUrl: "https://novelai.net/imagetools",
       generatedAt: new Date(Date.UTC(2026, 5, 16, 3, 4, 5)),
       resultIndex: 2,
       contentType: "image/png",
@@ -103,20 +98,10 @@ describe("NovelAI Eagle bridge", () => {
 
     expect(input.name).toBe("x.com knokzm status 2066471849245208805 - NovelAI -- el1[tool=novelai;at=20260616T030405Z;seq=02;src=x.com-2066471849245208805].png");
     expect(input.folders).toBeUndefined();
-    expect(input.tags).toEqual(["tool:novelai", "site:x.com", "author:knokzm"]);
+    expect(input.tags).toEqual(["tool:novelai", "author:knokzm"]);
     expect(input.website).toBe("https://x.com/knokzm/status/2066471849245208805/photo/1");
     expect(input.base64).toBe("data:image/png;base64,abc");
-    expect(JSON.parse(input.annotation!)).toEqual({
-      schema: "eagle-looms/novelai-bridge/v1",
-      sourceId: "x.com-2066471849245208805",
-      sourceTitle: "x.com knokzm status 2066471849245208805",
-      sourceUrl: "https://x.com/knokzm/status/2066471849245208805/photo/1",
-      sourceSite: "x.com",
-      sourceAuthor: "knokzm",
-      sourceWorkId: "2066471849245208805",
-      novelAiUrl: "https://novelai.net/imagetools",
-      generatedAt: new Date(Date.UTC(2026, 5, 16, 3, 4, 5)).toISOString(),
-    });
+    expect(input.annotation).toBeUndefined();
   });
 
   it("builds generated result payloads for an Eagle item source folder", () => {
@@ -129,7 +114,6 @@ describe("NovelAI Eagle bridge", () => {
     }, "http://localhost:41595/item?id=SRC1");
     const input = buildNovelAiGeneratedItemInput({
       source,
-      pageUrl: "https://novelai.net/imagetools",
       generatedAt: new Date(Date.UTC(2026, 5, 16, 3, 4, 5)),
       resultIndex: 1,
       contentType: "image/png",
@@ -138,14 +122,11 @@ describe("NovelAI Eagle bridge", () => {
 
     expect(source.title).toBe("Clipboard - 2026-06-16 13.42.29");
     expect(source.site).toBe("eagle");
+    expect(input.name).toBe("Clipboard - 2026-06-16 13.42.29 - NovelAI -- el1[tool=novelai;at=20260616T030405Z;seq=01;src=SRC1].png");
     expect(input.folders).toEqual(["folder-a", "folder-b"]);
     expect(input.website).toBe("http://localhost:41595/item?id=SRC1");
     expect(input.tags).toEqual(["tool:novelai", "copyright:bang dream"]);
-    expect(JSON.parse(input.annotation!)).toMatchObject({
-      sourceId: "SRC1",
-      sourceItemId: "SRC1",
-      sourceItemLink: "http://localhost:41595/item?id=SRC1",
-    });
+    expect(input.annotation).toBeUndefined();
   });
 
   it("keeps NovelAI result tags semantic and searchable", () => {

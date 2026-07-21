@@ -267,6 +267,8 @@ folders
 tags
 ```
 
+NovelAI generated results follow the same rule. Their source identity stays in the structured `src` name field, the source page or Eagle item link stays in `website`, semantic tags stay in `tags`, and source-item folder assignments stay in `folders`; the bridge does not duplicate those fields into a visible machine JSON annotation.
+
 An annotation is added only when a multi-file item needs an `itemKey` or when the source exposes traceable author pages. Ordinary items show only the author URLs, one per line; the machine identity envelope is reserved for multi-file subitems that cannot otherwise be distinguished. Author metadata accepts only absolute HTTP(S) URLs, keeps the first readable spelling, removes equivalent duplicates, and stores at most 20 links. Invalid, oversized, or relative values do not make an otherwise normal item annotation-visible.
 
 Legacy `eagle-looms/raw/v1` annotations remain readable for duplicate checks so older imported libraries do not regress. They are not written by the current importer.

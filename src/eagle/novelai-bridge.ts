@@ -15,7 +15,6 @@ const PANEL_ID = "eagle-looms-novelai-bridge";
 const NAI_DEBUG_PREFIX = "[Eagle Looms][NovelAI]";
 const NAI_DEBUG_STORAGE_KEY = "eagle-looms:novelai-debug";
 const NAI_PAGE_BRIDGE_KEY = "__EagleLoomsNovelAiBridgeV2";
-const BRIDGE_SCHEMA = "eagle-looms/novelai-bridge/v1";
 const NOVELAI_TOOL_TAG = "tool:novelai";
 const NON_SEMANTIC_INHERITED_TAG_PREFIXES = [
   "site:",
@@ -39,7 +38,6 @@ export interface NovelAiSourceContext {
   site: string;
   tags?: string[];
   folders?: string[];
-  metadata?: Record<string, string>;
 }
 
 interface BridgeElements {
@@ -448,10 +446,6 @@ export function novelAiSourceFromUrl(value: string): NovelAiSourceContext | unde
       url: url.toString(),
       site,
       tags: [`site:${site}`, `author:${twitter.author}`],
-      metadata: {
-        sourceAuthor: twitter.author,
-        sourceWorkId: twitter.workId,
-      },
     };
   }
 
@@ -463,9 +457,6 @@ export function novelAiSourceFromUrl(value: string): NovelAiSourceContext | unde
       url: url.toString(),
       site,
       tags: [`site:${site}`],
-      metadata: {
-        sourceWorkId: pixiv.workId,
-      },
     };
   }
 
@@ -476,7 +467,6 @@ export function novelAiSourceFromUrl(value: string): NovelAiSourceContext | unde
     url: url.toString(),
     site,
     tags: [`site:${site}`],
-    metadata: mediaId !== "url" ? { sourceWorkId: mediaId } : undefined,
   };
 }
 
@@ -493,11 +483,6 @@ export function novelAiSourceFromEagleItem(item: EagleItem, itemLink: string): N
     site,
     folders: unique(item.folders || []),
     tags: unique([...siteTags, ...inheritedTags]),
-    metadata: {
-      sourceItemId: item.id,
-      sourceItemName: item.name || item.id,
-      sourceItemLink: itemLink,
-    },
   };
 }
 
@@ -566,7 +551,6 @@ function isKnownImageCdnUrl(url: string): boolean {
 
 export function buildNovelAiGeneratedItemInput(options: {
   source: NovelAiSourceContext;
-  pageUrl: string;
   generatedAt: Date;
   resultIndex: number;
   contentType: string;
@@ -576,23 +560,12 @@ export function buildNovelAiGeneratedItemInput(options: {
   const extension = extensionForMime(contentType);
   const name = novelAiGeneratedItemName(options.source, options.generatedAt, options.resultIndex, extension);
   const folders = unique(options.source.folders || []);
-  const annotation = JSON.stringify({
-    schema: BRIDGE_SCHEMA,
-    sourceId: options.source.id,
-    sourceTitle: options.source.title,
-    sourceUrl: options.source.url,
-    sourceSite: options.source.site,
-    ...(options.source.metadata || {}),
-    novelAiUrl: options.pageUrl,
-    generatedAt: options.generatedAt.toISOString(),
-  });
   return {
     name,
     base64: ensureDataUrl(options.base64, contentType),
     website: options.source.url,
     ...(folders.length ? { folders } : {}),
-    tags: unique([NOVELAI_TOOL_TAG, ...(options.source.tags || [])]),
-    annotation,
+    tags: novelAiGeneratedTags(options.source.tags),
   };
 }
 
@@ -810,7 +783,6 @@ class NovelAiEagleBridge {
       });
       const input = buildNovelAiGeneratedItemInput({
         source,
-        pageUrl: location.href,
         generatedAt: new Date(),
         resultIndex: this.importedResultCount + 1,
         contentType: image.contentType,
