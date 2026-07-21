@@ -800,7 +800,7 @@ class NovelAiEagleBridge {
 
       if (this.importedResultCount >= this.config.monitorLimit) {
         this.stopMonitor();
-        this.setStatus(savedResultsStatus(this.importedResultCount, this.config.monitorLimit, this.savedResultIds));
+        this.setSavedResultsStatus();
       }
     } finally {
       this.monitorChecking = false;
@@ -875,7 +875,7 @@ class NovelAiEagleBridge {
         folders: input.folders || [],
         source: source.title,
       });
-      this.setStatus(`Saved result ${this.importedResultCount}/${this.config.monitorLimit}${id ? `: ${id}` : ""}.`);
+      this.setSavedResultsStatus();
     } finally {
       this.importingResultSources.delete(src);
     }
@@ -947,6 +947,18 @@ class NovelAiEagleBridge {
     elements.status.textContent = message;
     elements.status.title = message;
     elements.status.dataset.state = isError ? "error" : "ok";
+  }
+
+  private setSavedResultsStatus(): void {
+    const elements = this.elements;
+    if (!elements) return;
+    renderNovelAiSavedResultsStatus(
+      elements.status,
+      this.importedResultCount,
+      this.config.monitorLimit,
+      this.savedResultIds,
+      this.config.eagleBaseUrl,
+    );
   }
 
   private updateMonitorUi(): void {
@@ -1076,6 +1088,11 @@ function createPanel(config: NovelAiBridgeConfig): BridgeElements {
         text-overflow: ellipsis;
       }
       #${PANEL_ID} .el-nai-status[data-state="error"] { color: #a01818; }
+      #${PANEL_ID} .el-nai-status a {
+        color: inherit;
+        font-weight: 700;
+        text-decoration: underline;
+      }
       #${PANEL_ID} .el-nai-settings {
         display: none;
         position: absolute;
@@ -1995,6 +2012,36 @@ function savedResultsStatus(count: number, limit: number, ids: string[]): string
   const visibleIds = ids.filter(Boolean);
   if (!visibleIds.length) return `Saved ${saved} to Eagle.`;
   return `Saved ${saved} to Eagle: ${visibleIds.join(", ")}.`;
+}
+
+export function renderNovelAiSavedResultsStatus(
+  element: HTMLElement,
+  count: number,
+  limit: number,
+  ids: string[],
+  eagleBaseUrl: string,
+): void {
+  const visibleIds = unique(ids);
+  const message = savedResultsStatus(count, limit, visibleIds);
+  element.dataset.state = "ok";
+  element.title = visibleIds.length
+    ? `${message}\n${visibleIds.map((id) => eagleItemLink(eagleBaseUrl, id)).join("\n")}`
+    : message;
+  const latestId = visibleIds.at(-1);
+  if (!latestId) {
+    element.textContent = message;
+    return;
+  }
+
+  const link = element.ownerDocument.createElement("a");
+  link.href = eagleItemLink(eagleBaseUrl, latestId);
+  link.target = "_blank";
+  link.rel = "noopener noreferrer";
+  link.textContent = "Open latest";
+  element.replaceChildren(
+    element.ownerDocument.createTextNode(`Saved ${count}/${limit} to Eagle | `),
+    link,
+  );
 }
 
 function unique(values: string[]): string[] {

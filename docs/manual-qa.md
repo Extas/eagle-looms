@@ -354,6 +354,7 @@ generated results smaller than 64 pixels on either edge are rejected and do not 
 any Eagle item/add failure stops the NovelAI monitor before another automatic write attempt
 timeouts, connection loss, invalid responses, and missing item ids warn that the result may already exist and require inspecting Eagle before restarting
 the compact status line exposes its full message on hover and never reveals an Eagle API token
+every successful NovelAI save exposes a compact Open latest link to the actual Eagle item; the final auto-stop state keeps that link
 ```
 
 ## Known External Limitation

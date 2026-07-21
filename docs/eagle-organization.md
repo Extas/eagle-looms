@@ -273,6 +273,8 @@ When the source is an Eagle item link, the bridge resolves its folder ids agains
 
 NovelAI result writes use the same non-idempotent safety boundary as normal imports. Any `item/add` failure stops monitoring before another result can be written automatically. A timeout, lost connection, invalid response, or success response without an item id is reported as outcome-unknown because Eagle may already contain the image; the user must inspect Eagle before restarting the monitor.
 
+After each confirmed write, the compact status links directly to the latest created Eagle item. When the configured result limit stops monitoring, that inspection link remains available; API tokens never enter the visible link or tooltip.
+
 An annotation is added only when a multi-file item needs an `itemKey` or when the source exposes traceable author pages. Ordinary items show only the author URLs, one per line; the machine identity envelope is reserved for multi-file subitems that cannot otherwise be distinguished. Author metadata accepts only absolute HTTP(S) URLs, keeps the first readable spelling, removes equivalent duplicates, and stores at most 20 links. Invalid, oversized, or relative values do not make an otherwise normal item annotation-visible.
 
 Legacy `eagle-looms/raw/v1` annotations remain readable for duplicate checks so older imported libraries do not regress. They are not written by the current importer.

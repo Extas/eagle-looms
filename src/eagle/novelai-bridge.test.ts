@@ -16,6 +16,7 @@ import {
   normalizeMonitorLimit,
   parseEagleItemId,
   pasteImageIntoNovelAi,
+  renderNovelAiSavedResultsStatus,
 } from "./novelai-bridge";
 
 describe("NovelAI Eagle bridge", () => {
@@ -191,6 +192,22 @@ describe("NovelAI Eagle bridge", () => {
     expect(authorization.outcomeUnknown).toBe(false);
     expect(novelAiWriteFailureStatus(authorization)).toContain("Fix the error");
     expect(missingId.outcomeUnknown).toBe(true);
+  });
+
+  it("renders a token-free link to the latest saved Eagle result", () => {
+    const status = document.createElement("div");
+
+    renderNovelAiSavedResultsStatus(status, 2, 2, ["ITEM1", "ITEM2"], "http://localhost:41595/?token=secret");
+
+    expect(status.textContent).toBe("Saved 2/2 to Eagle | Open latest");
+    expect(status.dataset.state).toBe("ok");
+    expect(status.title).toContain("http://localhost:41595/item?id=ITEM1");
+    expect(status.title).toContain("http://localhost:41595/item?id=ITEM2");
+    expect(status.title).not.toContain("secret");
+    const link = status.querySelector("a")!;
+    expect(link.href).toBe("http://localhost:41595/item?id=ITEM2");
+    expect(link.target).toBe("_blank");
+    expect(link.rel).toBe("noopener noreferrer");
   });
 
   it("normalizes NovelAI result blobs from binary signatures", async () => {
