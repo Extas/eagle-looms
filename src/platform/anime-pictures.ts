@@ -49,6 +49,26 @@ export interface AnimePicturesApiPost {
   tags: string[];
 }
 
+export function validateAnimePicturesImagePayload(data: Uint8Array<ArrayBuffer>, contentType: string, url: string): string {
+  const sample = new TextDecoder().decode(data.slice(0, Math.min(data.length, 256 * 1024)));
+  const normalizedType = contentType.split(';', 1)[0].trim().toLowerCase();
+  const looksLikeMarkup = sample.trimStart().startsWith('<');
+
+  if (looksLikeMarkup) {
+    if (isAnimePicturesChallengeHtml(sample, url)) {
+      throw new Error('anime-pictures image host returned a Cloudflare challenge page; retrying another image URL candidate.');
+    }
+    throw new Error('anime-pictures image host returned HTML instead of image bytes; retrying another image URL candidate.');
+  }
+
+  const detectedType = detectImageContentType(data);
+  if (!detectedType) {
+    throw new Error(`anime-pictures image host returned an unsupported or invalid payload (${normalizedType || 'no content type'}); retrying another image URL candidate.`);
+  }
+  assertImagePayloadComplete(data, detectedType);
+  return detectedType;
+}
+
 export function parseAnimePicturesPostEntries(document: Document, pageUrl = window.location.href, limit = Number.POSITIVE_INFINITY): AnimePicturesPostEntry[] {
   const posts: AnimePicturesPostEntry[] = [];
   const seen = new Set<string>();
@@ -397,6 +417,54 @@ export function selectAnimePicturesImageCandidate(candidates: AnimePicturesImage
 export function isAnimePicturesChallengeHtml(html: string, url: string): boolean {
   const doc = new DOMParser().parseFromString(html, 'text/html');
   return diagnoseAnimePicturesDocument(doc, url).challengeDetected;
+}
+
+function detectImageContentType(data: Uint8Array<ArrayBuffer>): string | undefined {
+  if (matchesBytes(data, [0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])) return 'image/png';
+  if (matchesBytes(data, [0xff, 0xd8, 0xff])) return 'image/jpeg';
+  if (matchesAscii(data, 0, 'GIF87a') || matchesAscii(data, 0, 'GIF89a')) return 'image/gif';
+  if (matchesAscii(data, 0, 'RIFF') && matchesAscii(data, 8, 'WEBP')) return 'image/webp';
+  if (matchesAscii(data, 4, 'ftyp') && (containsAscii(data, 'avif', 8, 40) || containsAscii(data, 'avis', 8, 40))) return 'image/avif';
+  return undefined;
+}
+
+function assertImagePayloadComplete(data: Uint8Array<ArrayBuffer>, contentType: string): void {
+  if (contentType === 'image/jpeg' && !containsBytes(data, [0xff, 0xd9], Math.max(0, data.length - 64))) {
+    throw new Error('anime-pictures image host returned a truncated JPEG; retrying another image URL candidate.');
+  }
+  if (contentType === 'image/png' && !containsAscii(data, 'IEND', Math.max(0, data.length - 32), data.length)) {
+    throw new Error('anime-pictures image host returned a truncated PNG; retrying another image URL candidate.');
+  }
+  if (contentType === 'image/webp' && data.length >= 12) {
+    const declaredLength = data[4] + data[5] * 0x100 + data[6] * 0x10000 + data[7] * 0x1000000 + 8;
+    if (declaredLength > data.length) {
+      throw new Error('anime-pictures image host returned a truncated WebP; retrying another image URL candidate.');
+    }
+  }
+}
+
+function matchesBytes(data: Uint8Array<ArrayBuffer>, bytes: number[], offset = 0): boolean {
+  return bytes.every((byte, index) => data[offset + index] === byte);
+}
+
+function containsBytes(data: Uint8Array<ArrayBuffer>, bytes: number[], start = 0): boolean {
+  for (let offset = start; offset <= data.length - bytes.length; offset += 1) {
+    if (matchesBytes(data, bytes, offset)) return true;
+  }
+  return false;
+}
+
+function matchesAscii(data: Uint8Array<ArrayBuffer>, offset: number, text: string): boolean {
+  return matchesBytes(data, [...text].map(char => char.charCodeAt(0)), offset);
+}
+
+function containsAscii(data: Uint8Array<ArrayBuffer>, text: string, start = 0, end = data.length): boolean {
+  const bytes = [...text].map(char => char.charCodeAt(0));
+  const boundedEnd = Math.min(end, data.length);
+  for (let offset = start; offset <= boundedEnd - bytes.length; offset += 1) {
+    if (matchesBytes(data, bytes, offset)) return true;
+  }
+  return false;
 }
 
 function detectChallengeSignals(document: Document, html: string, bodyText: string): string[] {

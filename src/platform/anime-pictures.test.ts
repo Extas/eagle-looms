@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { animePicturesApiDetailUrl, animePicturesApiPostsUrl, collectAnimePicturesImageCandidates, diagnoseAnimePicturesDocument, extractAnimePicturesSourceMetadata, isAnimePicturesChallengeHtml, parseAnimePicturesApiDetail, parseAnimePicturesApiPosts, parseAnimePicturesPostEntries, selectAnimePicturesImageCandidate } from './anime-pictures';
+import { animePicturesApiDetailUrl, animePicturesApiPostsUrl, collectAnimePicturesImageCandidates, diagnoseAnimePicturesDocument, extractAnimePicturesSourceMetadata, isAnimePicturesChallengeHtml, parseAnimePicturesApiDetail, parseAnimePicturesApiPosts, parseAnimePicturesPostEntries, selectAnimePicturesImageCandidate, validateAnimePicturesImagePayload } from './anime-pictures';
 
 describe('anime-pictures matcher', () => {
   it('parses post cards in stable page order', () => {
@@ -172,6 +172,46 @@ describe('anime-pictures matcher', () => {
         <body><script src="https://challenges.cloudflare.com/challenge.js"></script></body>
       </html>
     `, 'https://oimages.anime-pictures.net/image.png')).toBe(true);
+  });
+
+  it('normalizes image MIME types from the returned bytes', () => {
+    const png = new Uint8Array([
+      0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a,
+      0x00, 0x00, 0x00, 0x00, 0x49, 0x45, 0x4e, 0x44,
+      0x00, 0x00, 0x00, 0x00,
+    ]);
+
+    expect(validateAnimePicturesImagePayload(
+      png,
+      'application/octet-stream',
+      'https://images.anime-pictures.net/pictures/example.png',
+    )).toBe('image/png');
+  });
+
+  it('rejects challenge HTML even when the image host mislabels it as JPEG', () => {
+    const response = new TextEncoder().encode(`
+      <!doctype html>
+      <html>
+        <head><title>Just a moment...</title></head>
+        <body><script src="https://challenges.cloudflare.com/challenge.js"></script></body>
+      </html>
+    `);
+
+    expect(() => validateAnimePicturesImagePayload(
+      response,
+      'image/jpeg',
+      'https://images.anime-pictures.net/pictures/example.jpg',
+    )).toThrow(/Cloudflare challenge/);
+  });
+
+  it('rejects truncated images before the full-size view marks them complete', () => {
+    const truncatedJpeg = new Uint8Array([0xff, 0xd8, 0xff, 0xe0, 0x00, 0x10]);
+
+    expect(() => validateAnimePicturesImagePayload(
+      truncatedJpeg,
+      'image/jpeg',
+      'https://images.anime-pictures.net/pictures/example.jpg',
+    )).toThrow(/truncated JPEG/);
   });
 
   it('extracts namespaced source tags and author urls from post detail pages', () => {

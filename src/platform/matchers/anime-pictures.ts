@@ -3,7 +3,7 @@ import ImageNode from "../../img-node";
 import { ADAPTER } from "../adapt";
 import { BaseMatcher, OriginMeta, Result } from "../platform";
 import { animePicturesGalleryMetaFromUrl } from "../../eagle/adapters/anime-pictures";
-import { AnimePicturesImageCandidate, animePicturesApiDetailUrl, diagnoseAnimePicturesDocument, collectAnimePicturesImageCandidates, extractAnimePicturesSourceMetadata, isAnimePicturesChallengeHtml, parseAnimePicturesApiDetail, parseAnimePicturesPostEntries, selectAnimePicturesImageCandidate } from "../anime-pictures";
+import { AnimePicturesImageCandidate, animePicturesApiDetailUrl, diagnoseAnimePicturesDocument, collectAnimePicturesImageCandidates, extractAnimePicturesSourceMetadata, parseAnimePicturesApiDetail, parseAnimePicturesPostEntries, selectAnimePicturesImageCandidate, validateAnimePicturesImagePayload } from "../anime-pictures";
 
 const POST_RE = /\/(?:posts|pictures\/view_post)\/(\d+)/;
 
@@ -103,13 +103,8 @@ class AnimePicturesMatcher extends BaseMatcher<Document> {
   }
 
   async processData(data: Uint8Array<ArrayBuffer>, contentType: string, node: ImageNode): Promise<[Uint8Array<ArrayBuffer>, string]> {
-    if (contentType.toLowerCase().startsWith("text/html")) {
-      const html = new TextDecoder().decode(data.slice(0, 256 * 1024));
-      if (isAnimePicturesChallengeHtml(html, node.originSrc || node.href)) {
-        throw new Error("anime-pictures image host returned a Cloudflare challenge page; retrying another image URL candidate.");
-      }
-    }
-    return [data, contentType];
+    const detectedContentType = validateAnimePicturesImagePayload(data, contentType, node.originSrc || node.href);
+    return [data, detectedContentType];
   }
 
   headers(node: ImageNode): Record<string, string> {
