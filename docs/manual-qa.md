@@ -263,6 +263,7 @@ Anime Pictures single-post pages collect only the current post and use its expli
 Twitter/twitter.com/mobile.twitter.com media links and tracking parameters resolve to one x.com source identity while retaining the photo/video position
 reversing a Twitter multi-image post changes display order without changing each image's original /photo/{n} source position
 Danbooru, Gelbooru, yande.re, Konachan, Rule34, e621, Pixiv, ExHentai, and E-Hentai detail routes discard navigation state while retaining their stable post/work/page identity
+yande.re and Konachan detail pages accept the current Post.register_resp payload as well as legacy Post.register list data; related-post registrations do not replace the requested detail post
 same-session re-import skips before querying Eagle again
 same-session skips are scoped to the current Eagle library, so switching libraries does not suppress a valid import into the new library
 turning off Skip Eagle Duplicates clearly states that existing-library matches are allowed while same-session repeats remain skipped

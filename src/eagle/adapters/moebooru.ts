@@ -4,6 +4,7 @@ import { sourceMetadataTag } from "../tags";
 
 const POST_REGISTER_TAGS_RE = /Post\.register_tags\(\s*(\{[\s\S]*?\})\s*\)/g;
 const POST_REGISTER_RE = /Post\.register\(\s*(\{[\s\S]*?\})\s*\)/g;
+const POST_REGISTER_RESPONSE_RE = /Post\.register_resp\(\s*(\{[\s\S]*?\})\s*\)/g;
 
 export type MoebooruTagTypes = Record<string, unknown>;
 export type MoebooruPostInfo = {
@@ -32,6 +33,9 @@ export function parseMoebooruTagTypes(document: Document): MoebooruTagTypes {
       }
     }
   });
+  for (const response of parseMoebooruRegisterResponses(document)) {
+    if (isRecord(response.tags)) Object.assign(tagTypes, response.tags);
+  }
   return tagTypes;
 }
 
@@ -47,7 +51,32 @@ export function parseMoebooruPostInfos(document: Document): MoebooruPostInfo[] {
       }
     }
   });
+  for (const response of parseMoebooruRegisterResponses(document)) {
+    if (!Array.isArray(response.posts)) continue;
+    response.posts.forEach((post) => {
+      if (isRecord(post)) infos.push(post as MoebooruPostInfo);
+    });
+  }
   return infos;
+}
+
+function parseMoebooruRegisterResponses(document: Document): Record<string, unknown>[] {
+  const responses: Record<string, unknown>[] = [];
+  document.querySelectorAll<HTMLScriptElement>("script").forEach((script) => {
+    for (const match of (script.textContent || "").matchAll(POST_REGISTER_RESPONSE_RE)) {
+      try {
+        const response = JSON.parse(match[1]) as unknown;
+        if (isRecord(response)) responses.push(response);
+      } catch {
+        // Ignore malformed inline responses; legacy Post.register data may still be usable.
+      }
+    }
+  });
+  return responses;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value);
 }
 
 export function normalizeMoebooruSourceTags(rawTags: string | undefined, tagTypes: MoebooruTagTypes): string[] {

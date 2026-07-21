@@ -44,6 +44,40 @@ function moebooruDetailDocument(): Document {
   `);
 }
 
+function currentMoebooruDetailDocument(): Document {
+  return parseDocument(`
+    <script>
+      Post.register_resp({
+        "posts": [{
+          "id": 1266139,
+          "file_ext": "jpg",
+          "file_url": "https://files.yande.re/image/1266139.jpg",
+          "sample_url": "https://files.yande.re/sample/1266139.jpg",
+          "preview_url": "https://assets.yande.re/data/preview/1266139.jpg",
+          "width": 1200,
+          "height": 1660,
+          "tags": "animal_ears genshin_impact lumine pottsness",
+          "created_at": 1784602548
+        }],
+        "tags": {
+          "animal_ears": "general",
+          "genshin_impact": "copyright",
+          "lumine": "character",
+          "pottsness": "artist"
+        }
+      });
+      Post.register({
+        "id": 1266000,
+        "file_ext": "jpg",
+        "file_url": "https://files.yande.re/image/related.jpg",
+        "sample_url": "https://files.yande.re/sample/related.jpg",
+        "preview_url": "https://files.yande.re/preview/related.jpg",
+        "tags": "related_post"
+      });
+    </script>
+  `);
+}
+
 describe("Moebooru matcher metadata", () => {
   it("supports yande.re post detail pages with categorized source tags", async () => {
     window.history.pushState({}, "", "/post/show/100");
@@ -73,5 +107,28 @@ describe("Moebooru matcher metadata", () => {
     expect(nodes).toHaveLength(1);
     expect(nodes[0].title).toBe("100.jpg");
     expect([...nodes[0].tags]).toContain("copyright:project_sekai");
+  });
+
+  it("supports current Post.register_resp detail payloads", async () => {
+    window.history.pushState({}, "", "/post/show/1266139");
+
+    const matcher = new YandereMatcher();
+    const nodes = await matcher.parseImgNodes(currentMoebooruDetailDocument());
+
+    expect(nodes).toHaveLength(1);
+    expect(nodes[0].title).toBe("1266139.jpg");
+    expect(nodes[0].publishedAt).toBe("1784602548");
+    expect(nodes[0].rect).toEqual({ w: 1200, h: 1660 });
+    expect([...nodes[0].tags]).toEqual([
+      "ext:jpg",
+      "animal_ears",
+      "copyright:genshin_impact",
+      "character:lumine",
+      "author:pottsness",
+    ]);
+    expect(nodes[0].authorUrls).toEqual([
+      new URL("/post?tags=pottsness", window.location.href).href,
+    ]);
+    expect(matcher.galleryMeta().title).toBe("yande.re-posts");
   });
 });
