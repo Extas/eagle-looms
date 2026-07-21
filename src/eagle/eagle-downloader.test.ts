@@ -659,6 +659,46 @@ describe('Eagle downloader duplicate checks', () => {
     expect(assets[0].tags).toContain('source:published:1999-01-02');
   });
 
+  it('resolves relative source and media URLs before building Eagle identity', () => {
+    const chapter = {
+      title: 'Posts',
+      source: 'https://gelbooru.com/index.php?page=post&s=list&tags=project_sekai',
+      filteredQueue: [{
+        stage: EAGLE_IMPORT_DONE_STAGE,
+        data: new Uint8Array([1]),
+        contentType: 'image/jpeg',
+        node: {
+          title: '100.jpg',
+          href: 'index.php?page=post&s=view&id=100',
+          originSrc: '/images/100.jpg',
+          tags: new Set<string>(['copyright:project sekai']),
+          authorUrls: [],
+        },
+      }],
+    };
+    const downloader = Object.create(EagleDownloader.prototype) as EagleDownloader;
+    ADAPTER.conf = defaultConf();
+
+    const assets = (downloader as any).assetsForChapter(
+      chapter,
+      { picked: () => true },
+      '',
+      new GalleryMeta(chapter.source, 'gelbooru-project sekai'),
+      '2026-07-21',
+    );
+
+    expect(assets).toHaveLength(1);
+    expect(assets[0]).toMatchObject({
+      sourceUrl: 'https://gelbooru.com/index.php?page=post&s=view&id=100',
+      website: 'https://gelbooru.com/index.php?page=post&s=view&id=100',
+      originUrl: 'https://gelbooru.com/images/100.jpg',
+    });
+    expect(toAddItemInput(assets[0], ['folder-id'])).toMatchObject({
+      url: 'https://gelbooru.com/images/100.jpg',
+      website: 'https://gelbooru.com/index.php?page=post&s=view&id=100',
+    });
+  });
+
   it('uses semantic booru names while preserving date and scoped source identity', () => {
     const chapter = {
       title: 'Posts',

@@ -370,17 +370,19 @@ export class EagleDownloader extends Downloader {
     for (let i = 0; i < chapter.filteredQueue.length; i++) {
       const imf = chapter.filteredQueue[i];
       if (!picked.picked(i) || !isReadyForEagleImport(imf)) continue;
-      const sourceTags = eagleSourceTags(imf, meta);
-      const sourceBaseName = twitterEagleItemBaseName(directory, imf.node.title, imf.node.href, sourceTags);
-      const baseName = booruEagleItemBaseName(sourceBaseName, imf.node.href, sourceTags);
+      const sourceUrl = absoluteHttpUrl(imf.node.href, chapter.source || meta.url) || imf.node.href;
+      const originUrl = absoluteHttpUrl(imf.node.originSrc, sourceUrl);
+      const sourceTags = eagleSourceTags(imf, meta, sourceUrl);
+      const sourceBaseName = twitterEagleItemBaseName(directory, imf.node.title, sourceUrl, sourceTags);
+      const baseName = booruEagleItemBaseName(sourceBaseName, sourceUrl, sourceTags);
       const tags = normalizeEagleItemTags(sourceTags, ADAPTER.conf.eagleMaxSourceTags);
       const folderTags = normalizeEagleTags([], semanticSourceTags(sourceTags), 1000);
       const common = {
-        sourceUrl: imf.node.href,
-        originUrl: imf.node.originSrc,
+        sourceUrl,
+        originUrl,
         sourceName: imf.node.title,
         tags,
-        website: imf.node.href,
+        website: sourceUrl,
         folderTokens: eagleFolderTokens([...tags, ...folderTags], meta, chapter, directory, importDate),
         sourceTags,
         chapter,
@@ -781,12 +783,22 @@ function prepareWritableJobNames(jobs: EagleImportJob[]): void {
   }
 }
 
-function eagleSourceTags(imf: IMGFetcher, meta: GalleryMeta): string[] {
+function eagleSourceTags(imf: IMGFetcher, meta: GalleryMeta, sourceUrl = imf.node.href): string[] {
   return [
     ...[...imf.node.tags].map(tag => tag.toString()),
     ...sourcePublishedAtTags(imf.node.publishedAt),
-    ...sourceTagsFromGalleryMeta(meta, imf.node.href),
+    ...sourceTagsFromGalleryMeta(meta, sourceUrl),
   ];
+}
+
+function absoluteHttpUrl(value: string | undefined, baseUrl: string): string | undefined {
+  if (!value) return undefined;
+  try {
+    const url = new URL(value, new URL(baseUrl, window.location.href));
+    return url.protocol === "http:" || url.protocol === "https:" ? url.href : value;
+  } catch {
+    return value;
+  }
 }
 
 function eagleFolderTokens(tags: string[], meta: GalleryMeta, chapter: Chapter, chapterDirectory: string, importDate: string): EagleFolderTokens {
