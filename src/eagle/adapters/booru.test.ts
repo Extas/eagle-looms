@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { sourceTagsFromGalleryMeta } from "../tags";
-import { booruEagleItemBaseName, booruGalleryMetaFromState, booruPublishedAtFromDocument, extractBooruAuthorUrls, extractBooruSourceTags, normalizeBooruSourceTags, normalizeCommaSeparatedBooruTagText } from "./booru";
+import { booruEagleItemBaseName, booruGalleryMetaFromState, booruPublishedAtFromDocument, e621AuthorUrls, e621SourceTags, extractBooruAuthorUrls, extractBooruSourceTags, normalizeBooruSourceTags, normalizeCommaSeparatedBooruTagText, type E621Post } from "./booru";
 
 describe("booru source tags", () => {
   it("normalizes known booru categories and keeps other tags raw", () => {
@@ -28,6 +28,43 @@ describe("booru source tags", () => {
     expect(normalizeBooruSourceTags(document.createElement("article"), ["blue_eyes", "looking_at_viewer"])).toEqual([
       "blue_eyes",
       "looking_at_viewer",
+    ]);
+  });
+
+  it("maps e621 API categories while retaining every other source tag", () => {
+    const post = {
+      id: 6561306,
+      created_at: "2026-07-20T22:47:05.859-04:00",
+      file: { width: 2720, height: 4096, ext: "png", url: "https://static1.e621.net/data/post.png" },
+      preview: { url: "https://static1.e621.net/data/preview/post.jpg" },
+      sample: { url: "https://static1.e621.net/data/sample/post.jpg" },
+      tags: {
+        general: ["braided_hair", "green_eyes"],
+        species: ["canid", "wolf"],
+        character: ["long_character_outfit", "character_name"],
+        copyright: ["long_franchise_name", "short_work"],
+        artist: ["kalathean", "second_artist"],
+        meta: ["absurd_res", "hi_res"],
+      },
+    } satisfies E621Post;
+
+    expect(e621SourceTags(post)).toEqual([
+      "copyright:long_franchise_name",
+      "copyright:short_work",
+      "character:long_character_outfit",
+      "character:character_name",
+      "author:kalathean",
+      "author:second_artist",
+      "braided_hair",
+      "green_eyes",
+      "canid",
+      "wolf",
+      "absurd_res",
+      "hi_res",
+    ]);
+    expect(e621AuthorUrls(post)).toEqual([
+      "https://e621.net/posts?tags=kalathean",
+      "https://e621.net/posts?tags=second_artist",
     ]);
   });
 
@@ -356,5 +393,11 @@ describe("booru source tags", () => {
       "https://rule34.us/index.php?r=posts/view&id=13192921",
       ["author:artist_name", "copyright:monster_hunter"],
     )).toBe("artist name - monster hunter - rule34.us-13192921.jpg");
+
+    expect(booruEagleItemBaseName(
+      "6561306.png",
+      "https://e621.net/posts/6561306?pool_id=3",
+      ["author:kalathean", "copyright:long_franchise_name", "copyright:short_work"],
+    )).toBe("kalathean - short work - e621-6561306.png");
   });
 });

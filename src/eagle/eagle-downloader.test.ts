@@ -835,6 +835,80 @@ describe('Eagle downloader duplicate checks', () => {
     }
   });
 
+  it('maps an e621 post into a categorized and stable additive import plan', () => {
+    const chapter = {
+      title: 'Posts',
+      filteredQueue: [{
+        stage: EAGLE_IMPORT_DONE_STAGE,
+        data: new Uint8Array([1]),
+        contentType: 'image/png',
+        node: {
+          title: '6561306.png',
+          href: 'https://e621.net/posts/6561306?pool_id=3',
+          originSrc: 'https://static1.e621.net/data/df/39/df395ca64473c4aff791ae64c13db9e3.png',
+          tags: new Set<string>([
+            'author:kalathean',
+            'copyright:short_work',
+            'character:wolf_witch',
+            'braided_hair',
+            'wolf',
+            'hi_res',
+          ]),
+          authorUrls: ['https://e621.net/posts?tags=kalathean'],
+          publishedAt: '2026-07-20T22:47:05.859-04:00',
+        },
+      }],
+    };
+    const downloader = Object.create(EagleDownloader.prototype) as EagleDownloader;
+    ADAPTER.conf = defaultConf();
+    const previousMatcher = ADAPTER.matcher;
+    ADAPTER.matcher = { name: 'e621', workURLs: [/.*/], constructor: vi.fn() as any };
+
+    try {
+      const [asset] = (downloader as any).assetsForChapter(
+        chapter,
+        { picked: () => true },
+        '',
+        new GalleryMeta('https://e621.net/posts?tags=rating%3Asafe+wolf', 'e621-search-rating safe wolf'),
+        '2026-07-21',
+      );
+
+      expect(asset).toMatchObject({
+        name: '2026-07-20 kalathean - short work - e621-6561306.png',
+        sourceUrl: 'https://e621.net/posts/6561306',
+        website: 'https://e621.net/posts/6561306',
+        originUrl: 'https://static1.e621.net/data/df/39/df395ca64473c4aff791ae64c13db9e3.png',
+        folderTokens: {
+          site: 'e621',
+          date: '2026-07-21',
+          gallery: 'e621-search-rating safe wolf',
+        },
+      });
+      expect(asset.tags).toEqual(expect.arrayContaining([
+        'author:kalathean',
+        'copyright:short_work',
+        'character:wolf_witch',
+        'braided_hair',
+        'wolf',
+        'hi_res',
+        'source:published:2026-07-20',
+      ]));
+      expect(duplicateUrls(asset)).toEqual([
+        'https://e621.net/posts/6561306',
+        'https://static1.e621.net/data/df/39/df395ca64473c4aff791ae64c13db9e3.png',
+      ]);
+      expect(toAddItemInput(asset, ['folder-id'])).toMatchObject({
+        name: asset.name,
+        website: asset.sourceUrl,
+        url: asset.originUrl,
+        folders: ['folder-id'],
+        annotation: 'https://e621.net/posts?tags=kalathean',
+      });
+    } finally {
+      ADAPTER.matcher = previousMatcher;
+    }
+  });
+
   it('keeps E-Hentai gallery pages distinct while preserving the gallery Posted date', () => {
     const page = (index: number, key: string, name: string) => ({
       stage: EAGLE_IMPORT_DONE_STAGE,

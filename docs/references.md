@@ -52,6 +52,7 @@ References behind the `copyright:` / `character:` / `author:` namespace policy:
 - Danbooru API and tag category practice: <https://danbooru.donmai.us/wiki_pages/help:api>
 - Danbooru tag categories and wiki practice: <https://danbooru.donmai.us/wiki_pages/help:tags>
 - Gelbooru DAPI: <https://gelbooru.com/index.php?page=help&topic=dapi>
+- e621 OpenAPI (`posts.json` and `posts/{id}.json`): <https://e621.wiki/>
 - yande.re / Moebooru API: <https://yande.re/help/api>
 - E-Hentai gallery tagging namespaces: <https://ehwiki.org/wiki/Gallery_Tagging>
 - Hydrus tag namespaces and tag-management practice: <https://wiki.hydrus.network/books/hydrus-manual/page/getting-started-tags>

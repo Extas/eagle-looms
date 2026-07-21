@@ -111,8 +111,11 @@ Author URL extraction follows the same author-like categories where source pages
 Current source mapping rules:
 
 ```text
-Danbooru / Gelbooru / e621 / Rule34.us
+Danbooru / Gelbooru / Rule34.us
   use data-tag-string attributes from post cards and detail pages, descendant metadata, numeric Danbooru category/tag-type classes, detail-page tag lists, and general/meta raw tag attributes; map copyright-like aliases such as parody/series/source-work/franchise and author-like aliases such as illustrator/writer/editor/mangaka; prefer Gelbooru's canonical card tags over its human-readable alt label and exclude volatile card-only score/rating fields; ignore Danbooru's question-mark Wiki/artist controls, other Wiki/search controls, and Rule34.us statistics/moderation links; map Gelbooru's textual Posted field to source publication time
+
+e621
+  enrich each visible list page with one official posts.json request and use posts/{id}.json on detail pages; map artist/copyright/character to the shared namespaces, keep every other API tag category raw, retain exact media extension/dimensions/publish time, and fall back to card or page metadata when the API is unavailable
 
 Pawchive
   parse API tag arrays into individual visible tags; prefer the readable creator name and profile link exposed by the current page when post API payloads omit creator metadata

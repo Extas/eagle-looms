@@ -53,6 +53,8 @@ https://danbooru.donmai.us/posts
 https://danbooru.donmai.us/posts/{id}
 https://gelbooru.com/index.php?page=post&s=list
 https://gelbooru.com/index.php?page=post&s=view&id={id}
+https://e621.net/posts?tags=rating%3Asafe+wolf
+https://e621.net/posts/{id}
 https://rule34.us/index.php?r=posts/index
 https://rule34.us/index.php?r=posts/view&id={id}
 https://pawchive.pw/fanbox/user/{id}
@@ -230,6 +232,7 @@ items have original image url when Eagle preserves it
 visible tags contain source semantic tags only
 Gelbooru list imports keep canonical underscore-delimited tags and do not create Rule/34/score:*/rating:* noise from thumbnail labels
 Danbooru detail imports do not create copyright:?/character:?/author:? tags or retain question-mark Wiki controls as author links
+e621 list and detail imports preserve API media identity and use author:/copyright:/character: only for those three categories while retaining all other tags raw
 Pixiv /en/artworks/{id} share URLs with query/hash state retain the Current artwork chapter; multi-page works keep distinct _pN names/original URLs while sharing one canonical artwork website
 ISO timestamps with an explicit calendar date keep that source date in item names and source:published tags instead of shifting across the local timezone
 items do not force eagle-looms, site:*, gallery:*, chapter:*, ext:*, mime:*, or post:* tags
@@ -317,6 +320,14 @@ Gelbooru behavior:
 list-page thumbnail `title` tags are available before detail-image loading
 Wiki `?` and add/remove-search controls never become Eagle tags or author URLs
 detail-page `Posted:` time becomes the source:published tag and optional item-name date prefix
+```
+
+e621 behavior:
+
+```text
+one list page performs one categorized posts.json lookup rather than one request per image
+single /posts/{id} pages import directly and keep the canonical post URL
+API failure leaves card/page collection usable with the correct card extension and unquoted timestamp
 ```
 
 Rule34.us behavior:

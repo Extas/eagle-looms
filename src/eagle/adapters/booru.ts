@@ -204,6 +204,20 @@ const RAW_TAG_SELECTORS = [
   "[data-category='5'] a",
 ] as const;
 
+export type E621Post = {
+  id: number;
+  created_at: string;
+  file: {
+    width: number;
+    height: number;
+    ext: string;
+    url: string | null;
+  };
+  preview: { url: string | null };
+  sample: { url: string | null };
+  tags: Record<string, string[]>;
+};
+
 export function normalizeBooruSourceTags(element: Element, fallbackTags: string[]): string[] {
   return extractBooruSourceTags(element, fallbackTags);
 }
@@ -279,6 +293,29 @@ export function extractBooruAuthorUrls(root: ParentNode, baseUrl = window.locati
   return [...new Set(urls)];
 }
 
+export function e621SourceTags(post: E621Post): string[] {
+  const tags: string[] = [];
+  const categorized = new Set(["artist", "copyright", "character"]);
+
+  post.tags.copyright?.forEach(value => tags.push(sourceMetadataTag("copyright", value)));
+  post.tags.character?.forEach(value => tags.push(sourceMetadataTag("character", value)));
+  post.tags.artist?.forEach(value => tags.push(sourceMetadataTag("author", value)));
+  for (const [category, values] of Object.entries(post.tags)) {
+    if (categorized.has(category)) continue;
+    tags.push(...values.map(cleanSourceTag).filter(Boolean));
+  }
+
+  return [...new Set(tags.filter(Boolean))];
+}
+
+export function e621AuthorUrls(post: E621Post, baseUrl = "https://e621.net"): string[] {
+  return [...new Set((post.tags.artist || []).map((artist) => {
+    const url = new URL("/posts", baseUrl);
+    url.searchParams.set("tags", artist);
+    return url.href;
+  }))];
+}
+
 export function booruPublishedAtFromDocument(doc: Document): string | undefined {
   return doc.querySelector<HTMLElement>("article[data-created-at]")?.getAttribute("data-created-at")
     || doc.querySelector<HTMLTimeElement>("time[datetime]")?.getAttribute("datetime")
@@ -324,6 +361,7 @@ function booruIdentityFromUrl(value: string): { site: string, id: string } | und
     const sites: Record<string, string> = {
       "danbooru.donmai.us": "danbooru",
       "gelbooru.com": "gelbooru",
+      "e621.net": "e621",
       "yande.re": "yande.re",
       "konachan.com": "konachan",
       "rule34.us": "rule34.us",

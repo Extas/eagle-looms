@@ -4,7 +4,7 @@ import EBUS from "../../event-bus";
 import ImageNode, { NodeAction } from "../../img-node";
 import { evLog } from "../../utils/ev-log";
 import { ADAPTER } from "../adapt";
-import { booruGalleryMetaFromState, booruPublishedAtFromDocument, extractBooruAuthorUrls, extractBooruSourceTags, normalizeBooruSourceTags, normalizeCommaSeparatedBooruTagText } from "../../eagle/adapters/booru";
+import { booruGalleryMetaFromState, booruPublishedAtFromDocument, e621AuthorUrls, e621SourceTags, extractBooruAuthorUrls, extractBooruSourceTags, normalizeBooruSourceTags, normalizeCommaSeparatedBooruTagText, type E621Post } from "../../eagle/adapters/booru";
 import { BaseMatcher, OriginMeta, Result } from "../platform";
 
 
@@ -310,19 +310,21 @@ export class GelBooruMatcher extends DanbooruMatcher {
   }
 }
 
-class E621Matcher extends DanbooruMatcher {
+export class E621Matcher extends DanbooruMatcher {
   cache: Map<string, { normal: string, original: string, id: string, fileExt?: string, publishedAt?: string }> = new Map();
   nextPage(doc: Document): string | null {
     return doc.querySelector<HTMLAnchorElement>(".pagination #paginator-next")?.href ?? null;
   }
-  getOriginalURL(): string | null {
-    throw new Error("Method not implemented.");
+  getOriginalURL(doc: Document): string | null {
+    return doc.querySelector<HTMLElement>("article[data-file-url], #image[data-file-url]")?.getAttribute("data-file-url") || null;
   }
-  getNormalURL(): string | null {
-    throw new Error("Method not implemented.");
+  getNormalURL(doc: Document): string | null {
+    return doc.querySelector<HTMLElement>("article[data-sample-url]")?.getAttribute("data-sample-url")
+      || doc.querySelector<HTMLImageElement>("#image")?.src
+      || null;
   }
-  extractIDFromHref(): string | undefined {
-    throw new Error("Method not implemented.");
+  extractIDFromHref(href: string): string | undefined {
+    return href.match(/\/posts\/(\d+)/)?.[1];
   }
   getBlacklist(doc: Document): string[] {
     const content = doc.querySelector("meta[name='blacklisted-tags']")?.getAttribute("content");
@@ -345,27 +347,95 @@ class E621Matcher extends DanbooruMatcher {
     const href = `${window.location.origin}/posts/${id}`;
     const width = ele.getAttribute("data-width");
     const height = ele.getAttribute("data-height");
-    const publishedAt = ele.getAttribute("data-created-at") || undefined;
+    const publishedAt = cleanE621Timestamp(ele.getAttribute("data-created-at"));
     let wh = undefined;
     if (width && height) {
       wh = { w: parseInt(width), h: parseInt(height) };
     }
     this.cache.set(href, { normal, original, id, fileExt, publishedAt });
-    const node = new ImageNode(src, href, `${id}.jpg`, undefined, undefined, wh);
+    const node = new ImageNode(src, href, `${id}.${fileExt || "jpg"}`, undefined, undefined, wh);
     node.setPublishedAt(publishedAt);
     return [node, tags || ""];
   }
+  async parseImgNodes(doc: Document): Promise<ImageNode[]> {
+    const detailId = this.extractIDFromHref(window.location.href);
+    if (detailId) {
+      try {
+        const post = (await this.fetchPosts([detailId], true))[0];
+        const node = post && this.nodeFromPost(post);
+        if (node) {
+          this.count++;
+          return [node];
+        }
+      } catch (error) {
+        evLog("error", "e621 detail metadata request failed; using page metadata", error);
+      }
+      return super.parseImgNodes(doc);
+    }
+
+    const nodes = await super.parseImgNodes(doc);
+    const ids = nodes.map(node => this.extractIDFromHref(node.href)).filter((id): id is string => Boolean(id));
+    if (ids.length === 0) return nodes;
+
+    try {
+      const posts = await this.fetchPosts(ids, false);
+      const postsById = new Map(posts.map(post => [String(post.id), post]));
+      return nodes.map((node) => {
+        const id = this.extractIDFromHref(node.href);
+        return (id && postsById.get(id) && this.nodeFromPost(postsById.get(id)!)) || node;
+      });
+    } catch (error) {
+      evLog("error", "e621 list metadata request failed; using card metadata", error);
+      return nodes;
+    }
+  }
   cachedOriginMeta(href: string): OriginMeta | null {
     const cached = this.cache.get(href);
-    if (!cached) throw new Error("miss origin meta: " + href);
+    if (!cached) return null;
     const ext = cached.fileExt ?? cached.original.split(".").pop() ?? "jpg";
     if (ADAPTER.conf.fetchOriginal || ["webm", "webp", "mp4"].includes(ext)) {
       return { url: cached.original, title: `${cached.id}.${ext}`, publishedAt: cached.publishedAt };
     }
-    return { url: cached.normal, title: `${cached.id}.${cached.normal.split(".").pop()}`, publishedAt: cached.publishedAt };
+    return { url: cached.normal, title: `${cached.id}.${extensionFromUrl(cached.normal) || ext}`, publishedAt: cached.publishedAt };
   }
   site(): string {
     return "e621";
+  }
+
+  private async fetchPosts(ids: string[], detail: boolean): Promise<E621Post[]> {
+    const url = detail
+      ? new URL(`/posts/${ids[0]}.json`, window.location.origin)
+      : new URL("/posts.json", window.location.origin);
+    if (!detail) {
+      url.searchParams.set("tags", `id:${ids.join(",")}`);
+      url.searchParams.set("limit", String(ids.length));
+    }
+    const response = await window.fetch(url.href, { headers: { Accept: "application/json" } });
+    if (!response.ok) throw new Error(`e621 API request failed: HTTP ${response.status}`);
+    return e621PostsFromPayload(await response.json());
+  }
+
+  private nodeFromPost(post: E621Post): ImageNode | null {
+    const original = post.file.url;
+    if (!original) return null;
+    const normal = post.sample.url || original;
+    const preview = post.preview.url || normal;
+    const id = String(post.id);
+    const href = new URL(`/posts/${id}`, window.location.origin).href;
+    const fileExt = post.file.ext || extensionFromUrl(original) || "jpg";
+    const publishedAt = cleanE621Timestamp(post.created_at);
+    const sourceTags = e621SourceTags(post);
+    const wh = post.file.width > 0 && post.file.height > 0
+      ? { w: post.file.width, h: post.file.height }
+      : undefined;
+
+    this.cache.set(href, { normal, original, id, fileExt, publishedAt });
+    this.tags[id] = sourceTags;
+    const node = new ImageNode(preview, href, `${id}.${fileExt}`, undefined, undefined, wh);
+    node.setTags(...sourceTags);
+    node.setAuthorUrls(...e621AuthorUrls(post, window.location.origin));
+    node.setPublishedAt(publishedAt);
+    return node;
   }
 }
 
@@ -493,7 +563,7 @@ class Rule34USMatcher extends DanbooruMatcher {
 ADAPTER.addSetup({
   name: "e621",
   workURLs: [
-    /e621.net\/((posts|favorites)(?!\/)|$)/
+    /e621.net\/(posts(?:\/\d+)?(?:[?#]|$)|favorites(?:[?#]|$)|$)/
   ],
   match: ["https://e621.net/*"],
   constructor: () => new E621Matcher(),
@@ -577,4 +647,27 @@ function imageSizeFromElement(root: HTMLElement, image?: HTMLImageElement | null
   const w = Number(root.getAttribute("data-width") || image?.getAttribute("width") || image?.getAttribute("data-width"));
   const h = Number(root.getAttribute("data-height") || image?.getAttribute("height") || image?.getAttribute("data-height"));
   return Number.isFinite(w) && Number.isFinite(h) && w > 0 && h > 0 ? { w, h } : undefined;
+}
+
+function cleanE621Timestamp(value: unknown): string | undefined {
+  const timestamp = String(value ?? "").trim();
+  if (!timestamp) return undefined;
+  const quote = timestamp[0];
+  return (quote === '"' || quote === "'") && timestamp.at(-1) === quote
+    ? timestamp.slice(1, -1).trim() || undefined
+    : timestamp;
+}
+
+function e621PostsFromPayload(value: unknown): E621Post[] {
+  if (!value || typeof value !== "object") return [];
+  const payload = value as { post?: E621Post, posts?: E621Post[] };
+  const posts = payload.post ? [payload.post] : payload.posts;
+  return (posts || []).filter(post => Boolean(
+    post
+    && Number.isFinite(post.id)
+    && post.file
+    && post.preview
+    && post.sample
+    && post.tags,
+  ));
 }
