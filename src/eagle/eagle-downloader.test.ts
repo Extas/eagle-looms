@@ -661,6 +661,63 @@ describe('Eagle downloader duplicate checks', () => {
     expect(assets[0].tags).toContain('source:published:1999-01-02');
   });
 
+  it('maps a single X status photo into one author-owned Eagle import plan', () => {
+    const chapter = {
+      title: 'Post',
+      source: 'https://x.com/Tsurumi_vov/status/2075580242895528190',
+      filteredQueue: [{
+        stage: EAGLE_IMPORT_DONE_STAGE,
+        data: new Uint8Array([1]),
+        contentType: 'image/jpeg',
+        node: {
+          title: '2075580242895528190-1-HM3xN_ubgAA6Hh5.jpg',
+          href: 'https://x.com/Tsurumi_vov/status/2075580242895528190/photo/1',
+          originSrc: 'https://pbs.twimg.com/media/HM3xN_ubgAA6Hh5?format=jpg&name=orig',
+          tags: new Set<string>(['author:Tsurumi_vov', 'mygo']),
+          authorUrls: ['https://x.com/Tsurumi_vov'],
+          publishedAt: '2026-07-10T13:57:00.000Z',
+        },
+      }],
+    };
+    const downloader = Object.create(EagleDownloader.prototype) as EagleDownloader;
+    ADAPTER.conf = defaultConf();
+    const previousMatcher = ADAPTER.matcher;
+    ADAPTER.matcher = { name: 'Twitter | X', workURLs: [/.*/], constructor: vi.fn() as any };
+
+    try {
+      const [asset] = (downloader as any).assetsForChapter(
+        chapter,
+        { picked: () => true },
+        'Post',
+        new GalleryMeta(chapter.source, 'twitter-post-2026-07-21'),
+        '2026-07-21',
+      );
+
+      expect(asset).toMatchObject({
+        name: '2026-07-10 Tsurumi_vov - 2075580242895528190-1-HM3xN_ubgAA6Hh5.jpg',
+        sourceUrl: 'https://x.com/Tsurumi_vov/status/2075580242895528190/photo/1',
+        website: 'https://x.com/Tsurumi_vov/status/2075580242895528190/photo/1',
+        originUrl: 'https://pbs.twimg.com/media/HM3xN_ubgAA6Hh5?format=jpg&name=orig',
+        folderTokens: {
+          site: 'Twitter | X',
+          date: '2026-07-21',
+          gallery: 'twitter-post-2026-07-21',
+          chapter: 'Post',
+          author: 'Tsurumi vov',
+        },
+      });
+      expect(asset.tags).toEqual(expect.arrayContaining(['author:Tsurumi_vov', 'mygo', 'source:published:2026-07-10']));
+      expect(toAddItemInput(asset, ['folder-id'])).toMatchObject({
+        name: asset.name,
+        website: asset.sourceUrl,
+        url: asset.originUrl,
+        annotation: 'https://x.com/Tsurumi_vov',
+      });
+    } finally {
+      ADAPTER.matcher = previousMatcher;
+    }
+  });
+
   it('resolves relative source and media URLs before building Eagle identity', () => {
     const chapter = {
       title: 'Posts',

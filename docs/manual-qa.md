@@ -289,6 +289,7 @@ Twitter / X home folders use twitter-home-YYYY-MM-DD instead of parsed post/medi
 Twitter / X user timelines use twitter-user-YYYY-MM-DD without the author name; list timelines include list identity plus local date
 Twitter / X item names use the media-bearing source author instead of generic User Media chapter text
 Twitter / X falls back to the media source URL for author name, tag, and profile URL when GraphQL user metadata is missing
+Twitter / X single status pages collect only that status's photos instead of silently switching to the author's timeline
 Twitter / X keeps a saved bottom-right collapsed entry above the native X Chat launcher
 booru search/gallery fallback folders use semantic source labels and never parsed result counts
 anime-pictures detail pages do not use post id as gallery/folder fallback; post id stays item/source identity

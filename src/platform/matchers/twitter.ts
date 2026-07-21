@@ -49,7 +49,7 @@ type Legacy = {
   full_text: string,
   possibly_sensitive: boolean,
   possibly_sensitive_editable: boolean,
-  retweeted_status_result: {
+  retweeted_status_result?: {
     result: {
       legacy?: Legacy,
       tweet?: {
@@ -133,6 +133,28 @@ type Instructions = [UserMediaAddToModule, UserMediaEntries];
 interface TwitterAPIClient {
   fetchChapters(): AsyncGenerator<Chapter[]>;
   next(chapter: Chapter, cursor?: string): Promise<[Item[], string | undefined]>;
+}
+
+type TwitterStatusIdentity = {
+  screenName: string,
+  statusId: string,
+};
+
+class TwitterStatusAPI implements TwitterAPIClient {
+  constructor(private readonly identity: TwitterStatusIdentity) { }
+
+  async *fetchChapters(): AsyncGenerator<Chapter[]> {
+    return [new Chapter(1, "Post", window.location.href)];
+  }
+
+  async next(_chapter: Chapter, cursor?: string): Promise<[Item[], string | undefined]> {
+    if (cursor) return [[], undefined];
+    const item = twitterStatusItemFromDocument(window.location.href);
+    if (!item) {
+      throw new Error(`cannot find photo media for post ${this.identity.statusId}`);
+    }
+    return [[item], undefined];
+  }
 }
 
 class TwitterUserMediasAPI implements TwitterAPIClient {
@@ -337,7 +359,10 @@ class TwitterMatcher extends BaseMatcher<Item[]> {
 
   constructor() {
     super();
-    if (/\/home$/.test(window.location.href)) {
+    const status = twitterStatusIdentityFromURL(window.location.href);
+    if (status) {
+      this.api = new TwitterStatusAPI(status);
+    } else if (/\/home$/.test(window.location.href)) {
       this.api = new TwitterHomeForYouAPI();
     } else if (/i\/lists\/\d+$/.test(window.location.href)) {
       this.api = new TwitterListsAPI();
@@ -462,8 +487,118 @@ export function twitterGalleryTitleFromURL(href: string, fallbackTitle = "twitte
   if (path === "/home") return datedGalleryTitle(["twitter", "home"], date);
   const listId = path.match(/^\/i\/lists\/([^/]+)/)?.[1];
   if (listId) return datedGalleryTitle(["twitter", "list", listId], date);
+  if (twitterStatusIdentityFromURL(href)) return datedGalleryTitle(["twitter", "post"], date);
   if (path.match(/^\/[^/]+/)) return datedGalleryTitle(["twitter", "user"], date);
   return datedGalleryTitle(["twitter", cleanGalleryTitlePart(fallbackTitle)], date);
+}
+
+export function twitterStatusIdentityFromURL(href: string): TwitterStatusIdentity | undefined {
+  try {
+    const url = new URL(href, "https://x.com/");
+    if (!/(^|\.)(x|twitter)\.com$/i.test(url.hostname)) return undefined;
+    const match = url.pathname.match(/^\/([^/]+)\/status\/(\d+)(?:\/|$)/i);
+    if (!match) return undefined;
+    return { screenName: match[1], statusId: match[2] };
+  } catch {
+    return undefined;
+  }
+}
+
+export function twitterStatusItemFromDocument(href: string, root: ParentNode = document): Item | undefined {
+  const identity = twitterStatusIdentityFromURL(href);
+  if (!identity) return undefined;
+  const statusPath = `/${identity.screenName}/status/${identity.statusId}`.toLowerCase();
+  const article = Array.from(root.querySelectorAll("article")).find(candidate =>
+    Array.from(candidate.querySelectorAll<HTMLAnchorElement>("a[href]")).some(anchor => {
+      const path = twitterPathname(anchor.href);
+      return path === statusPath || path.startsWith(`${statusPath}/photo/`) || path.startsWith(`${statusPath}/video/`);
+    })
+  );
+  if (!article) return undefined;
+
+  const photos = Array.from(article.querySelectorAll<HTMLAnchorElement>("a[href]"))
+    .map(anchor => twitterPhotoFromAnchor(anchor, identity))
+    .filter((item): item is { index: number, media: Media } => Boolean(item))
+    .sort((a, b) => a.index - b.index);
+  const media = [...new Map(photos.map(item => [item.index, item.media])).values()];
+  if (media.length === 0) return undefined;
+
+  const hashtags = Array.from(article.querySelectorAll<HTMLAnchorElement>('a[href*="/hashtag/"]'))
+    .map(anchor => anchor.textContent?.trim().replace(/^#+/, "") || "")
+    .filter(Boolean)
+    .map(text => ({ text }));
+  const legacy: Legacy = {
+    created_at: article.querySelector("time[datetime]")?.getAttribute("datetime") || undefined,
+    entities: { media, hashtags },
+    id_str: identity.statusId,
+    full_text: article.textContent?.trim() || "",
+    possibly_sensitive: false,
+    possibly_sensitive_editable: false,
+  };
+  return {
+    itemContent: {
+      tweet_results: {
+        result: {
+          rest_id: identity.statusId,
+          legacy,
+          core: {
+            user_results: {
+              result: { legacy: { screen_name: identity.screenName } },
+            },
+          },
+        },
+      },
+    },
+  };
+}
+
+function twitterPhotoFromAnchor(anchor: HTMLAnchorElement, identity: TwitterStatusIdentity): { index: number, media: Media } | undefined {
+  const path = twitterPathname(anchor.href);
+  const photoPrefix = `/${identity.screenName}/status/${identity.statusId}/photo/`.toLowerCase();
+  if (!path.startsWith(photoPrefix)) return undefined;
+  const position = path.slice(photoPrefix.length);
+  if (!/^\d+$/.test(position)) return undefined;
+  const index = Number(position);
+  if (index < 1) return undefined;
+  const image = anchor.querySelector<HTMLImageElement>('img[src*="pbs.twimg.com/media/"]');
+  if (!image) return undefined;
+  const source = twitterPhotoSource(image.currentSrc || image.src);
+  if (!source) return undefined;
+  const width = image.naturalWidth || image.width || 1;
+  const height = image.naturalHeight || image.height || 1;
+  const size = { w: width, h: height };
+  return {
+    index,
+    media: {
+      id_str: `${identity.statusId}-${index}`,
+      expanded_url: `https://x.com/${identity.screenName}/status/${identity.statusId}/photo/${index}`,
+      media_url_https: source,
+      type: "photo",
+      sizes: { large: size, medium: size, small: size, thumb: size },
+      original_info: { width, height },
+    },
+  };
+}
+
+function twitterPhotoSource(value: string): string | undefined {
+  try {
+    const url = new URL(value);
+    if (url.hostname !== "pbs.twimg.com" || !url.pathname.startsWith("/media/")) return undefined;
+    const pathExtension = url.pathname.match(/\.([a-z0-9]+)$/i)?.[1];
+    const extension = (url.searchParams.get("format") || pathExtension || "jpg").toLowerCase();
+    const path = pathExtension ? url.pathname : `${url.pathname}.${extension}`;
+    return `${url.origin}${path}`;
+  } catch {
+    return undefined;
+  }
+}
+
+function twitterPathname(value: string): string {
+  try {
+    return new URL(value, "https://x.com/").pathname.replace(/\/+$/, "").toLowerCase();
+  } catch {
+    return "";
+  }
 }
 
 function getMyID(): string | undefined {
