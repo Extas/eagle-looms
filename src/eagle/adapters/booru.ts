@@ -233,7 +233,7 @@ export function extractBooruSourceTags(root: ParentNode, fallbackTags: string[])
   for (const [namespace, selectors] of Object.entries(CATEGORY_SELECTORS) as Array<[keyof typeof CATEGORY_SELECTORS, readonly string[]]>) {
     for (const selector of selectors) {
       root.querySelectorAll?.(selector).forEach((anchor) => {
-        const value = cleanSourceTag(anchor.textContent || "");
+        const value = sourceTagValueFromAnchor(anchor);
         if (!value) return;
         categorized.add(sourceTagComparisonKey(value));
         tags.push(sourceMetadataTag(namespace, value));
@@ -251,7 +251,7 @@ export function extractBooruSourceTags(root: ParentNode, fallbackTags: string[])
 
   for (const selector of RAW_TAG_SELECTORS) {
     root.querySelectorAll?.(selector).forEach((anchor) => {
-      const value = cleanSourceTag(anchor.textContent || "");
+      const value = sourceTagValueFromAnchor(anchor);
       const key = sourceTagComparisonKey(value);
       if (!value || categorized.has(key)) return;
       tags.push(value);
@@ -271,6 +271,7 @@ export function extractBooruAuthorUrls(root: ParentNode, baseUrl = window.locati
   const urls: string[] = [];
   for (const selector of CATEGORY_SELECTORS.author) {
     root.querySelectorAll?.(selector).forEach((anchor) => {
+      if (!sourceTagValueFromAnchor(anchor)) return;
       const url = absoluteHttpUrl(anchor.getAttribute("href"), baseUrl);
       if (url) urls.push(url);
     });
@@ -282,6 +283,7 @@ export function booruPublishedAtFromDocument(doc: Document): string | undefined 
   return doc.querySelector<HTMLElement>("article[data-created-at]")?.getAttribute("data-created-at")
     || doc.querySelector<HTMLTimeElement>("time[datetime]")?.getAttribute("datetime")
     || doc.querySelector<HTMLMetaElement>("meta[property='article:published_time'], meta[name='date']")?.getAttribute("content")
+    || textPublishedAtFromDocument(doc)
     || undefined;
 }
 
@@ -379,6 +381,23 @@ function cleanSourceTag(value: string): string {
 
 function sourceTagComparisonKey(value: string): string {
   return value.normalize("NFKC").replace(/_+/g, " ").replace(/\s+/g, " ").trim().toLowerCase();
+}
+
+function sourceTagValueFromAnchor(anchor: Element): string {
+  const href = (anchor.getAttribute("href") || "").trim();
+  const title = (anchor.getAttribute("title") || "").trim();
+  if (/^javascript:/i.test(href) || /(?:^|[?&])page=wiki(?:&|$)/i.test(href)) return "";
+  if (/^(?:wiki|add to search|remove from search)$/i.test(title)) return "";
+  return cleanSourceTag(anchor.textContent || "");
+}
+
+function textPublishedAtFromDocument(doc: Document): string | undefined {
+  for (const element of doc.querySelectorAll("#tag-list li, .tag-list li, #post-information li")) {
+    const text = (element.textContent || "").replace(/\s+/g, " ").trim();
+    const match = text.match(/^(?:Posted|Published|Created):\s*((?:19|20)\d{2}-\d{2}-\d{2}(?:[ T]\d{2}:\d{2}(?::\d{2})?)?)/i);
+    if (match) return match[1];
+  }
+  return undefined;
 }
 
 function absoluteHttpUrl(value: string | null, baseUrl: string): string {

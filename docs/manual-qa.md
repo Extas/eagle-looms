@@ -289,6 +289,13 @@ artist and single-post pages prefer the human-readable page author over service/
 author annotations retain a traceable creator profile URL
 ```
 
+Gelbooru behavior:
+
+```text
+Wiki `?` and add/remove-search controls never become Eagle tags or author URLs
+detail-page `Posted:` time becomes the source:published tag and optional item-name date prefix
+```
+
 NovelAI bridge behavior:
 
 ```text

@@ -85,6 +85,36 @@ describe("booru source tags", () => {
     ]);
   });
 
+  it("ignores Gelbooru tag controls and reads its textual Posted timestamp", () => {
+    document.body.innerHTML = `
+      <ul class="tag-list" id="tag-list">
+        <li class="tag-type-artist">
+          <a href="index.php?page=wiki&s=list&search=banakotakemaru" title="Wiki">?</a>
+          <a href="index.php?page=post&s=list&tags=banakotakemaru">banakotakemaru</a>
+        </li>
+        <li class="tag-type-copyright">
+          <a href="index.php?page=wiki&s=list&search=original" title="Wiki">?</a>
+          <a href="index.php?page=post&s=list&tags=original">original</a>
+        </li>
+        <li class="tag-type-general">
+          <a href="javascript:;" title="Add to search">+</a>
+          <a href="index.php?page=post&s=list&tags=black_hair">black hair</a>
+        </li>
+        <li>Posted: 2026-07-19 19:46:08<br>Uploader: danbooru</li>
+      </ul>
+    `;
+
+    expect(extractBooruSourceTags(document, [])).toEqual([
+      "copyright:original",
+      "author:banakotakemaru",
+      "black hair",
+    ]);
+    expect(extractBooruAuthorUrls(document, "https://gelbooru.com/index.php?page=post&s=view&id=14528850")).toEqual([
+      "https://gelbooru.com/index.php?page=post&s=list&tags=banakotakemaru",
+    ]);
+    expect(booruPublishedAtFromDocument(document)).toBe("2026-07-19 19:46:08");
+  });
+
   it("extracts category tags from descendant data attributes on detail pages", () => {
     document.body.innerHTML = `
       <article
