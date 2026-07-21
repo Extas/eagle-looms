@@ -26,6 +26,7 @@ const FILENAME_INVALIDCHAR = /[\\/:*?"<>|\n\t]/g;
 const METADATA_FOLDER_TOKENS = ["copyright", "character", "author"] as const;
 const EAGLE_DUPLICATE_CHECK_CONCURRENCY = 4;
 const MAX_IMPORT_ERROR_MESSAGE_LENGTH = 600;
+type EagleDuplicateLookupCache = Map<string, ReturnType<EagleWebApi["itemsByUrl"]>>;
 
 type EagleImportStats = EagleImportSummaryStats & {
   folders: string[];
@@ -410,16 +411,16 @@ export class EagleDownloader extends Downloader {
     return assets;
   }
 
-  private async isDuplicate(api: EagleWebApi, asset: EagleImportAsset, runId = this.importRunId): Promise<boolean> {
+  private async isDuplicate(api: EagleWebApi, asset: EagleImportAsset, runId = this.importRunId, cache?: EagleDuplicateLookupCache): Promise<boolean> {
     for (const query of duplicateQueries(asset)) {
       this.assertImportActive(runId);
-      const items = await api.queryItems(query, 20);
+      const items = await cachedDuplicateLookup(cache, `query:${query}`, () => api.queryItems(query, 20));
       this.assertImportActive(runId);
       if (items.some(item => isDuplicateItem(item, asset))) return true;
     }
     for (const url of duplicateUrls(asset)) {
       this.assertImportActive(runId);
-      const items = await api.itemsByUrl(url);
+      const items = await cachedDuplicateLookup(cache, `url:${url}`, () => api.itemsByUrl(url));
       this.assertImportActive(runId);
       if (items.some(item => isDuplicateItem(item, asset))) return true;
     }
@@ -457,10 +458,11 @@ export class EagleDownloader extends Downloader {
     }
 
     const limit = pLimit(EAGLE_DUPLICATE_CHECK_CONCURRENCY);
+    const duplicateLookupCache: EagleDuplicateLookupCache = new Map();
     await Promise.all(candidates.map(job => limit(async () => {
       try {
         this.assertImportActive(runId);
-        if (await this.isDuplicate(api, job.asset, runId)) {
+        if (await this.isDuplicate(api, job.asset, runId, duplicateLookupCache)) {
           job.skipReason = "duplicate";
           preflight.duplicateSkipped += 1;
         } else {
@@ -725,6 +727,22 @@ function dataUrl(data: Uint8Array, contentType: string): string {
   const copy = new Uint8Array(data.byteLength);
   copy.set(data);
   return `data:${contentType || "application/octet-stream"};base64,${arrayBufferToBase64(copy.buffer)}`;
+}
+
+function cachedDuplicateLookup(
+  cache: EagleDuplicateLookupCache | undefined,
+  key: string,
+  load: () => ReturnType<EagleWebApi["itemsByUrl"]>,
+): ReturnType<EagleWebApi["itemsByUrl"]> {
+  if (!cache) return load();
+  const existing = cache.get(key);
+  if (existing) return existing;
+  const pending = load();
+  cache.set(key, pending);
+  pending.catch(() => {
+    if (cache.get(key) === pending) cache.delete(key);
+  });
+  return pending;
 }
 
 function eagleItemName(rawTitle: string, publishedAt?: string): string {

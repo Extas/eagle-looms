@@ -124,6 +124,7 @@ Windows library-path case, slash direction, and trailing separators do not produ
 Load missing & import loads selected gray missing images first, then writes loaded images to Eagle
 Import loaded only uses the same Eagle preflight, confirmation, duplicate handling, and stop behavior as Load missing & import, but only writes green loaded images and does not fetch additional images
 Eagle preflight checks duplicates and resolves destination folders before writing
+Eagle preflight reuses identical source/query lookups within the current batch while evaluating each sibling media identity independently
 preflight stage shows Checking Eagle 0/N through N/N on the primary import action while duplicate queries run
 Eagle Import Limit caps new writes after duplicate preflight; duplicate/session-skipped items do not consume the write quota
 the same import limit applies when Import current to Eagle expands one logical item into multiple files

@@ -307,6 +307,45 @@ describe('Eagle downloader duplicate checks', () => {
     expect(panel.setImportProgress).toHaveBeenLastCalledWith(i18n.eagleImportCheckingEagle.get(), 6, 6);
   });
 
+  it('shares one source-page lookup across sibling media during preflight', async () => {
+    clearSessionImportedAssets();
+    ADAPTER.conf = defaultConf();
+    const panel = { setImportProgress: vi.fn() };
+    const downloader = Object.assign(Object.create(EagleDownloader.prototype), { panel }) as EagleDownloader;
+    const sourceUrl = 'https://www.pixiv.net/artworks/147051638';
+    const first = {
+      ...eagleAsset('147051638_p1.jpg'),
+      sourceUrl,
+      originUrl: 'https://i.pximg.net/img-original/147051638_p1.jpg',
+      sourceName: '147051638_p1.jpg',
+    };
+    const second = {
+      ...eagleAsset('147051638_p2.jpg'),
+      sourceUrl,
+      originUrl: 'https://i.pximg.net/img-original/147051638_p2.jpg',
+      sourceName: '147051638_p2.jpg',
+    };
+    const api = {
+      itemsByUrl: vi.fn(async (url: string) => url === sourceUrl ? [{
+        url: sourceUrl,
+        name: '2026-07-21 147051638_p1',
+      }] : []),
+    };
+    const jobs = [{ asset: first }, { asset: second }];
+
+    const result = await (downloader as any).preflightJobs(api, jobs);
+
+    expect(result).toEqual({ writable: 1, sessionSkipped: 0, duplicateSkipped: 1, failed: 0 });
+    expect(api.itemsByUrl).toHaveBeenCalledTimes(2);
+    expect(api.itemsByUrl.mock.calls.map(([url]) => url)).toEqual(expect.arrayContaining([
+      sourceUrl,
+      second.originUrl,
+    ]));
+    expect(api.itemsByUrl.mock.calls.filter(([url]) => url === sourceUrl)).toHaveLength(1);
+    expect((jobs[0] as any).skipReason).toBe('duplicate');
+    expect((jobs[1] as any).skipReason).toBeUndefined();
+  });
+
   it('cancels duplicate preflight before queued Eagle queries continue', async () => {
     ADAPTER.conf = defaultConf();
     const panel = { setImportProgress: vi.fn() };
