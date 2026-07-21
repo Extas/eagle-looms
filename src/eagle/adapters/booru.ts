@@ -87,6 +87,7 @@ const CATEGORY_SELECTORS = {
     ".tag-type-copyright a",
     ".tag-type-3 a",
     ".copyright-tag-list a",
+    ".copyright-tag a",
     ".tag-list-copyright a",
     ".category-copyright a",
     ".tag-type-parody a",
@@ -123,6 +124,7 @@ const CATEGORY_SELECTORS = {
     ".tag-type-character a",
     ".tag-type-4 a",
     ".character-tag-list a",
+    ".character-tag a",
     ".tag-list-character a",
     ".category-character a",
     ".category-4 a",
@@ -144,6 +146,7 @@ const CATEGORY_SELECTORS = {
     ".tag-type-letterer a",
     ".tag-type-mangaka a",
     ".artist-tag-list a",
+    ".artist-tag a",
     ".author-tag-list a",
     ".creator-tag-list a",
     ".group-tag-list a",
@@ -189,6 +192,8 @@ const RAW_TAG_SELECTORS = [
   ".tag-type-5 a",
   ".tag-list-general a",
   ".tag-list-meta a",
+  ".general-tag a",
+  ".metadata-tag a",
   ".category-general a",
   ".category-meta a",
   ".category-0 a",
@@ -203,14 +208,23 @@ export function normalizeBooruSourceTags(element: Element, fallbackTags: string[
   return extractBooruSourceTags(element, fallbackTags);
 }
 
+export function normalizeCommaSeparatedBooruTagText(value: string): string {
+  return value
+    .split(/\s*,\s*/)
+    .map(tag => cleanSourceTag(tag).replace(/\s+/g, "_"))
+    .filter(Boolean)
+    .join(" ");
+}
+
 export function extractBooruSourceTags(root: ParentNode, fallbackTags: string[]): string[] {
   const categorized = new Set<string>();
+  const rawTags = new Set<string>();
   const tags: string[] = [];
 
   for (const [namespace, attrs] of Object.entries(CATEGORY_ATTRS) as Array<[keyof typeof CATEGORY_ATTRS, readonly string[]]>) {
     for (const element of elementsWithAnyAttribute(root, attrs)) {
       for (const value of attrs.flatMap(attr => splitSourceTags(element.getAttribute(attr)))) {
-        categorized.add(value);
+        categorized.add(sourceTagComparisonKey(value));
         tags.push(sourceMetadataTag(namespace, value));
       }
     }
@@ -221,7 +235,7 @@ export function extractBooruSourceTags(root: ParentNode, fallbackTags: string[])
       root.querySelectorAll?.(selector).forEach((anchor) => {
         const value = cleanSourceTag(anchor.textContent || "");
         if (!value) return;
-        categorized.add(value);
+        categorized.add(sourceTagComparisonKey(value));
         tags.push(sourceMetadataTag(namespace, value));
       });
     }
@@ -229,20 +243,25 @@ export function extractBooruSourceTags(root: ParentNode, fallbackTags: string[])
 
   for (const element of elementsWithAnyAttribute(root, RAW_TAG_ATTRS)) {
     for (const value of RAW_TAG_ATTRS.flatMap(attr => splitSourceTags(element.getAttribute(attr)))) {
-      if (!categorized.has(value)) tags.push(value);
+      const key = sourceTagComparisonKey(value);
+      if (!categorized.has(key)) tags.push(value);
+      rawTags.add(key);
     }
   }
 
   for (const selector of RAW_TAG_SELECTORS) {
     root.querySelectorAll?.(selector).forEach((anchor) => {
       const value = cleanSourceTag(anchor.textContent || "");
-      if (!value || categorized.has(value)) return;
+      const key = sourceTagComparisonKey(value);
+      if (!value || categorized.has(key)) return;
       tags.push(value);
+      rawTags.add(key);
     });
   }
 
   for (const tag of fallbackTags.map(cleanSourceTag).filter(Boolean)) {
-    if (!categorized.has(tag)) tags.push(tag);
+    const key = sourceTagComparisonKey(tag);
+    if (!categorized.has(key) && !rawTags.has(key)) tags.push(tag);
   }
 
   return [...new Set(tags)];
@@ -305,11 +324,13 @@ function booruIdentityFromUrl(value: string): { site: string, id: string } | und
       "gelbooru.com": "gelbooru",
       "yande.re": "yande.re",
       "konachan.com": "konachan",
+      "rule34.us": "rule34.us",
     };
     const site = sites[host];
     if (!site) return undefined;
     const id = url.pathname.match(/\/(?:posts|post\/show)\/(\d+)/)?.[1]
-      || (url.searchParams.get("page") === "post" && url.searchParams.get("s") === "view" ? url.searchParams.get("id") : "");
+      || (url.searchParams.get("page") === "post" && url.searchParams.get("s") === "view" ? url.searchParams.get("id") : "")
+      || (url.searchParams.get("r") === "posts/view" ? url.searchParams.get("id") : "");
     return id && /^\d+$/.test(id) ? { site, id } : undefined;
   } catch {
     return undefined;
@@ -354,6 +375,10 @@ function cleanSourceTag(value: string): string {
     .replace(/\s+(?:[+-]?\d[\d,]*(?:\.\d+)?[kKmM]?|[+-]\d+)$/, "")
     .trim()
     .slice(0, 120);
+}
+
+function sourceTagComparisonKey(value: string): string {
+  return value.normalize("NFKC").replace(/_+/g, " ").replace(/\s+/g, " ").trim().toLowerCase();
 }
 
 function absoluteHttpUrl(value: string | null, baseUrl: string): string {

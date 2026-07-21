@@ -111,7 +111,7 @@ Author URL extraction follows the same author-like categories where source pages
 Current source mapping rules:
 
 ```text
-Danbooru / Gelbooru / e621
+Danbooru / Gelbooru / e621 / Rule34.us
   use data-tag-string attributes from post cards and detail pages, descendant metadata, numeric Danbooru category/tag-type classes, detail-page tag lists, and general/meta raw tag attributes; map copyright-like aliases such as parody/series/source-work/franchise and author-like aliases such as illustrator/writer/editor/mangaka
 
 yande.re / konachan

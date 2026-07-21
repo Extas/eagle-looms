@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { sourceTagsFromGalleryMeta } from "../tags";
-import { booruEagleItemBaseName, booruGalleryMetaFromState, booruPublishedAtFromDocument, extractBooruAuthorUrls, extractBooruSourceTags, normalizeBooruSourceTags } from "./booru";
+import { booruEagleItemBaseName, booruGalleryMetaFromState, booruPublishedAtFromDocument, extractBooruAuthorUrls, extractBooruSourceTags, normalizeBooruSourceTags, normalizeCommaSeparatedBooruTagText } from "./booru";
 
 describe("booru source tags", () => {
   it("normalizes known booru categories and keeps other tags raw", () => {
@@ -50,6 +50,38 @@ describe("booru source tags", () => {
       "character:kusanagi_nene",
       "author:soha_blan",
       "purple_eyes",
+    ]);
+  });
+
+  it("maps Rule34.us list and detail tag formats without fragmented duplicates", () => {
+    expect(normalizeCommaSeparatedBooruTagText(
+      "monster hunter, my hero academia, 3d (artwork), blue eyes",
+    )).toBe("monster_hunter my_hero_academia 3d_(artwork) blue_eyes");
+
+    document.body.innerHTML = `
+      <ul class="tag-list-left">
+        <li class="copyright-tag"><a href="/index.php?r=posts/index&q=monster_hunter">monster hunter</a></li>
+        <li class="character-tag"><a href="/index.php?r=posts/index&q=hero_name">hero name</a></li>
+        <li class="artist-tag"><a href="/index.php?r=posts/index&q=artist_name">artist name</a></li>
+        <li class="general-tag"><a href="/index.php?r=posts/index&q=blue_eyes">blue eyes</a></li>
+        <li class="metadata-tag"><a href="/index.php?r=posts/index&q=highres">highres</a></li>
+      </ul>
+    `;
+
+    expect(extractBooruSourceTags(document, [
+      "monster_hunter",
+      "hero_name",
+      "artist_name",
+      "blue_eyes",
+    ])).toEqual([
+      "copyright:monster hunter",
+      "character:hero name",
+      "author:artist name",
+      "blue eyes",
+      "highres",
+    ]);
+    expect(extractBooruAuthorUrls(document, "https://rule34.us/index.php?r=posts/view&id=13192921")).toEqual([
+      "https://rule34.us/index.php?r=posts/index&q=artist_name",
     ]);
   });
 
@@ -242,5 +274,11 @@ describe("booru source tags", () => {
       "https://example.test/posts/1",
       ["author:artist_name"],
     )).toBe("source-image.webp");
+
+    expect(booruEagleItemBaseName(
+      "13192921.jpg",
+      "https://rule34.us/index.php?r=posts/view&id=13192921",
+      ["author:artist_name", "copyright:monster_hunter"],
+    )).toBe("artist name - monster hunter - rule34.us-13192921.jpg");
   });
 });

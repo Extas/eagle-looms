@@ -52,6 +52,8 @@ https://danbooru.donmai.us/posts
 https://danbooru.donmai.us/posts/{id}
 https://gelbooru.com/index.php?page=post&s=list
 https://gelbooru.com/index.php?page=post&s=view&id={id}
+https://rule34.us/index.php?r=posts/index
+https://rule34.us/index.php?r=posts/view&id={id}
 ```
 
 ## UI Checks

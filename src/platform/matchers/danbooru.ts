@@ -4,7 +4,7 @@ import EBUS from "../../event-bus";
 import ImageNode, { NodeAction } from "../../img-node";
 import { evLog } from "../../utils/ev-log";
 import { ADAPTER } from "../adapt";
-import { booruGalleryMetaFromState, booruPublishedAtFromDocument, extractBooruAuthorUrls, extractBooruSourceTags, normalizeBooruSourceTags } from "../../eagle/adapters/booru";
+import { booruGalleryMetaFromState, booruPublishedAtFromDocument, extractBooruAuthorUrls, extractBooruSourceTags, normalizeBooruSourceTags, normalizeCommaSeparatedBooruTagText } from "../../eagle/adapters/booru";
 import { BaseMatcher, OriginMeta, Result } from "../platform";
 
 
@@ -450,7 +450,7 @@ class Rule34USMatcher extends DanbooruMatcher {
     if (!imgElem) return [null, ""];
     const href = elem.href;
     const thumb = imgElem.src;
-    const tags = imgElem.title;
+    const tags = normalizeCommaSeparatedBooruTagText(imgElem.title);
     const node = new ImageNode(thumb, href, elem.id + ".jpg")
     if (/\bvideo\b/.test(tags)) {
       node.mimeType = "video/mp4";
