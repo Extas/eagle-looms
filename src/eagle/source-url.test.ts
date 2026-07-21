@@ -14,11 +14,16 @@ describe("Eagle source URL identity", () => {
     )).toBe("https://anime-pictures.net/posts/908175");
   });
 
-  it("keeps identity-bearing query parameters on other sites", () => {
+  it("keeps only identity-bearing query parameters on query-based booru sites", () => {
     expect(canonicalEagleSourceUrl(
-      "index.php?page=post&s=view&id=100#comments",
+      "index.php?tags=project_sekai&id=100&s=view&page=post&pid=42#comments",
       "https://gelbooru.com/index.php?page=post&s=list&tags=project_sekai",
     )).toBe("https://gelbooru.com/index.php?page=post&s=view&id=100");
+
+    expect(canonicalEagleSourceUrl(
+      "https://rule34.us/index.php?ref=gallery&id=200&r=posts%2Fview",
+      "https://rule34.us/index.php?r=posts/index",
+    )).toBe("https://rule34.us/index.php?r=posts/view&id=200");
   });
 
   it("maps Twitter domains and tracking parameters to one X media identity", () => {
@@ -34,5 +39,18 @@ describe("Eagle source URL identity", () => {
 
   it("does not turn unsupported protocols into web identities", () => {
     expect(canonicalEagleSourceUrl("javascript:alert(1)", "https://example.test/posts#top")).toBe("https://example.test/posts");
+  });
+
+  it.each([
+    ["https://danbooru.donmai.us/posts/101?q=artist#comments", "https://danbooru.donmai.us/posts/101"],
+    ["https://e621.net/posts/102?pool_id=3", "https://e621.net/posts/102"],
+    ["http://yande.re/post/show/103?tags=artist", "https://yande.re/post/show/103"],
+    ["https://www.konachan.com/post/show/104#comments", "https://konachan.com/post/show/104"],
+    ["https://rule34.xxx/index.php?id=105&s=view&page=post&tags=test", "https://rule34.xxx/index.php?page=post&s=view&id=105"],
+    ["https://www.pixiv.net/en/artworks/106?utm_source=share#viewer", "https://www.pixiv.net/artworks/106"],
+    ["https://exhentai.org/s/key/107-8?nl=retry-token", "https://exhentai.org/s/key/107-8"],
+    ["https://e-hentai.org/s/key/108-9?nl=retry-token", "https://e-hentai.org/s/key/108-9"],
+  ])("maps a supported detail route to its stable entity URL", (input, expected) => {
+    expect(canonicalEagleSourceUrl(input, "https://example.test/list")).toBe(expected);
   });
 });
