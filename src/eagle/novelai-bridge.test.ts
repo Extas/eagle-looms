@@ -9,6 +9,7 @@ import {
   novelAiResultFingerprint,
   novelAiSourceFromEagleItem,
   novelAiSourceFromUrl,
+  novelAiTargetFolderLabel,
   normalizeNovelAiResultBlob,
   normalizeMonitorLimit,
   parseEagleItemId,
@@ -112,7 +113,11 @@ describe("NovelAI Eagle bridge", () => {
       folders: ["folder-a", "folder-b"],
       tags: ["copyright:bang dream", "site:x.com", "source:published:2026-06-16"],
       url: "",
-    }, "http://localhost:41595/item?id=SRC1");
+    }, "http://localhost:41595/item?id=SRC1", [{
+      id: "folder-a",
+      name: "Eagle Looms",
+      children: [{ id: "folder-b", name: "2026-06-16", children: [] }],
+    }]);
     const input = buildNovelAiGeneratedItemInput({
       source,
       generatedAt: new Date(Date.UTC(2026, 5, 16, 3, 4, 5)),
@@ -123,11 +128,25 @@ describe("NovelAI Eagle bridge", () => {
 
     expect(source.title).toBe("Clipboard - 2026-06-16 13.42.29");
     expect(source.site).toBe("eagle");
+    expect(source.folderPaths).toEqual(["Eagle Looms", "Eagle Looms / 2026-06-16"]);
+    expect(novelAiTargetFolderLabel(source)).toBe("Eagle Looms + Eagle Looms / 2026-06-16");
     expect(input.name).toBe("Clipboard - 2026-06-16 13.42.29 - NovelAI -- el1[tool=novelai;at=20260616T030405Z;seq=01;src=SRC1].png");
     expect(input.folders).toEqual(["folder-a", "folder-b"]);
     expect(input.website).toBe("http://localhost:41595/item?id=SRC1");
     expect(input.tags).toEqual(["tool:novelai", "copyright:bang dream"]);
     expect(input.annotation).toBeUndefined();
+  });
+
+  it("keeps target folder feedback explicit when names are unavailable", () => {
+    expect(novelAiTargetFolderLabel({ id: "source", title: "Source", url: "", site: "eagle" })).toBe("Eagle default location");
+    expect(novelAiTargetFolderLabel({
+      id: "source",
+      title: "Source",
+      url: "",
+      site: "eagle",
+      folders: ["folder-a", "folder-b"],
+      folderPaths: ["Eagle Looms / Twitter X / 2026-07-11"],
+    })).toBe("Eagle Looms / Twitter X / 2026-07-11 + 1 unresolved folder(s)");
   });
 
   it("keeps NovelAI result tags semantic and searchable", () => {

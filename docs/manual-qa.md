@@ -345,6 +345,7 @@ NovelAI bridge behavior:
 
 ```text
 Eagle item links inherit the source item's existing folder assignments for generated results
+the compact panel shows readable target folder paths before monitoring instead of only folder counts or opaque ids
 generated results keep the source identity in the structured name and source page in Website without a machine JSON annotation
 infrastructure tags such as site/gallery/chapter/ext/mime are not copied to generated results
 identical result bytes are saved only once per page session, even when NovelAI re-renders them under a new blob URL

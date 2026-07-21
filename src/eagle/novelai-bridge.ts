@@ -1,5 +1,6 @@
-import type { EagleItem } from "../types";
+import type { EagleFolder, EagleItem } from "../types";
 import { EagleWebApi, redactEagleApiSecrets, type AddItemInput } from "./eagle-web-api";
+import { indexFolderPaths } from "./folders";
 import { normalizeEagleBaseUrl } from "./options";
 import { arrayBufferToBase64, requestArrayBuffer } from "./transport";
 import { buildStructuredEagleName } from "./naming";
@@ -38,6 +39,7 @@ export interface NovelAiSourceContext {
   site: string;
   tags?: string[];
   folders?: string[];
+  folderPaths?: string[];
 }
 
 interface BridgeElements {
@@ -471,20 +473,32 @@ export function novelAiSourceFromUrl(value: string): NovelAiSourceContext | unde
   };
 }
 
-export function novelAiSourceFromEagleItem(item: EagleItem, itemLink: string): NovelAiSourceContext {
+export function novelAiSourceFromEagleItem(item: EagleItem, itemLink: string, folderTree: EagleFolder[] = []): NovelAiSourceContext {
   const sourceUrl = validHttpUrl(item.url) || validHttpUrl(item.website) || itemLink;
   const site = sourceUrl === itemLink ? "eagle" : canonicalSourceSite(new URL(sourceUrl).hostname);
   const title = (item.name || item.id).replace(/\.[a-z0-9]{1,12}$/i, "") || item.id;
   const inheritedTags = (item.tags || []).filter(isUsefulInheritedTag);
   const siteTags = site === "eagle" ? [] : [`site:${site}`];
+  const folders = unique(item.folders || []);
+  const folderPaths = indexFolderPaths(folderTree);
   return {
     id: item.id,
     title,
     url: sourceUrl,
     site,
-    folders: unique(item.folders || []),
+    folders,
+    folderPaths: folders.map((id) => folderPaths.get(id)).filter((path): path is string => Boolean(path)),
     tags: unique([...siteTags, ...inheritedTags]),
   };
+}
+
+export function novelAiTargetFolderLabel(source: NovelAiSourceContext): string {
+  const folders = unique(source.folders || []);
+  if (!folders.length) return "Eagle default location";
+  const paths = unique(source.folderPaths || []);
+  if (!paths.length) return `${folders.length} folder(s; names unavailable)`;
+  const unresolved = Math.max(0, folders.length - paths.length);
+  return `${paths.join(" + ")}${unresolved ? ` + ${unresolved} unresolved folder(s)` : ""}`;
 }
 
 export function eagleItemImageCandidates(item: EagleItem, baseUrl: string): string[] {
@@ -841,7 +855,16 @@ class NovelAiEagleBridge {
     if (itemId) {
       const api = new EagleWebApi(this.config.eagleBaseUrl);
       const item = await api.itemInfo(itemId);
-      const source = novelAiSourceFromEagleItem(item, eagleItemLink(this.config.eagleBaseUrl, item.id));
+      const folderTree = item.folders?.length
+        ? await api.getFolders().catch((error) => {
+          logNovelAiResult("target folder names unavailable", {
+            itemId: item.id,
+            error: errorMessage(error),
+          }, "warn");
+          return [];
+        })
+        : [];
+      const source = novelAiSourceFromEagleItem(item, eagleItemLink(this.config.eagleBaseUrl, item.id), folderTree);
       logNovelAiResult("source resolved from Eagle item", {
         input: shortUrl(value),
         itemId: item.id,
@@ -849,6 +872,7 @@ class NovelAiEagleBridge {
         sourceTitle: source.title,
         sourceUrl: source.url,
         targetFolders: source.folders || [],
+        targetFolderPaths: source.folderPaths || [],
         targetFolderCount: source.folders?.length || 0,
         tags: source.tags || [],
       });
@@ -872,9 +896,11 @@ class NovelAiEagleBridge {
     const elements = this.elements;
     if (!elements || !this.source) return;
     const folders = this.source.folders || [];
-    const target = folders.length ? `${folders.length} folder(s)` : "no target folder";
-    elements.source.textContent = `Source: ${this.source.title} | Target: ${target}`;
-    elements.source.title = folders.length ? `Target folders: ${folders.join(", ")}` : "No target folders; Eagle will use its default location.";
+    const target = novelAiTargetFolderLabel(this.source);
+    elements.source.textContent = `Target: ${target} | Source: ${this.source.title}`;
+    elements.source.title = folders.length
+      ? `Target: ${target}\nFolder ids: ${folders.join(", ")}`
+      : "Target: Eagle default location";
   }
 
   private setBusy(busy: boolean): void {
