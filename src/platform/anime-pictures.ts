@@ -70,6 +70,9 @@ export function validateAnimePicturesImagePayload(data: Uint8Array<ArrayBuffer>,
 }
 
 export function parseAnimePicturesPostEntries(document: Document, pageUrl = window.location.href, limit = Number.POSITIVE_INFINITY): AnimePicturesPostEntry[] {
+  const currentPost = currentPostEntry(document, pageUrl);
+  if (currentPost) return limit > 0 ? [currentPost] : [];
+
   const posts: AnimePicturesPostEntry[] = [];
   const seen = new Set<string>();
   const anchors = resultPostAnchors(document, pageUrl);
@@ -94,11 +97,6 @@ export function parseAnimePicturesPostEntries(document: Document, pageUrl = wind
       height: resolution?.height,
       score: parseScore(text),
     });
-  }
-
-  const currentPost = currentPostEntry(document, pageUrl);
-  if (currentPost && !seen.has(currentPost.id) && posts.length < limit) {
-    posts.push(currentPost);
   }
 
   return posts;
@@ -174,9 +172,10 @@ function currentPostEntry(document: Document, pageUrl: string): AnimePicturesPos
   if (!id) return undefined;
   const html = document.documentElement.outerHTML || "";
   const candidates = collectAnimePicturesImageCandidates(document, html, pageUrl);
-  const img = document.querySelector<HTMLImageElement>('.post_content img, .post img, img[src*="/pictures/"], img[src*="/previews/"], img[src*="/preview/"]');
-  const thumbnail = candidates.find(candidate => isPreviewCandidate(candidate.url))?.url
-    || absoluteMaybe(imageSource(img), pageUrl)
+  const img = document.querySelector<HTMLImageElement>('img[itemprop="thumbnailUrl"], #big_preview')
+    || document.querySelector<HTMLImageElement>('.post_content img, .post img, img[src*="/pictures/"], img[src*="/previews/"], img[src*="/preview/"]');
+  const thumbnail = absoluteMaybe(imageSource(img), pageUrl)
+    || candidates.find(candidate => isPreviewCandidate(candidate.url))?.url
     || candidates[0]?.url;
   return {
     id,

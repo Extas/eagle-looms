@@ -259,6 +259,7 @@ rerunning import skips exact source/origin/legacy-raw-record/legacy-annotation d
 relative post and media links collected from list pages are stored as absolute HTTP(S) URLs and remain duplicate-queryable after reload
 Anime Pictures post links with by_tag/lang navigation state or the legacy pictures/view_post route resolve to the same stable /posts/{id} source identity
 Anime Pictures detail pages retain the visible Date published value and About artists profile URLs when the API is unavailable
+Anime Pictures single-post pages collect only the current post and use its explicit thumbnail; Similar to and uploader-avatar images never enter the import plan
 Twitter/twitter.com/mobile.twitter.com media links and tracking parameters resolve to one x.com source identity while retaining the photo/video position
 reversing a Twitter multi-image post changes display order without changing each image's original /photo/{n} source position
 Danbooru, Gelbooru, yande.re, Konachan, Rule34, e621, Pixiv, ExHentai, and E-Hentai detail routes discard navigation state while retaining their stable post/work/page identity

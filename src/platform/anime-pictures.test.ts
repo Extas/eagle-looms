@@ -90,18 +90,26 @@ describe('anime-pictures matcher', () => {
     });
   });
 
-  it('treats a single post detail page as an importable image', () => {
+  it('imports only the current image from single post detail pages', () => {
     const doc = new DOMParser().parseFromString(`
       <title>Anime picture 908175</title>
-      <img src="https://images.anime-pictures.net/pictures/908175.png">
+      <div class="post_content"><img src="https://oavatars.anime-pictures.net/user.png" alt="uploader avatar"></div>
+      <a itemprop="contentURL" href="https://api.anime-pictures.net/pictures/get_image/908175-image.png">
+        <picture><img id="big_preview" itemprop="thumbnailUrl" src="https://opreviews.anime-pictures.net/abc/908175_bp.avif"></picture>
+      </a>
       <span>3000x3000</span>
+      <section>
+        <h2>(A) Similar to</h2>
+        <a href="/posts/999001?lang=en"><img src="https://opreviews.anime-pictures.net/999/999001_sp.avif"></a>
+        <a href="/posts/999002?lang=en"><img src="https://opreviews.anime-pictures.net/999/999002_sp.avif"></a>
+      </section>
     `, 'text/html');
 
     const posts = parseAnimePicturesPostEntries(doc, 'https://anime-pictures.net/posts/908175?lang=en');
     expect(posts).toHaveLength(1);
     expect(posts[0]).toMatchObject({
       id: '908175',
-      thumbnailUrl: 'https://images.anime-pictures.net/pictures/908175.png',
+      thumbnailUrl: 'https://opreviews.anime-pictures.net/abc/908175_bp.avif',
       width: 3000,
       height: 3000,
     });
