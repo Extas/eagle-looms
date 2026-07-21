@@ -1,4 +1,5 @@
 import { GalleryMeta } from "../../download/gallery-meta";
+import { extractGalleryPublishedAt } from "./gallery-published-at";
 import { isEagleAuthorCategory } from "./source-tags";
 
 export function ehentaiGalleryMetaFromDocument(doc: Document, href = window.location.href): GalleryMeta {
@@ -23,6 +24,10 @@ export function extractEhentaiAuthorUrls(document: Document, baseUrl = window.lo
     });
   });
   return [...new Set(urls)];
+}
+
+export function ehentaiPublishedAtFromDocument(doc: Document): string {
+  return extractGalleryPublishedAt(doc, "#gdd > table:not([hidden]) tr", ".gdt1", ".gdt2");
 }
 
 function ehentaiTagsFromDocument(doc: Document): Record<string, string[]> {

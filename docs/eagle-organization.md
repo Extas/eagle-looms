@@ -124,7 +124,7 @@ anime-pictures
   map game copyright/copyright-like blocks, character blocks, and author-like blocks from detail pages and API payloads; keep other detail tags raw
 
 E-Hentai / ExHentai
-  map gallery namespaces: parody -> copyright, character -> character, artist/group/circle -> author
+  map gallery namespaces: parody -> copyright, character -> character, artist/group/circle -> author; apply the gallery Posted date to every page item while preserving each /s/{key}/{gallery}-{page} URL as its page identity
 
 eahentai
   map API tags, characters, author, and album type through source metadata; image publish date comes from image addDt with gallery addDt fallback

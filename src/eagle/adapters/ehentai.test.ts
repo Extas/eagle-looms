@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { sourceTagsFromGalleryMeta } from "../tags";
-import { ehentaiGalleryMetaFromDocument, extractEhentaiAuthorUrls } from "./ehentai";
+import { ehentaiGalleryMetaFromDocument, ehentaiPublishedAtFromDocument, extractEhentaiAuthorUrls } from "./ehentai";
 
 describe("E-Hentai source metadata", () => {
   it("extracts author tag links from artist-like gallery tag rows", () => {
@@ -65,6 +65,7 @@ describe("E-Hentai source metadata", () => {
       <div id="gdn"><a>source uploader</a></div>
       <section id="gdd">
         <table>
+          <tr><td class="gdt1">Posted:</td><td class="gdt2">2026-07-18 03:51</td></tr>
           <tr><td class="gdt1">Parent:</td><td class="gdt2"><a href="https://exhentai.org/g/1/token">parent gallery</a></td></tr>
           <tr><td class="gdt1">Language:</td><td class="gdt2">English</td></tr>
         </table>
@@ -81,6 +82,7 @@ describe("E-Hentai source metadata", () => {
 
     expect(meta.title).toBe("English Title");
     expect(meta.originTitle).toBe("Japanese Title");
+    expect(ehentaiPublishedAtFromDocument(doc)).toBe("2026-07-18 03:51");
     expect(meta.authorUrls).toEqual(["https://exhentai.org/tag/artist:soha_blan"]);
     expect(meta.tags).toMatchObject({
       category: ["Doujinshi"],

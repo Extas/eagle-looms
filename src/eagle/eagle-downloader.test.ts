@@ -835,6 +835,83 @@ describe('Eagle downloader duplicate checks', () => {
     }
   });
 
+  it('keeps E-Hentai gallery pages distinct while preserving the gallery Posted date', () => {
+    const page = (index: number, key: string, name: string) => ({
+      stage: EAGLE_IMPORT_DONE_STAGE,
+      data: new Uint8Array([index + 1]),
+      contentType: 'image/jpeg',
+      node: {
+        title: name,
+        href: `https://e-hentai.org/s/${key}/4060522-${index + 1}${index === 0 ? '?nl=49245-495724' : ''}`,
+        originSrc: `https://e-hentai.org/fullimg/4060522/${index + 1}/source-key/${name}`,
+        tags: new Set<string>(),
+        authorUrls: [],
+        publishedAt: '2026-07-18 03:51',
+      },
+    });
+    const chapter = {
+      title: '(Taugust) Mafuyu Asahina gym [AI Generated]',
+      source: 'https://e-hentai.org/g/4060522/16d0540801/',
+      filteredQueue: [
+        page(0, '7b3f568c3d', '1.jpg'),
+        page(1, '5f8b930e45', 'a_1.jpg'),
+      ],
+    };
+    const meta = new GalleryMeta(chapter.source, chapter.title);
+    meta.tags = {
+      parody: ['project sekai'],
+      character: ['mafuyu asahina'],
+      female: ['bloomers', 'ponytail', 'school gym uniform'],
+      other: ['ai generated'],
+    };
+    const downloader = Object.create(EagleDownloader.prototype) as EagleDownloader;
+    ADAPTER.conf = defaultConf();
+    const previousMatcher = ADAPTER.matcher;
+    ADAPTER.matcher = { name: 'e-hentai', workURLs: [/.*/], constructor: vi.fn() as any };
+
+    try {
+      const assets = (downloader as any).assetsForChapter(
+        chapter,
+        { picked: () => true },
+        '',
+        meta,
+        '2026-07-21',
+      );
+
+      expect(assets).toHaveLength(2);
+      expect(assets.map((asset: any) => asset.name)).toEqual([
+        '2026-07-18 1.jpg',
+        '2026-07-18 a_1.jpg',
+      ]);
+      expect(assets.map((asset: any) => asset.sourceUrl)).toEqual([
+        'https://e-hentai.org/s/7b3f568c3d/4060522-1',
+        'https://e-hentai.org/s/5f8b930e45/4060522-2',
+      ]);
+      expect(assets.map((asset: any) => asset.originUrl)).toEqual([
+        'https://e-hentai.org/fullimg/4060522/1/source-key/1.jpg',
+        'https://e-hentai.org/fullimg/4060522/2/source-key/a_1.jpg',
+      ]);
+      expect(stableKeyForAsset(assets[0])).not.toBe(stableKeyForAsset(assets[1]));
+      expect(assets[0].folderTokens).toMatchObject({ site: 'e-hentai', date: '2026-07-21' });
+      expect(assets[0].tags).toEqual(expect.arrayContaining([
+        'copyright:project sekai',
+        'character:mafuyu asahina',
+        'bloomers',
+        'ponytail',
+        'school gym uniform',
+        'ai generated',
+        'source:published:2026-07-18',
+      ]));
+      expect(toAddItemInput(assets[0], ['folder-id'])).toMatchObject({
+        website: 'https://e-hentai.org/s/7b3f568c3d/4060522-1',
+        url: 'https://e-hentai.org/fullimg/4060522/1/source-key/1.jpg',
+        folders: ['folder-id'],
+      });
+    } finally {
+      ADAPTER.matcher = previousMatcher;
+    }
+  });
+
   it('keeps Pixiv artwork pages distinct while preserving the source-site publish date', () => {
     const sourceUrl = 'https://www.pixiv.net/en/artworks/147051638?utm_source=share#viewer';
     const page = (index: number) => ({

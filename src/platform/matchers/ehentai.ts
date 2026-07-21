@@ -7,7 +7,7 @@ import { simpleFetch } from "../../utils/query";
 import { parseImagePositions, splitImagesFromUrl } from "../../utils/sprite-split";
 import { replaceHost } from "../../utils/url";
 import { ADAPTER } from "../adapt";
-import { ehentaiGalleryMetaFromDocument } from "../../eagle/adapters/ehentai";
+import { ehentaiGalleryMetaFromDocument, ehentaiPublishedAtFromDocument } from "../../eagle/adapters/ehentai";
 import { BaseMatcher, OriginMeta, Result, } from "../platform";
 
 // EHMatcher
@@ -44,7 +44,7 @@ type NodeInfo = {
 
 type GetNodeInfo = (node: HTMLElement) => NodeInfo;
 
-class EHMatcher extends BaseMatcher<string> {
+export class EHMatcher extends BaseMatcher<string> {
   docMap: Record<number, Document> = {};
   // "http://exhentai55ld2wyap5juskbm67czulomrouspdacjamjeloj7ugjbsad.onion/*",
 
@@ -103,6 +103,7 @@ class EHMatcher extends BaseMatcher<string> {
     if (!doc) {
       throw new Error("warn: eh matcher failed to get document from source page!")
     }
+    const publishedAt = ehentaiPublishedAtFromDocument(doc);
     const getHref = (href: string) => {
       if (href.startsWith("/")) href = window.location.origin + href;
       if (ADAPTER.conf.ehentaiMirrorHost) {
@@ -237,7 +238,9 @@ class EHMatcher extends BaseMatcher<string> {
     }
     for (let i = 0; i < nodeInfos.length; i++) {
       const info = nodeInfos[i];
-      list.push(new ImageNode(info.thumbnailImage, info.href, info.title, info.delaySrc, undefined, info.wh));
+      const node = new ImageNode(info.thumbnailImage, info.href, info.title, info.delaySrc, undefined, info.wh);
+      node.setPublishedAt(publishedAt);
+      list.push(node);
     }
     return list;
   }
