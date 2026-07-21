@@ -720,7 +720,7 @@ describe('Eagle downloader duplicate checks', () => {
 
   it('keeps a single X status video as video through the Eagle import plan', () => {
     const sourceUrl = 'https://x.com/SadhnaNews24X7/status/2079441105414988119/video/1';
-    const originUrl = 'https://video.twimg.com/amplify_video/2079440969666351104/vid/avc1/1280x720/video.mp4';
+    const originUrl = 'https://video.twimg.com/amplify_video/2079440969666351104/vid/avc1/854x480/ycPPAouapjmglkY0.mp4?tag=14';
     const chapter = {
       title: 'Post',
       source: sourceUrl,

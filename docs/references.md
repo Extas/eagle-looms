@@ -59,6 +59,7 @@ References behind the `copyright:` / `character:` / `author:` namespace policy:
 - DeepDanbooru-style automatic tagging docs: <https://dghs-imgutils.deepghs.org/main/api_doc/tagging/deepdanbooru.html>
 - X API data dictionary for tweet/user fields: <https://docs.x.com/x-api/fundamentals/data-dictionary>
 - X.com Enhanced Gallery 2.1.2 (MIT), focused `TweetResultByRestId` media extraction and highest-bitrate MP4 selection: <https://github.com/PiesP/xcom-enhanced-gallery>
+- Vercel react-tweet (MIT), public embed syndication URL/token behavior used only as a fallback when the signed-in X query fails: <https://github.com/vercel/react-tweet/blob/main/packages/react-tweet/src/api/fetch-tweet.ts>
 
 Pixiv artwork/user data provides author/user identity and user-defined tags, but not a reliable copyright/character taxonomy, so Pixiv tags stay raw unless a matcher can classify them from another reliable source.
 

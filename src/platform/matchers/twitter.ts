@@ -2,7 +2,7 @@ import { GalleryMeta } from "../../download/gallery-meta";
 import ImageNode, { NodeAction } from "../../img-node";
 import { Chapter } from "../../page-fetcher";
 import { evLog } from "../../utils/ev-log";
-import { GM_XHR } from "../../utils/query";
+import { GM_XHR, simpleFetch } from "../../utils/query";
 import { transactionId, uuid } from "../../utils/random";
 import { twitterItemAuthorUrls, twitterItemPublishedAt, twitterItemSourceTags, twitterMediaInDisplayOrder } from "../../eagle/adapters/twitter";
 import { ADAPTER } from "../adapt";
@@ -14,13 +14,11 @@ type Size = {
   w: number,
 }
 type VideoInfo = {
-  variants: [
-    {
-      bitrate?: number,
-      content_type: string,
-      url: string,
-    },
-  ]
+  variants: {
+    bitrate?: number,
+    content_type: string,
+    url: string,
+  }[]
 }
 type Media = {
   id_str: string,
@@ -181,6 +179,23 @@ const TWITTER_STATUS_FIELD_TOGGLES = {
   withGrokAnalyze: false,
   withDisallowedReplyControls: false,
 };
+// URL features and token generation follow vercel/react-tweet, MIT.
+const TWITTER_SYNDICATION_FEATURES = [
+  "tfw_timeline_list:",
+  "tfw_follower_count_sunset:true",
+  "tfw_tweet_edit_backend:on",
+  "tfw_refsrc_session:on",
+  "tfw_fosnr_soft_interventions_enabled:on",
+  "tfw_show_birdwatch_pivots_enabled:on",
+  "tfw_show_business_verified_badge:on",
+  "tfw_duplicate_scribes_to_settings:on",
+  "tfw_use_profile_image_shape_enabled:on",
+  "tfw_show_blue_verified_badge:on",
+  "tfw_legacy_timeline_sunset:true",
+  "tfw_show_gov_verified_badge:on",
+  "tfw_show_business_affiliate_badge:on",
+  "tfw_tweet_edit_frontend:on",
+].join(";");
 
 class TwitterStatusAPI implements TwitterAPIClient {
   uuid = uuid();
@@ -193,15 +208,31 @@ class TwitterStatusAPI implements TwitterAPIClient {
 
   async next(_chapter: Chapter, cursor?: string): Promise<[Item[], string | undefined]> {
     if (cursor) return [[], undefined];
-    const url = twitterStatusEndpointURL(this.identity.statusId, window.location.origin);
-    const response = await window.fetch(url, { headers: createHeader(this.uuid), signal: AbortSignal.timeout(10000) });
-    const json = await response.json();
-    if (!response.ok || json?.errors?.[0]?.message) {
-      throw new Error(json?.errors?.[0]?.message || `HTTP ${response.status}`);
+    let primaryError: unknown;
+    try {
+      const url = twitterStatusEndpointURL(this.identity.statusId, window.location.origin);
+      const response = await window.fetch(url, { headers: createHeader(this.uuid), signal: AbortSignal.timeout(10000) });
+      const json = await response.json();
+      if (!response.ok || json?.errors?.[0]?.message) {
+        throw new Error(json?.errors?.[0]?.message || `HTTP ${response.status}`);
+      }
+      const item = twitterStatusItemFromResponse(json);
+      if (!item) throw new Error("response has no media");
+      return [[item], undefined];
+    } catch (error) {
+      primaryError = error;
     }
-    const item = twitterStatusItemFromResponse(json);
-    if (!item) throw new Error(`cannot find media for post ${this.identity.statusId}`);
-    return [[item], undefined];
+
+    try {
+      const json = await simpleFetch(twitterSyndicationURL(this.identity.statusId), "json");
+      const item = twitterStatusItemFromSyndication(json);
+      if (!item) throw new Error("response has no media");
+      return [[item], undefined];
+    } catch (fallbackError) {
+      const primaryMessage = primaryError instanceof Error ? primaryError.message : String(primaryError);
+      const fallbackMessage = fallbackError instanceof Error ? fallbackError.message : String(fallbackError);
+      throw new Error(`cannot load post ${this.identity.statusId}; X query: ${primaryMessage}; public fallback: ${fallbackMessage}`);
+    }
   }
 }
 
@@ -565,6 +596,19 @@ export function twitterStatusEndpointURL(statusId: string, origin = "https://x.c
   return url.toString();
 }
 
+export function twitterSyndicationURL(statusId: string): string {
+  if (!/^\d{1,40}$/.test(statusId)) throw new Error(`invalid post id: ${statusId}`);
+  const token = ((Number(statusId) / 1e15) * Math.PI)
+    .toString(36)
+    .replace(/(0+|\.)/g, "");
+  const url = new URL("https://cdn.syndication.twimg.com/tweet-result");
+  url.searchParams.set("id", statusId);
+  url.searchParams.set("lang", "en");
+  url.searchParams.set("features", TWITTER_SYNDICATION_FEATURES);
+  url.searchParams.set("token", token);
+  return url.toString();
+}
+
 export function twitterStatusItemFromResponse(payload: unknown): Item | undefined {
   const response = payload as {
     data?: {
@@ -587,6 +631,75 @@ export function twitterStatusItemFromResponse(payload: unknown): Item | undefine
             ...legacy,
             entities: { ...legacy.entities, media },
           },
+        },
+      },
+    },
+  };
+}
+
+export function twitterStatusItemFromSyndication(payload: unknown): Item | undefined {
+  const tweet = payload as {
+    __typename?: string,
+    id_str?: string,
+    created_at?: string,
+    text?: string,
+    possibly_sensitive?: boolean,
+    user?: { screen_name?: string },
+    entities?: { hashtags?: { text?: string }[] },
+    mediaDetails?: Partial<Media>[],
+  };
+  const tweetId = String(tweet.id_str || "");
+  const screenName = String(tweet.user?.screen_name || "");
+  if (tweet.__typename !== "Tweet" || !tweetId || !Array.isArray(tweet.mediaDetails)) return undefined;
+
+  const media = tweet.mediaDetails.flatMap<Media>((candidate, index) => {
+    const mediaUrl = String(candidate.media_url_https || "");
+    if (!mediaUrl || !["photo", "video", "animated_gif"].includes(candidate.type || "")) return [];
+    const type = candidate.type as Media["type"];
+    const width = Number(candidate.original_info?.width || candidate.sizes?.large?.w || 1);
+    const height = Number(candidate.original_info?.height || candidate.sizes?.large?.h || 1);
+    const fallbackSize = { w: width, h: height };
+    const mediaId = candidate.id_str
+      || mediaUrl.match(/\/(\d+)(?:\/|$)/)?.[1]
+      || `${tweetId}-${index + 1}`;
+    const expandedUrl = candidate.expanded_url
+      || `https://x.com/${screenName || "i"}/status/${tweetId}/${type === "video" ? "video" : "photo"}/${index + 1}`;
+    return [{
+      id_str: mediaId,
+      expanded_url: expandedUrl,
+      media_url_https: mediaUrl,
+      type,
+      sizes: {
+        large: candidate.sizes?.large || fallbackSize,
+        medium: candidate.sizes?.medium || fallbackSize,
+        small: candidate.sizes?.small || fallbackSize,
+        thumb: candidate.sizes?.thumb || fallbackSize,
+      },
+      original_info: { width, height },
+      ...(candidate.video_info ? { video_info: candidate.video_info } : {}),
+    }];
+  });
+  if (!media.length) return undefined;
+
+  const legacy: Legacy = {
+    id_str: tweetId,
+    created_at: tweet.created_at,
+    full_text: String(tweet.text || ""),
+    possibly_sensitive: Boolean(tweet.possibly_sensitive),
+    possibly_sensitive_editable: false,
+    entities: {
+      media,
+      hashtags: (tweet.entities?.hashtags || []).map(hashtag => ({ text: hashtag.text })),
+    },
+    extended_entities: { media },
+  };
+  return {
+    itemContent: {
+      tweet_results: {
+        result: {
+          rest_id: tweetId,
+          core: { user_results: { result: { legacy: { screen_name: screenName } } } },
+          legacy,
         },
       },
     },

@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import { defaultConf } from "../config";
 import { twitterItemAuthorUrls, twitterItemPublishedAt, twitterItemSourceTags } from "../eagle/adapters/twitter";
 import { ADAPTER } from "./adapt";
-import { TwitterMatcher, twitterGalleryTitleFromURL, twitterStatusEndpointURL, twitterStatusIdentityFromURL, twitterStatusItemFromResponse } from "./matchers/twitter";
+import { TwitterMatcher, twitterGalleryTitleFromURL, twitterStatusEndpointURL, twitterStatusIdentityFromURL, twitterStatusItemFromResponse, twitterStatusItemFromSyndication, twitterSyndicationURL } from "./matchers/twitter";
 
 vi.mock("$", () => ({
   GM: {
@@ -41,6 +41,16 @@ describe("Twitter matcher metadata", () => {
       tweetId: "2075580242895528190",
       includePromotedContent: false,
     });
+  });
+
+  it("builds the public status fallback URL used by react-tweet", () => {
+    const url = new URL(twitterSyndicationURL("2079441105414988119"));
+    expect(url.origin).toBe("https://cdn.syndication.twimg.com");
+    expect(url.pathname).toBe("/tweet-result");
+    expect(url.searchParams.get("id")).toBe("2079441105414988119");
+    expect(url.searchParams.get("token")).toBe("51gr8xxxfq8");
+    expect(url.searchParams.get("features")).toContain("tfw_tweet_edit_backend:on");
+    expect(() => twitterSyndicationURL("not-a-post")).toThrow("invalid post id");
   });
 
   it("normalizes the focused post response with photo and video variants", async () => {
@@ -101,6 +111,48 @@ describe("Twitter matcher metadata", () => {
       originSrc: "https://video.twimg.com/video-high.mp4",
       mimeType: "video/mp4",
       publishedAt: "Tue Jul 21 13:39:00 +0000 2026",
+    });
+  });
+
+  it("normalizes the live public fallback response and keeps its highest-bitrate MP4", async () => {
+    const item = twitterStatusItemFromSyndication({
+      __typename: "Tweet",
+      id_str: "2079441105414988119",
+      created_at: "2026-07-21T05:39:28Z",
+      text: "news #cgnews",
+      user: { screen_name: "SadhnaNews24X7" },
+      entities: { hashtags: [{ text: "cgnews" }] },
+      mediaDetails: [{
+        expanded_url: "https://x.com/SadhnaNews24X7/status/2079441105414988119/video/1",
+        media_url_https: "https://pbs.twimg.com/amplify_video_thumb/2079440969666351104/img/smhuQln7hJ2hx7yk.jpg",
+        type: "video",
+        sizes: {
+          large: { w: 854, h: 480 }, medium: { w: 854, h: 480 },
+          small: { w: 680, h: 382 }, thumb: { w: 150, h: 150 },
+        },
+        original_info: { width: 854, height: 480 },
+        video_info: {
+          variants: [
+            { content_type: "application/x-mpegURL", url: "https://video.twimg.com/video.m3u8" },
+            { bitrate: 832000, content_type: "video/mp4", url: "https://video.twimg.com/amplify_video/2079440969666351104/vid/avc1/640x360/zDBAymNMKoPHbfWr.mp4?tag=14" },
+            { bitrate: 2176000, content_type: "video/mp4", url: "https://video.twimg.com/amplify_video/2079440969666351104/vid/avc1/854x480/ycPPAouapjmglkY0.mp4?tag=14" },
+          ],
+        },
+      }],
+    });
+
+    expect(twitterItemSourceTags(item!)).toEqual(["author:SadhnaNews24X7", "cgnews"]);
+    expect(twitterItemAuthorUrls(item!)).toEqual(["https://x.com/SadhnaNews24X7"]);
+    expect(twitterItemPublishedAt(item!)).toBe("2026-07-21T05:39:28Z");
+
+    ADAPTER.conf = defaultConf();
+    const [node] = await new TwitterMatcher().parseImgNodes([item!] as any);
+    expect(node).toMatchObject({
+      title: "2079440969666351104-smhuQln7hJ2hx7yk.mp4",
+      href: "https://x.com/SadhnaNews24X7/status/2079441105414988119/video/1",
+      originSrc: "https://video.twimg.com/amplify_video/2079440969666351104/vid/avc1/854x480/ycPPAouapjmglkY0.mp4?tag=14",
+      mimeType: "video/mp4",
+      publishedAt: "2026-07-21T05:39:28Z",
     });
   });
 });
