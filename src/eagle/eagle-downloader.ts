@@ -212,12 +212,12 @@ export class EagleDownloader extends Downloader {
           return;
         }
       }
-      if (importPlan.writable > 0) await assertEagleLibraryUnchanged(api, connection.library);
-
       let writeIndex = 0;
       for (const job of jobs) {
         if (abortable && !this.downloading) throw new Error("abort");
         if (!job.skipReason && !job.preflightError && importPlan.writable > 0) {
+          await assertEagleLibraryUnchanged(api, connection.library);
+          this.assertImportActive(runId);
           writeIndex += 1;
           this.panel.setImportProgress(i18n.eagleImportWritingToEagle.get(), writeIndex, importPlan.writable);
         }
@@ -234,11 +234,13 @@ export class EagleDownloader extends Downloader {
         return;
       }
       if (error instanceof EagleItemWriteOutcomeUnknownError) {
+        markIncompleteImportStopped(stats);
         this.panel.showEagleImportResult(eagleSummaryParts(stats), true, eagleImportResultLinks(stats));
         EBUS.emit("notify-message", "error", format(i18n.eagleImportFailedToast.get(), { message: eagleImportErrorMessage(error) }), 10000);
         return;
       }
       recordImportFailure(stats, i18n.eagleSummaryTitle.get(), error);
+      markIncompleteImportStopped(stats);
       this.panel.showEagleImportResult(eagleSummaryParts(stats), true, eagleImportResultLinks(stats));
       EBUS.emit("notify-message", "error", format(i18n.eagleImportFailedToast.get(), { message: eagleImportErrorMessage(error) }), 10000);
       throw error;
@@ -343,7 +345,6 @@ export class EagleDownloader extends Downloader {
           return;
         }
       }
-      if (importPlan.writable > 0) await assertEagleLibraryUnchanged(api, connection.library);
       let writeIndex = 0;
       for (const job of jobs) {
         if (!this.downloading || this.importStopRequested) {
@@ -351,6 +352,8 @@ export class EagleDownloader extends Downloader {
           return;
         }
         if (!job.skipReason && !job.preflightError && importPlan.writable > 0) {
+          await assertEagleLibraryUnchanged(api, connection.library);
+          this.assertImportActive(runId);
           writeIndex += 1;
           this.panel.setImportProgress(i18n.eagleImportWritingToEagle.get(), writeIndex, importPlan.writable);
         }
@@ -366,11 +369,13 @@ export class EagleDownloader extends Downloader {
         return;
       }
       if (error instanceof EagleItemWriteOutcomeUnknownError) {
+        markIncompleteImportStopped(stats);
         this.panel.showEagleImportResult(eagleSummaryParts(stats), true, eagleImportResultLinks(stats));
         EBUS.emit("notify-message", "error", format(i18n.eagleImportFailedToast.get(), { message: eagleImportErrorMessage(error) }), 8000);
         return;
       }
       recordImportFailure(stats, i18n.eagleSummaryTitle.get(), error);
+      markIncompleteImportStopped(stats);
       this.panel.showEagleImportResult(eagleSummaryParts(stats), true, eagleImportResultLinks(stats));
       EBUS.emit("notify-message", "error", format(i18n.eagleImportFailedToast.get(), { message: eagleImportErrorMessage(error) }), 8000);
     } finally {
@@ -624,6 +629,10 @@ function recordImportFailure(stats: EagleImportStats, label: string, error: unkn
   if (stats.failures.length < 20) {
     stats.failures.push(`${label}: ${eagleImportErrorMessage(error)}`);
   }
+}
+
+function markIncompleteImportStopped(stats: EagleImportStats): void {
+  if (hasIncompleteImportResult(stats)) stats.canceled = true;
 }
 
 export function eagleImportEndStage(stats: Pick<EagleImportSummaryStats, "failed" | "imported">): EagleImportEndStage {

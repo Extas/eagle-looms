@@ -1114,7 +1114,62 @@ describe('Eagle downloader duplicate checks', () => {
     expect(eagleAddItemMock).toHaveBeenCalledTimes(1);
     expect(panel.showEagleImportResult).toHaveBeenCalledTimes(1);
     expect(panel.showEagleImportResult).toHaveBeenCalledWith(
-      expect.arrayContaining(['planned 2', 'imported 0', 'failed 1', expect.stringContaining('may already exist')]),
+      expect.arrayContaining(['stopped before completion', 'planned 2', 'imported 0', 'failed 1', expect.stringContaining('may already exist')]),
+      true,
+      [],
+    );
+  });
+
+  it('checks the target Eagle library before every write and stops remaining jobs after a switch', async () => {
+    const chapter = { title: 'Chapter', filteredQueue: [{}] };
+    const assets = ['first', 'second', 'third'].map((name, index) => ({
+      ...eagleAsset(`${name}.jpg`),
+      sourceUrl: `https://example.test/posts/${index + 1}`,
+      originUrl: `https://img.example.test/${index + 1}.jpg`,
+    }));
+    const jobs = assets.map(asset => ({
+      asset,
+      folderPaths: [['Eagle Looms', 'site', 'date']],
+      folderKeys: ['Eagle Looms/site/date'],
+      folderKey: 'Eagle Looms/site/date',
+      preflightChecked: true,
+    }));
+    const panel = {
+      flushUI: vi.fn(),
+      setImportProgress: vi.fn(),
+      confirmEagleImportPlan: vi.fn(),
+      showEagleImportResult: vi.fn(),
+    };
+    const writeJob = vi.fn(async (_api, _folderIds, _job, stats) => {
+      stats.imported += 1;
+    });
+    const downloader = Object.assign(Object.create(EagleDownloader.prototype), {
+      panel,
+      pageFetcher: { chapters: [chapter] },
+      cherryPicks: [],
+      meta: vi.fn().mockReturnValue({}),
+      assetsForChapter: vi.fn().mockReturnValue(assets),
+      jobForAsset: vi.fn((_template: string, asset: typeof assets[number]) => jobs.find(job => job.asset === asset)),
+      preflightJobs: vi.fn().mockResolvedValue({ writable: 3, sessionSkipped: 0, duplicateSkipped: 0, failed: 0 }),
+      writeJob,
+      abort: vi.fn(),
+      downloading: false,
+      done: false,
+    }) as any as EagleDownloader;
+    ADAPTER.conf = defaultConf();
+    eagleProbeMock.mockReset();
+    eagleProbeMock.mockResolvedValue({ library: { name: 'Library A', path: 'D:/A.library' } });
+    eagleLibraryInfoMock.mockReset();
+    eagleLibraryInfoMock
+      .mockResolvedValueOnce({ name: 'Library A', path: 'D:/A.library', folders: [] })
+      .mockResolvedValueOnce({ name: 'Library B', path: 'D:/B.library', folders: [] });
+
+    await expect(downloader.download([chapter as any])).rejects.toThrow('Library A');
+
+    expect(eagleLibraryInfoMock).toHaveBeenCalledTimes(2);
+    expect(writeJob).toHaveBeenCalledTimes(1);
+    expect(panel.showEagleImportResult).toHaveBeenCalledWith(
+      expect.arrayContaining(['stopped before completion', 'planned 3', 'imported 1', 'failed 1', expect.stringContaining('Library A')]),
       true,
       [],
     );

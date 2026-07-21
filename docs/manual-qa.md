@@ -120,6 +120,7 @@ chapter titles in the range selector render as plain text, even when the source 
 Config preview makes Eagle API URL, folder template, duplicate policy, source tag cap, and config scope visible before import
 every import preflight summary identifies the currently open target Eagle library, including auto-confirmed small imports
 if Eagle switches libraries during duplicate checking or confirmation, the importer stops before creating folders or items and asks the user to retry
+every actual item write rechecks the target Eagle library; switching libraries mid-batch stops before the next folder or item write
 Windows library-path case, slash direction, and trailing separators do not produce a false library-switch warning
 Load missing & import loads selected gray missing images first, then writes loaded images to Eagle
 Import loaded only uses the same Eagle preflight, confirmation, duplicate handling, and stop behavior as Load missing & import, but only writes green loaded images and does not fetch additional images
@@ -179,6 +180,7 @@ native fetch fallback requests time out with the same diagnosis as userscript GM
 native fetch timeout remains active until the complete JSON or image response body has been read
 item/add is never retried automatically; timeout, connection loss, or an invalid success response reports that the item may already exist and directs duplicate-safe recovery
 an uncertain item/add outcome stops the current batch before any later item writes while preserving completed and failed counts
+fatal errors with unhandled planned items mark the result as stopped before completion instead of leaving unexplained count gaps
 Eagle 401/403 or invalid-token failures point users to the API token in Config and Eagle Developer settings
 oversized or multiline API failures remain compact in notifications and result panels while preserving the actionable diagnosis
 HTML or otherwise non-JSON responses identify the configured endpoint as a likely non-Eagle/V2 API URL
