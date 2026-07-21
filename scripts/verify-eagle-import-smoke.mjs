@@ -1,8 +1,11 @@
 const eagleBase = (process.env.EAGLE_API_BASE || 'http://localhost:41595').replace(/\/$/, '');
 const smokeTag = 'eagle-looms-import-smoke';
 const smokeWebsitePrefix = 'https://eagle-looms.local/import-smoke/';
+const smokeOriginPrefix = 'https://cdn.eagle-looms.local/import-smoke/';
 const smokeSchema = 'eagle-looms/import-smoke/v1';
 const runId = `import-smoke-${Date.now()}`;
+const smokeWebsite = `${smokeWebsitePrefix}${runId}`;
+const smokeOriginUrl = `${smokeOriginPrefix}${runId}.png`;
 const pixelPngBase64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII=';
 let createdId = '';
 let lastReadDebug;
@@ -21,6 +24,14 @@ try {
   if (!Array.isArray(readBack.tags) || !readBack.tags.includes(smokeTag)) {
     throw new Error('Created image smoke item did not preserve smoke tag.');
   }
+  if (readBack.url !== smokeWebsite && readBack.website !== smokeWebsite) {
+    throw new Error(`Created image smoke item did not preserve the source-page identity. ${JSON.stringify(summarizeItem(readBack))}`);
+  }
+  const sourceMatch = await waitForUrlMatch(smokeWebsite, createdId);
+  if (!sourceMatch) {
+    throw new Error('Created image smoke item was not discoverable by its source-page URL.');
+  }
+  const originMatches = await itemsByUrl(smokeOriginUrl);
   for (const tag of ['eagle-looms', 'site:smoke.local', 'gallery:import-smoke', 'chapter:default', 'ext:png', 'mime:image/png', 'post:import-smoke']) {
     if (readBack.tags.includes(tag)) {
       throw new Error(`Created image smoke item should not use duplicate infrastructure tag: ${tag}`);
@@ -38,6 +49,8 @@ try {
     source: eagleBase,
     storage: 'unfiled',
     createdId,
+    sourceUrlRoundTrip: readBack.url || readBack.website,
+    originUrlQueryable: originMatches.some((item) => item.id === createdId && !item.isDeleted),
     preCleanedSmokeIds,
     cleanup: 'moved-created-image-smoke-item-to-trash',
   }, null, 2));
@@ -52,7 +65,8 @@ async function addSmokeImage(id) {
   const body = {
     name: `Eagle Looms Import Smoke ${id}.png`,
     base64: pixelPngBase64,
-    website: `${smokeWebsitePrefix}${id}`,
+    url: smokeOriginUrl,
+    website: smokeWebsite,
     tags: [
       smokeTag,
       'copyright:import smoke',
@@ -83,6 +97,29 @@ async function queryByText(text) {
     body: { query: `"${text}"`, limit: 20, offset: 0 },
   });
   return rows(result);
+}
+
+async function itemsByUrl(url) {
+  const result = await eagleJson('/api/v2/item/get', {
+    method: 'POST',
+    body: {
+      url,
+      fields: ['id', 'name', 'url', 'website', 'isDeleted'],
+      limit: 1000,
+      offset: 0,
+    },
+  });
+  return rows(result);
+}
+
+async function waitForUrlMatch(url, id, attempts = 20) {
+  for (let i = 0; i < attempts; i += 1) {
+    const match = (await itemsByUrl(url).catch(() => []))
+      .find((item) => item.id === id && !item.isDeleted);
+    if (match) return match;
+    await new Promise((resolve) => setTimeout(resolve, 250));
+  }
+  return undefined;
 }
 
 async function readItemInfo(id) {
@@ -221,7 +258,7 @@ function isManagedSmokeItem(item) {
   if (!item || typeof item !== 'object') return false;
   if (!Array.isArray(item.tags) || !item.tags.includes(smokeTag)) return false;
   const annotation = parseSmokeAnnotation(item.annotation);
-  if (typeof item.website === 'string' && item.website.startsWith(smokeWebsitePrefix)) return true;
+  if ([item.website, item.url].some((value) => typeof value === 'string' && value.startsWith(smokeWebsitePrefix))) return true;
   if (annotation?.schema === smokeSchema && typeof annotation.id === 'string') return true;
   return Array.isArray(item.tags) && item.tags.includes('eagle-looms:raw');
 }

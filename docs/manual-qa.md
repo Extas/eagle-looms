@@ -19,6 +19,7 @@ npm run verify:all
 ```
 
 `verify:all` creates small managed, unfiled smoke items in the current Eagle library, verifies readback, then moves only those smoke items to trash. It does not create persistent smoke-test folders.
+The import smoke also verifies the observed V2 identity contract: an image written with an origin URL and a source website remains discoverable by the source-page URL used by duplicate preflight.
 
 ## Install Check
 
