@@ -21,6 +21,17 @@ describe("Eagle source URL identity", () => {
     )).toBe("https://gelbooru.com/index.php?page=post&s=view&id=100");
   });
 
+  it("maps Twitter domains and tracking parameters to one X media identity", () => {
+    expect(canonicalEagleSourceUrl(
+      "https://mobile.twitter.com/Artist/status/123/photo/2?s=20&t=tracking#image",
+      "https://x.com/home",
+    )).toBe("https://x.com/Artist/status/123/photo/2");
+    expect(canonicalEagleSourceUrl(
+      "https://www.x.com/Artist/status/123/video/1?ref_src=twsrc",
+      "https://x.com/Artist/media",
+    )).toBe("https://x.com/Artist/status/123/video/1");
+  });
+
   it("does not turn unsupported protocols into web identities", () => {
     expect(canonicalEagleSourceUrl("javascript:alert(1)", "https://example.test/posts#top")).toBe("https://example.test/posts");
   });

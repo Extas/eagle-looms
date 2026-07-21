@@ -1,4 +1,5 @@
 const ANIME_PICTURES_POST_RE = /^\/(?:posts|pictures\/view_post)\/(\d+)(?:\/)?$/;
+const TWITTER_MEDIA_RE = /^\/([^/]+)\/status\/(\d+)(?:\/(photo|video)\/(\d+))?\/?$/;
 
 export function canonicalEagleSourceUrl(value: string, baseUrl: string): string {
   const fallback = value.trim();
@@ -20,6 +21,16 @@ export function canonicalEagleSourceUrl(value: string, baseUrl: string): string 
       url.protocol = "https:";
       url.host = "anime-pictures.net";
       url.pathname = `/posts/${animePicturesPostId}`;
+      url.search = "";
+    }
+
+    const twitterMedia = ["x.com", "twitter.com", "mobile.twitter.com"].includes(url.hostname.replace(/^www\./, ""))
+      ? url.pathname.match(TWITTER_MEDIA_RE)
+      : undefined;
+    if (twitterMedia) {
+      url.protocol = "https:";
+      url.host = "x.com";
+      url.pathname = `/${twitterMedia[1]}/status/${twitterMedia[2]}${twitterMedia[3] ? `/${twitterMedia[3]}/${twitterMedia[4]}` : ""}`;
       url.search = "";
     }
 

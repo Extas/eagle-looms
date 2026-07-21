@@ -100,6 +100,11 @@ export function twitterItemPublishedAt(item: TwitterEagleItem): string {
     .find(Boolean) || "";
 }
 
+export function twitterMediaInDisplayOrder<T>(media: readonly T[], reverse: boolean): Array<{ media: T, sourceIndex: number }> {
+  const indexed = media.map((item, sourceIndex) => ({ media: item, sourceIndex }));
+  return reverse ? indexed.reverse() : indexed;
+}
+
 export function twitterEagleItemBaseName(directory: string, title: string, sourceUrl: string, sourceTags: string[]): string {
   const fallback = [directory, title].filter(Boolean).join(" - ");
   if (!isTwitterSourceUrl(sourceUrl)) return fallback;

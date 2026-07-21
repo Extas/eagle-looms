@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { twitterEagleAuthorUrls, twitterEagleItemBaseName, twitterEagleSourceTags, twitterItemAuthorUrls, twitterItemPublishedAt, twitterItemSourceTags, twitterSafePageHelperBottom } from "./twitter";
+import { twitterEagleAuthorUrls, twitterEagleItemBaseName, twitterEagleSourceTags, twitterItemAuthorUrls, twitterItemPublishedAt, twitterItemSourceTags, twitterMediaInDisplayOrder, twitterSafePageHelperBottom } from "./twitter";
 
 describe("Twitter Eagle metadata adapter", () => {
   it("normalizes authors through the shared Eagle namespace rule", () => {
@@ -73,6 +73,18 @@ describe("Twitter Eagle metadata adapter", () => {
       .toBe("Gallery - image.jpg");
     expect(twitterEagleItemBaseName("User Media", "image.jpg", "https://x.com/user/status/1/photo/1", []))
       .toBe("user - image.jpg");
+  });
+
+  it("reverses display order without changing each media source position", () => {
+    expect(twitterMediaInDisplayOrder(["first", "second", "third"], true)).toEqual([
+      { media: "third", sourceIndex: 2 },
+      { media: "second", sourceIndex: 1 },
+      { media: "first", sourceIndex: 0 },
+    ]);
+    expect(twitterMediaInDisplayOrder(["first", "second"], false)).toEqual([
+      { media: "first", sourceIndex: 0 },
+      { media: "second", sourceIndex: 1 },
+    ]);
   });
 
   it("raises a bottom-right entry above the native X Chat launcher", () => {

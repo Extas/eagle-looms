@@ -4,7 +4,7 @@ import { Chapter } from "../../page-fetcher";
 import { evLog } from "../../utils/ev-log";
 import { GM_XHR } from "../../utils/query";
 import { transactionId, uuid } from "../../utils/random";
-import { twitterItemAuthorUrls, twitterItemPublishedAt, twitterItemSourceTags } from "../../eagle/adapters/twitter";
+import { twitterItemAuthorUrls, twitterItemPublishedAt, twitterItemSourceTags, twitterMediaInDisplayOrder } from "../../eagle/adapters/twitter";
 import { ADAPTER } from "../adapt";
 import { cleanGalleryTitlePart, datedGalleryTitle } from "../gallery-title";
 import { BaseMatcher, OriginMeta, Result } from "../platform";
@@ -398,11 +398,8 @@ class TwitterMatcher extends BaseMatcher<Item[]> {
         });
       }
       this.postCount++;
-      if (ADAPTER.conf.reverseMultipleImagesPost) {
-        mediaList.reverse();
-      }
-      for (let i = 0; i < mediaList.length; i++) {
-        const media = mediaList[i];
+      const orderedMedia = twitterMediaInDisplayOrder(mediaList, ADAPTER.conf.reverseMultipleImagesPost);
+      for (const { media, sourceIndex } of orderedMedia) {
         if (ADAPTER.conf.excludeVideo && media.type === "video") {
           continue;
         }
@@ -414,7 +411,7 @@ class TwitterMatcher extends BaseMatcher<Item[]> {
         const baseSrc = media.media_url_https.replace(`.${ext}`, "");
         const src = `${baseSrc}?format=${ext}&name=${media.sizes.small ? "small" : "thumb"}`;
         let href = media.expanded_url.replace(/\/(photo|video)\/\d+/, "");
-        href = `${href}/${media.type === "video" ? "video" : "photo"}/${i + 1}`
+        href = `${href}/${media.type === "video" ? "video" : "photo"}/${sourceIndex + 1}`
         let largeSrc = "";
         if (ADAPTER.conf.fetchOriginal && media.original_info) {
           // largeSrc = `${baseSrc}?format=${ext}&name=4096x4096`;
