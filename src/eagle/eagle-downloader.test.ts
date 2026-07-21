@@ -718,6 +718,59 @@ describe('Eagle downloader duplicate checks', () => {
     }
   });
 
+  it('keeps a single X status video as video through the Eagle import plan', () => {
+    const sourceUrl = 'https://x.com/SadhnaNews24X7/status/2079441105414988119/video/1';
+    const originUrl = 'https://video.twimg.com/amplify_video/2079440969666351104/vid/avc1/1280x720/video.mp4';
+    const chapter = {
+      title: 'Post',
+      source: sourceUrl,
+      filteredQueue: [{
+        stage: EAGLE_IMPORT_DONE_STAGE,
+        data: new Uint8Array([1]),
+        contentType: 'video/mp4',
+        node: {
+          title: '2079440969666351104-smhuQln7hJ2hx7yk.mp4',
+          href: sourceUrl,
+          originSrc: originUrl,
+          mimeType: 'video/mp4',
+          tags: new Set<string>(['author:SadhnaNews24X7', 'cgnews']),
+          authorUrls: ['https://x.com/SadhnaNews24X7'],
+          publishedAt: 'Tue Jul 21 13:39:00 +0000 2026',
+        },
+      }],
+    };
+    const downloader = Object.create(EagleDownloader.prototype) as EagleDownloader;
+    ADAPTER.conf = defaultConf();
+    const previousMatcher = ADAPTER.matcher;
+    ADAPTER.matcher = { name: 'Twitter | X', workURLs: [/.*/], constructor: vi.fn() as any };
+
+    try {
+      const [asset] = (downloader as any).assetsForChapter(
+        chapter,
+        { picked: () => true },
+        'Post',
+        new GalleryMeta(chapter.source, 'twitter-post-2026-07-21'),
+        '2026-07-21',
+      );
+
+      expect(asset).toMatchObject({
+        name: '2026-07-21 SadhnaNews24X7 - 2079440969666351104-smhuQln7hJ2hx7yk.mp4',
+        sourceUrl,
+        originUrl,
+        contentType: 'video/mp4',
+        folderTokens: { site: 'Twitter | X', date: '2026-07-21' },
+      });
+      expect(toAddItemInput(asset, ['folder-id'])).toMatchObject({
+        name: asset.name,
+        website: sourceUrl,
+        url: originUrl,
+        annotation: 'https://x.com/SadhnaNews24X7',
+      });
+    } finally {
+      ADAPTER.matcher = previousMatcher;
+    }
+  });
+
   it('resolves relative source and media URLs before building Eagle identity', () => {
     const chapter = {
       title: 'Posts',

@@ -45,6 +45,9 @@ type Legacy = {
     media: Media[],
     hashtags?: { text?: string }[],
   },
+  extended_entities?: {
+    media?: Media[],
+  },
   id_str: string,
   full_text: string,
   possibly_sensitive: boolean,
@@ -64,9 +67,7 @@ type Legacy = {
 
 type ItemResult = {
   legacy?: Legacy,
-  tweet?: {
-    legacy: Legacy,
-  },
+  tweet?: ItemResult,
   rest_id?: string,
   quoted_status_result?: {
     result: ItemResult,
@@ -140,7 +141,50 @@ type TwitterStatusIdentity = {
   statusId: string,
 };
 
+// Adapted from X.com Enhanced Gallery 2.1.2, Copyright (c) 2024-2026 PiesP, MIT.
+const TWITTER_STATUS_QUERY_ID = "zAz9764BcLZOJ0JU2wrd1A";
+const TWITTER_STATUS_FEATURES = {
+  creator_subscriptions_tweet_preview_api_enabled: true,
+  premium_content_api_read_enabled: false,
+  communities_web_enable_tweet_community_results_fetch: true,
+  c9s_tweet_anatomy_moderator_badge_enabled: true,
+  responsive_web_grok_analyze_button_fetch_trends_enabled: false,
+  responsive_web_grok_analyze_post_followups_enabled: false,
+  responsive_web_jetfuel_frame: false,
+  responsive_web_grok_share_attachment_enabled: true,
+  articles_preview_enabled: true,
+  responsive_web_edit_tweet_api_enabled: true,
+  graphql_is_translatable_rweb_tweet_is_translatable_enabled: true,
+  view_counts_everywhere_api_enabled: true,
+  longform_notetweets_consumption_enabled: true,
+  responsive_web_twitter_article_tweet_consumption_enabled: true,
+  tweet_awards_web_tipping_enabled: false,
+  responsive_web_grok_show_grok_translated_post: false,
+  responsive_web_grok_analysis_button_from_backend: false,
+  creator_subscriptions_quote_tweet_preview_enabled: false,
+  freedom_of_speech_not_reach_fetch_enabled: true,
+  standardized_nudges_misinfo: true,
+  tweet_with_visibility_results_prefer_gql_limited_actions_policy_enabled: true,
+  longform_notetweets_rich_text_read_enabled: true,
+  longform_notetweets_inline_media_enabled: true,
+  profile_label_improvements_pcf_label_in_post_enabled: true,
+  rweb_tipjar_consumption_enabled: true,
+  verified_phone_label_enabled: false,
+  responsive_web_grok_image_annotation_enabled: true,
+  responsive_web_graphql_skip_user_profile_image_extensions_enabled: false,
+  responsive_web_graphql_timeline_navigation_enabled: true,
+  responsive_web_enhance_cards_enabled: false,
+};
+const TWITTER_STATUS_FIELD_TOGGLES = {
+  withArticleRichContentState: true,
+  withArticlePlainText: false,
+  withGrokAnalyze: false,
+  withDisallowedReplyControls: false,
+};
+
 class TwitterStatusAPI implements TwitterAPIClient {
+  uuid = uuid();
+
   constructor(private readonly identity: TwitterStatusIdentity) { }
 
   async *fetchChapters(): AsyncGenerator<Chapter[]> {
@@ -149,10 +193,14 @@ class TwitterStatusAPI implements TwitterAPIClient {
 
   async next(_chapter: Chapter, cursor?: string): Promise<[Item[], string | undefined]> {
     if (cursor) return [[], undefined];
-    const item = twitterStatusItemFromDocument(window.location.href);
-    if (!item) {
-      throw new Error(`cannot find photo media for post ${this.identity.statusId}`);
+    const url = twitterStatusEndpointURL(this.identity.statusId, window.location.origin);
+    const response = await window.fetch(url, { headers: createHeader(this.uuid), signal: AbortSignal.timeout(10000) });
+    const json = await response.json();
+    if (!response.ok || json?.errors?.[0]?.message) {
+      throw new Error(json?.errors?.[0]?.message || `HTTP ${response.status}`);
     }
+    const item = twitterStatusItemFromResponse(json);
+    if (!item) throw new Error(`cannot find media for post ${this.identity.statusId}`);
     return [[item], undefined];
   }
 }
@@ -351,7 +399,7 @@ class TwitterHomeForYouAPI implements TwitterAPIClient {
 
 }
 
-class TwitterMatcher extends BaseMatcher<Item[]> {
+export class TwitterMatcher extends BaseMatcher<Item[]> {
   postCount: number = 0;
   mediaCount: number = 0;
   api: TwitterAPIClient;
@@ -504,101 +552,45 @@ export function twitterStatusIdentityFromURL(href: string): TwitterStatusIdentit
   }
 }
 
-export function twitterStatusItemFromDocument(href: string, root: ParentNode = document): Item | undefined {
-  const identity = twitterStatusIdentityFromURL(href);
-  if (!identity) return undefined;
-  const statusPath = `/${identity.screenName}/status/${identity.statusId}`.toLowerCase();
-  const article = Array.from(root.querySelectorAll("article")).find(candidate =>
-    Array.from(candidate.querySelectorAll<HTMLAnchorElement>("a[href]")).some(anchor => {
-      const path = twitterPathname(anchor.href);
-      return path === statusPath || path.startsWith(`${statusPath}/photo/`) || path.startsWith(`${statusPath}/video/`);
-    })
-  );
-  if (!article) return undefined;
+export function twitterStatusEndpointURL(statusId: string, origin = "https://x.com"): string {
+  const url = new URL(`/i/api/graphql/${TWITTER_STATUS_QUERY_ID}/TweetResultByRestId`, origin);
+  url.searchParams.set("variables", JSON.stringify({
+    tweetId: statusId,
+    withCommunity: false,
+    includePromotedContent: false,
+    withVoice: false,
+  }));
+  url.searchParams.set("features", JSON.stringify(TWITTER_STATUS_FEATURES));
+  url.searchParams.set("fieldToggles", JSON.stringify(TWITTER_STATUS_FIELD_TOGGLES));
+  return url.toString();
+}
 
-  const photos = Array.from(article.querySelectorAll<HTMLAnchorElement>("a[href]"))
-    .map(anchor => twitterPhotoFromAnchor(anchor, identity))
-    .filter((item): item is { index: number, media: Media } => Boolean(item))
-    .sort((a, b) => a.index - b.index);
-  const media = [...new Map(photos.map(item => [item.index, item.media])).values()];
-  if (media.length === 0) return undefined;
-
-  const hashtags = Array.from(article.querySelectorAll<HTMLAnchorElement>('a[href*="/hashtag/"]'))
-    .map(anchor => anchor.textContent?.trim().replace(/^#+/, "") || "")
-    .filter(Boolean)
-    .map(text => ({ text }));
-  const legacy: Legacy = {
-    created_at: article.querySelector("time[datetime]")?.getAttribute("datetime") || undefined,
-    entities: { media, hashtags },
-    id_str: identity.statusId,
-    full_text: article.textContent?.trim() || "",
-    possibly_sensitive: false,
-    possibly_sensitive_editable: false,
+export function twitterStatusItemFromResponse(payload: unknown): Item | undefined {
+  const response = payload as {
+    data?: {
+      tweetResult?: {
+        result?: ItemResult,
+      },
+    },
   };
+  let result = response.data?.tweetResult?.result;
+  if (result?.tweet) result = result.tweet;
+  const legacy = result?.legacy;
+  const media = legacy?.extended_entities?.media || legacy?.entities?.media;
+  if (!legacy || !media?.length) return undefined;
   return {
     itemContent: {
       tweet_results: {
         result: {
-          rest_id: identity.statusId,
-          legacy,
-          core: {
-            user_results: {
-              result: { legacy: { screen_name: identity.screenName } },
-            },
+          ...result,
+          legacy: {
+            ...legacy,
+            entities: { ...legacy.entities, media },
           },
         },
       },
     },
   };
-}
-
-function twitterPhotoFromAnchor(anchor: HTMLAnchorElement, identity: TwitterStatusIdentity): { index: number, media: Media } | undefined {
-  const path = twitterPathname(anchor.href);
-  const photoPrefix = `/${identity.screenName}/status/${identity.statusId}/photo/`.toLowerCase();
-  if (!path.startsWith(photoPrefix)) return undefined;
-  const position = path.slice(photoPrefix.length);
-  if (!/^\d+$/.test(position)) return undefined;
-  const index = Number(position);
-  if (index < 1) return undefined;
-  const image = anchor.querySelector<HTMLImageElement>('img[src*="pbs.twimg.com/media/"]');
-  if (!image) return undefined;
-  const source = twitterPhotoSource(image.currentSrc || image.src);
-  if (!source) return undefined;
-  const width = image.naturalWidth || image.width || 1;
-  const height = image.naturalHeight || image.height || 1;
-  const size = { w: width, h: height };
-  return {
-    index,
-    media: {
-      id_str: `${identity.statusId}-${index}`,
-      expanded_url: `https://x.com/${identity.screenName}/status/${identity.statusId}/photo/${index}`,
-      media_url_https: source,
-      type: "photo",
-      sizes: { large: size, medium: size, small: size, thumb: size },
-      original_info: { width, height },
-    },
-  };
-}
-
-function twitterPhotoSource(value: string): string | undefined {
-  try {
-    const url = new URL(value);
-    if (url.hostname !== "pbs.twimg.com" || !url.pathname.startsWith("/media/")) return undefined;
-    const pathExtension = url.pathname.match(/\.([a-z0-9]+)$/i)?.[1];
-    const extension = (url.searchParams.get("format") || pathExtension || "jpg").toLowerCase();
-    const path = pathExtension ? url.pathname : `${url.pathname}.${extension}`;
-    return `${url.origin}${path}`;
-  } catch {
-    return undefined;
-  }
-}
-
-function twitterPathname(value: string): string {
-  try {
-    return new URL(value, "https://x.com/").pathname.replace(/\/+$/, "").toLowerCase();
-  } catch {
-    return "";
-  }
 }
 
 function getMyID(): string | undefined {

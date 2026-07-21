@@ -58,6 +58,7 @@ References behind the `copyright:` / `character:` / `author:` namespace policy:
 - Hydrus tag namespaces and tag-management practice: <https://wiki.hydrus.network/books/hydrus-manual/page/getting-started-tags>
 - DeepDanbooru-style automatic tagging docs: <https://dghs-imgutils.deepghs.org/main/api_doc/tagging/deepdanbooru.html>
 - X API data dictionary for tweet/user fields: <https://docs.x.com/x-api/fundamentals/data-dictionary>
+- X.com Enhanced Gallery 2.1.2 (MIT), focused `TweetResultByRestId` media extraction and highest-bitrate MP4 selection: <https://github.com/PiesP/xcom-enhanced-gallery>
 
 Pixiv artwork/user data provides author/user identity and user-defined tags, but not a reliable copyright/character taxonomy, so Pixiv tags stay raw unless a matcher can classify them from another reliable source.
 
