@@ -234,6 +234,7 @@ Rules:
 preserve source identity names such as anime-pictures-917184.png
 prefix item names with YYYY-MM-DD when the source publish/upload date is available
 use the source author for Twitter/X item prefixes instead of generic User Media chapter text
+use Twitter/X status id plus the original photo/video position as media identity, independent of the API response path
 name booru assets as the shortest author, shortest copyright when present, and a site-scoped post id, such as hamaken. - yande.re-1265763.jpg
 do not add Comic Looms zip order prefixes such as 001_
 decode common URL and HTML noise
@@ -244,7 +245,7 @@ trim trailing spaces/periods and cap long names
 dedupe visible sibling names in the current import batch with suffixes
 ```
 
-Duplicate identity remains `sourceUrl`, `originUrl`, `itemKey`, stable source media names/site ids used for annotation-free V2 compatibility, and legacy stable-key annotations.
+Duplicate identity remains `sourceUrl`, `originUrl`, `itemKey`, stable source media names/site ids used for annotation-free V2 compatibility, and legacy stable-key annotations. An exact Twitter/X `/photo/{n}` or `/video/{n}` URL identifies one media item and remains sufficient when legacy and fallback-generated names differ.
 
 ## Extra Assets
 

@@ -122,6 +122,16 @@ export function twitterSafePageHelperBottom(sourceUrl: string, rightAnchored: bo
   return "84px";
 }
 
+export function isTwitterMediaSourceUrl(value: string): boolean {
+  try {
+    const url = new URL(value);
+    return isTwitterHost(url.hostname)
+      && /^\/[^/]+\/status\/\d+\/(?:photo|video)\/\d+\/?$/i.test(url.pathname);
+  } catch {
+    return false;
+  }
+}
+
 function twitterEagleAuthorTag(screenName: unknown): string {
   return sourceMetadataTag("author", cleanTwitterScreenName(screenName));
 }

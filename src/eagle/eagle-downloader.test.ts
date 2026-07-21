@@ -110,22 +110,29 @@ describe('Eagle downloader duplicate checks', () => {
     expect(isDuplicateItem({ url: sibling.originUrl }, sibling)).toBe(true);
   });
 
-  it('recovers annotation-free V2 duplicates from exact source URL and source media name', () => {
+  it('keeps exact X media identity across legacy and fallback-generated names', () => {
     const twitterAsset = {
-      sourceUrl: 'https://x.com/ajsjm140648/status/2075739332229710294/photo/1',
-      originUrl: 'https://pbs.twimg.com/media/HM6B5kiasAA7cy5?format=jpg&name=large',
-      sourceName: '2075739304324935680-HM6B5kiasAA7cy5.jpg',
+      sourceUrl: 'https://x.com/Tsurumi_vov/status/2075580242895528190/photo/1',
+      originUrl: 'https://pbs.twimg.com/media/HM3xN_ubgAA6Hh5?format=jpg&name=orig',
+      sourceName: '2075580242895528190-1-HM3xN_ubgAA6Hh5.jpg',
     };
     const existing = {
       url: twitterAsset.sourceUrl,
-      name: '2026-07-11 User Media - 2075739304324935680-HM6B5kiasAA7cy5',
-      annotation: '',
+      name: '2026-07-10 User Media - 2075580226034434048-HM3xN_ubgAA6Hh5',
+      annotation: JSON.stringify({
+        sourceUrl: twitterAsset.sourceUrl,
+        originUrl: 'https://pbs.twimg.com/media/HM3xN_ubgAA6Hh5?format=jpg&name=large',
+        stableKey: 'eagle-looms:v2:legacy',
+      }),
     };
 
     expect(isDuplicateItem(existing, twitterAsset)).toBe(true);
-    expect(isDuplicateItem(existing, { ...twitterAsset, sourceName: '2075739304324935681-other.jpg' })).toBe(false);
+    expect(isDuplicateItem({ ...existing, website: twitterAsset.sourceUrl, url: '' }, twitterAsset)).toBe(true);
     expect(isDuplicateItem({ ...existing, url: 'https://x.com/other/status/1/photo/1' }, twitterAsset)).toBe(false);
 
+  });
+
+  it('recovers annotation-free V2 duplicates from source media names on shared source pages', () => {
     const booruAsset = {
       sourceUrl: 'https://yande.re/post/show/1265763',
       originUrl: 'https://files.yande.re/image/example.jpg',
@@ -729,7 +736,7 @@ describe('Eagle downloader duplicate checks', () => {
         data: new Uint8Array([1]),
         contentType: 'video/mp4',
         node: {
-          title: '2079440969666351104-smhuQln7hJ2hx7yk.mp4',
+          title: '2079441105414988119-1-smhuQln7hJ2hx7yk.mp4',
           href: sourceUrl,
           originSrc: originUrl,
           mimeType: 'video/mp4',
@@ -754,7 +761,7 @@ describe('Eagle downloader duplicate checks', () => {
       );
 
       expect(asset).toMatchObject({
-        name: '2026-07-21 SadhnaNews24X7 - 2079440969666351104-smhuQln7hJ2hx7yk.mp4',
+        name: '2026-07-21 SadhnaNews24X7 - 2079441105414988119-1-smhuQln7hJ2hx7yk.mp4',
         sourceUrl,
         originUrl,
         contentType: 'video/mp4',

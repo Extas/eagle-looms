@@ -106,7 +106,7 @@ describe("Twitter matcher metadata", () => {
     ADAPTER.conf = defaultConf();
     const [node] = await new TwitterMatcher().parseImgNodes([item!] as any);
     expect(node).toMatchObject({
-      title: "2079440969666351104-smhuQln7hJ2hx7yk.mp4",
+      title: "2079441105414988119-1-smhuQln7hJ2hx7yk.mp4",
       href: "https://x.com/SadhnaNews24X7/status/2079441105414988119/video/1",
       originSrc: "https://video.twimg.com/video-high.mp4",
       mimeType: "video/mp4",
@@ -148,7 +148,7 @@ describe("Twitter matcher metadata", () => {
     ADAPTER.conf = defaultConf();
     const [node] = await new TwitterMatcher().parseImgNodes([item!] as any);
     expect(node).toMatchObject({
-      title: "2079440969666351104-smhuQln7hJ2hx7yk.mp4",
+      title: "2079441105414988119-1-smhuQln7hJ2hx7yk.mp4",
       href: "https://x.com/SadhnaNews24X7/status/2079441105414988119/video/1",
       originSrc: "https://video.twimg.com/amplify_video/2079440969666351104/vid/avc1/854x480/ycPPAouapjmglkY0.mp4?tag=14",
       mimeType: "video/mp4",

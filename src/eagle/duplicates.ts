@@ -1,3 +1,4 @@
+import { isTwitterMediaSourceUrl } from "./adapters/twitter";
 import { decodeEagleRawRecordAnnotation, type EagleRawRecord } from "./raw-record";
 
 export type EagleDuplicateAsset = {
@@ -40,6 +41,8 @@ export function isDuplicateItem(item: EagleDuplicateCandidate, asset: EagleDupli
   if (sourceOnlyIdentity && (item.annotation?.includes(legacyStableKey) || payload?.stableKey === legacyStableKey)) return true;
   if (payload && payloadMatchesAsset(payload, asset)) return true;
   if (sourceOnlyIdentity && (item.website === asset.sourceUrl || item.url === asset.sourceUrl)) return true;
+  if (isTwitterMediaSourceUrl(asset.sourceUrl)
+    && (item.website === asset.sourceUrl || item.url === asset.sourceUrl)) return true;
   if (asset.sourceName
     && (item.website === asset.sourceUrl || item.url === asset.sourceUrl)
     && candidateNameMatchesItemKey(item.name, asset.sourceName)) return true;

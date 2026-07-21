@@ -290,6 +290,7 @@ Twitter / X user timelines use twitter-user-YYYY-MM-DD without the author name; 
 Twitter / X item names use the media-bearing source author instead of generic User Media chapter text
 Twitter / X falls back to the media source URL for author name, tag, and profile URL when GraphQL user metadata is missing
 Twitter / X single status pages collect only that status's media instead of silently switching to the author's timeline; videos retain the highest-bitrate MP4 variant, and public posts still load through the embed syndication fallback if the signed-in query changes or fails
+Twitter / X focused-query and public-fallback paths derive the same status-id-plus-position item name; an existing item with the exact /photo/{n} or /video/{n} URL is skipped even when an older version used a provider media id in its name
 Twitter / X keeps a saved bottom-right collapsed entry above the native X Chat launcher
 booru search/gallery fallback folders use semantic source labels and never parsed result counts
 anime-pictures detail pages do not use post id as gallery/folder fallback; post id stays item/source identity

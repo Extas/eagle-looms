@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { twitterEagleAuthorUrls, twitterEagleItemBaseName, twitterEagleSourceTags, twitterItemAuthorUrls, twitterItemPublishedAt, twitterItemSourceTags, twitterMediaInDisplayOrder, twitterSafePageHelperBottom } from "./twitter";
+import { isTwitterMediaSourceUrl, twitterEagleAuthorUrls, twitterEagleItemBaseName, twitterEagleSourceTags, twitterItemAuthorUrls, twitterItemPublishedAt, twitterItemSourceTags, twitterMediaInDisplayOrder, twitterSafePageHelperBottom } from "./twitter";
 
 describe("Twitter Eagle metadata adapter", () => {
   it("normalizes authors through the shared Eagle namespace rule", () => {
@@ -43,10 +43,10 @@ describe("Twitter Eagle metadata adapter", () => {
   it("uses the source author instead of the generic User Media name prefix", () => {
     expect(twitterEagleItemBaseName(
       "User Media",
-      "2075580226034434048-HM3xN_ubgAA6Hh5.jpg",
+      "2075580242895528190-1-HM3xN_ubgAA6Hh5.jpg",
       "https://x.com/Tsurumi_vov/status/2075580242895528190/photo/1",
       ["author:Tsurumi_vov", "fanart"],
-    )).toBe("Tsurumi_vov - 2075580226034434048-HM3xN_ubgAA6Hh5.jpg");
+    )).toBe("Tsurumi_vov - 2075580242895528190-1-HM3xN_ubgAA6Hh5.jpg");
   });
 
   it("recovers a missing GraphQL author from the media source URL", () => {
@@ -93,6 +93,15 @@ describe("Twitter Eagle metadata adapter", () => {
     expect(twitterSafePageHelperBottom("https://x.com/artist", true, "100px")).toBeUndefined();
     expect(twitterSafePageHelperBottom("https://x.com/artist", false, "20px")).toBeUndefined();
     expect(twitterSafePageHelperBottom("https://example.test/artist", true, "20px")).toBeUndefined();
+  });
+
+  it("recognizes source URLs that identify one exact X media position", () => {
+    expect(isTwitterMediaSourceUrl("https://x.com/artist/status/2075580242895528190/photo/1?ref_src=twsrc"))
+      .toBe(true);
+    expect(isTwitterMediaSourceUrl("https://mobile.twitter.com/artist/status/2075580242895528190/video/2"))
+      .toBe(true);
+    expect(isTwitterMediaSourceUrl("https://x.com/artist/status/2075580242895528190")).toBe(false);
+    expect(isTwitterMediaSourceUrl("https://example.test/artist/status/2075580242895528190/photo/1")).toBe(false);
   });
 });
 
