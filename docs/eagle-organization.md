@@ -271,6 +271,8 @@ NovelAI generated results follow the same rule. Their source identity stays in t
 
 The compact panel represents the current product boundary as `NovelAI -> Eagle`. `Set source` resolves the pasted lineage context and starts monitoring; `Watch On/Off` only pauses or resumes monitoring for that already resolved source. The bridge does not claim to upload the Eagle source image into NovelAI.
 
+Monitor activity is ephemeral session state, not remembered import policy. Because the source context is intentionally not persisted, a fresh NovelAI page always starts with `Watch Off`. `Set source` commits the new source and enables monitoring only after resolution succeeds; invalid or unreachable input clears stale lineage and remains off.
+
 When the source is an Eagle item link, the bridge resolves its folder ids against the current Eagle folder tree and shows the readable target paths before monitoring starts. Folder ids remain the write identity; paths are display-only feedback and never cause additional folder creation.
 
 NovelAI result writes use the same non-idempotent safety boundary as normal imports. Any `item/add` failure stops monitoring before another result can be written automatically. A timeout, lost connection, invalid response, or success response without an item id is reported as outcome-unknown because Eagle may already contain the image; the user must inspect Eagle before restarting the monitor.

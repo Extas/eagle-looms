@@ -705,33 +705,42 @@ class NovelAiEagleBridge {
 
     this.setBusy(true);
     this.stopMonitor();
+    this.config.monitorEnabled = false;
+    this.source = undefined;
+    this.importedResultSources.clear();
+    this.importingResultSources.clear();
+    this.importedResultCount = 0;
+    this.savedResultIds = [];
+    this.renderSource();
+    this.updateMonitorUi();
     try {
       this.config.eagleBaseUrl = normalizeEagleBaseUrl(elements.apiInput.value);
       elements.apiInput.value = this.config.eagleBaseUrl;
-      this.config.monitorEnabled = true;
-      await saveConfig(this.config);
 
       const source = await this.sourceContextForUrl(rawSourceUrl);
       if (!source) {
+        await saveConfig(this.config);
         this.setStatus("Paste a valid http(s) source URL.", true);
         return;
       }
 
       this.source = source;
+      this.config.monitorEnabled = true;
+      await saveConfig(this.config);
       elements.urlInput.value = source.url;
       this.renderSource();
       this.monitorBaseline = snapshotNovelAiImageSources();
-      this.importedResultSources.clear();
-      this.importingResultSources.clear();
-      this.importedResultCount = 0;
-      this.savedResultIds = [];
       this.startMonitor();
       this.setStatus(`Watching ${source.site}: 0/${this.config.monitorLimit}. Run NovelAI manually.`);
-      this.updateMonitorUi();
     } catch (error) {
+      this.config.monitorEnabled = false;
+      this.source = undefined;
+      this.renderSource();
+      await saveConfig(this.config);
       this.setStatus(errorMessage(error), true);
     } finally {
       this.setBusy(false);
+      this.updateMonitorUi();
     }
   }
 
@@ -925,7 +934,12 @@ class NovelAiEagleBridge {
 
   private renderSource(): void {
     const elements = this.elements;
-    if (!elements || !this.source) return;
+    if (!elements) return;
+    if (!this.source) {
+      elements.source.textContent = "Target: not set | Source: not set";
+      elements.source.title = "Set a source before monitoring NovelAI results.";
+      return;
+    }
     const folders = this.source.folders || [];
     const target = novelAiTargetFolderLabel(this.source);
     elements.source.textContent = `Target: ${target} | Source: ${this.source.title}`;
@@ -1139,7 +1153,7 @@ function createPanel(config: NovelAiBridgeConfig): BridgeElements {
       <button data-el="settings" type="button" title="Eagle API settings">API</button>
     </div>
     <div class="el-nai-subline">
-      <div class="el-nai-source" data-el="source">Eagle item import: later</div>
+      <div class="el-nai-source" data-el="source">Target: not set | Source: not set</div>
       <div class="el-nai-status" data-el="status"></div>
     </div>
     <div class="el-nai-settings" data-el="settings-panel" data-open="false">
@@ -1818,7 +1832,7 @@ function utcCompactTimestamp(date: Date): string {
 function defaultConfig(): NovelAiBridgeConfig {
   return {
     eagleBaseUrl: "http://localhost:41595",
-    monitorEnabled: true,
+    monitorEnabled: false,
     monitorLimit: DEFAULT_MONITOR_LIMIT,
   };
 }
@@ -1831,7 +1845,7 @@ async function loadConfig(): Promise<NovelAiBridgeConfig> {
     const parsed = JSON.parse(raw) as Partial<NovelAiBridgeConfig>;
     return {
       eagleBaseUrl: normalizeEagleBaseUrl(parsed.eagleBaseUrl),
-      monitorEnabled: typeof parsed.monitorEnabled === "boolean" ? parsed.monitorEnabled : fallback.monitorEnabled,
+      monitorEnabled: false,
       monitorLimit: normalizeMonitorLimit(parsed.monitorLimit),
     };
   } catch {
@@ -1842,7 +1856,6 @@ async function loadConfig(): Promise<NovelAiBridgeConfig> {
 async function saveConfig(config: NovelAiBridgeConfig): Promise<void> {
   await writeStorage(STORAGE_KEY, JSON.stringify({
     eagleBaseUrl: normalizeEagleBaseUrl(config.eagleBaseUrl),
-    monitorEnabled: Boolean(config.monitorEnabled),
     monitorLimit: normalizeMonitorLimit(config.monitorLimit),
   }));
 }

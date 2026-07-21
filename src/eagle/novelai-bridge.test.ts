@@ -4,6 +4,7 @@ import {
   eagleItemIdFromSourceUrl,
   eagleItemImageCandidates,
   eagleItemLink,
+  initNovelAiEagleBridge,
   isNovelAiImageToolsUrl,
   NovelAiEagleWriteError,
   novelAiGeneratedTags,
@@ -25,6 +26,42 @@ describe("NovelAI Eagle bridge", () => {
     expect(isNovelAiImageToolsUrl("https://novelai.net/imagetools/")).toBe(true);
     expect(isNovelAiImageToolsUrl("https://novelai.net/image")).toBe(false);
     expect(isNovelAiImageToolsUrl("https://example.test/imagetools")).toBe(false);
+  });
+
+  it("keeps monitoring off until a source resolves successfully", async () => {
+    document.body.innerHTML = "";
+    localStorage.setItem("eagle-looms:novelai-bridge", JSON.stringify({
+      eagleBaseUrl: "http://localhost:41595",
+      monitorEnabled: true,
+      monitorLimit: 2,
+    }));
+    vi.stubGlobal("location", new URL("https://novelai.net/imagetools"));
+
+    try {
+      expect(initNovelAiEagleBridge()).toBe(true);
+      await vi.waitFor(() => expect(document.getElementById("eagle-looms-novelai-bridge")).not.toBeNull());
+      const panel = document.getElementById("eagle-looms-novelai-bridge")!;
+      const monitor = panel.querySelector<HTMLButtonElement>("[data-el='monitor']")!;
+      const source = panel.querySelector<HTMLElement>("[data-el='source']")!;
+      const input = panel.querySelector<HTMLInputElement>("[data-el='url']")!;
+      const sourceButton = panel.querySelector<HTMLButtonElement>("[data-el='set-source']")!;
+      const status = panel.querySelector<HTMLElement>("[data-el='status']")!;
+
+      expect(monitor.textContent).toBe("Watch Off");
+      expect(source.textContent).toBe("Target: not set | Source: not set");
+      input.value = "not-a-source-url";
+      sourceButton.click();
+      await vi.waitFor(() => expect(status.textContent).toBe("Paste a valid http(s) source URL."));
+      expect(monitor.textContent).toBe("Watch Off");
+      expect(source.textContent).toBe("Target: not set | Source: not set");
+      expect(JSON.parse(localStorage.getItem("eagle-looms:novelai-bridge") || "{}")).not.toHaveProperty("monitorEnabled");
+    } finally {
+      vi.stubGlobal("location", new URL("https://example.test/"));
+      initNovelAiEagleBridge();
+      localStorage.removeItem("eagle-looms:novelai-bridge");
+      document.body.innerHTML = "";
+      vi.unstubAllGlobals();
+    }
   });
 
   it("parses Eagle item links and raw ids", () => {
