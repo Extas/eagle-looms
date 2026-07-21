@@ -285,7 +285,7 @@ export class GelBooruMatcher extends DanbooruMatcher {
       });
       node.actions.push(addFav);
     }
-    return [node, img.getAttribute("alt") || ""];
+    return [node, img.getAttribute("alt") || img.getAttribute("title") || ""];
   }
   getOriginalURL(doc: Document): string | null {
     return doc.querySelector("head > meta[property='og:image']")?.getAttribute("content") || null;

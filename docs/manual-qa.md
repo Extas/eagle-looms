@@ -292,6 +292,7 @@ author annotations retain a traceable creator profile URL
 Gelbooru behavior:
 
 ```text
+list-page thumbnail `title` tags are available before detail-image loading
 Wiki `?` and add/remove-search controls never become Eagle tags or author URLs
 detail-page `Posted:` time becomes the source:published tag and optional item-name date prefix
 ```

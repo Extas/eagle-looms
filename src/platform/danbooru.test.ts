@@ -49,4 +49,30 @@ describe("Gelbooru matcher metadata", () => {
       "long_hair",
     ]);
   });
+
+  it("reads tags from the title attribute used by current Gelbooru cards", async () => {
+    const doc = parseDocument(`
+      <div class="thumbnail-container">
+        <article class="thumbnail-preview">
+          <a id="p14528850" href="https://gelbooru.com/index.php?page=post&amp;s=view&amp;id=14528850&amp;tags=landscape">
+            <img
+              src="https://img4.gelbooru.com/thumbnails/23/d3/thumbnail_23d3fae7e4a05ae3ffc03607a728cbcf.jpg"
+              title="2boys black_hair landscape"
+            >
+          </a>
+        </article>
+      </div>
+    `);
+
+    const nodes = await new GelBooruMatcher().parseImgNodes(doc);
+
+    expect(nodes).toHaveLength(1);
+    expect(nodes[0].title).toBe("14528850.jpg");
+    expect([...nodes[0].tags]).toEqual([
+      "ext:jpg",
+      "2boys",
+      "black_hair",
+      "landscape",
+    ]);
+  });
 });
