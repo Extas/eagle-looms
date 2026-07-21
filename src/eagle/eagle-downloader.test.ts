@@ -767,6 +767,74 @@ describe('Eagle downloader duplicate checks', () => {
     }
   });
 
+  it('maps current Danbooru detail metadata without wiki-control pollution', () => {
+    const chapter = {
+      title: 'Posts',
+      filteredQueue: [{
+        stage: EAGLE_IMPORT_DONE_STAGE,
+        data: new Uint8Array([1]),
+        contentType: 'image/jpeg',
+        node: {
+          title: '11832347.jpg',
+          href: 'https://danbooru.donmai.us/posts/11832347?q=project_sekai',
+          originSrc: 'https://cdn.donmai.us/original/31/43/__shinonome_ena_project_sekai_drawn_by_kanadenishizawa__314317f88b5282586c79a769838e7398.jpg',
+          tags: new Set<string>([
+            'author:kanadenishizawa',
+            'copyright:project sekai',
+            'character:shinonome ena',
+            '1girl',
+            'highres',
+          ]),
+          authorUrls: ['https://danbooru.donmai.us/posts?tags=kanadenishizawa&z=1'],
+          publishedAt: '2026-07-20T22:03-04:00',
+        },
+      }],
+    };
+    const downloader = Object.create(EagleDownloader.prototype) as EagleDownloader;
+    ADAPTER.conf = defaultConf();
+    const previousMatcher = ADAPTER.matcher;
+    ADAPTER.matcher = { name: 'danbooru', workURLs: [/.*/], constructor: vi.fn() as any };
+
+    try {
+      const [asset] = (downloader as any).assetsForChapter(
+        chapter,
+        { picked: () => true },
+        '',
+        new GalleryMeta('https://danbooru.donmai.us/posts?tags=project_sekai', 'danbooru-search-project_sekai'),
+        '2026-07-21',
+      );
+
+      expect(asset).toMatchObject({
+        name: '2026-07-21 kanadenishizawa - project sekai - danbooru-11832347.jpg',
+        sourceUrl: 'https://danbooru.donmai.us/posts/11832347',
+        website: 'https://danbooru.donmai.us/posts/11832347',
+        originUrl: 'https://cdn.donmai.us/original/31/43/__shinonome_ena_project_sekai_drawn_by_kanadenishizawa__314317f88b5282586c79a769838e7398.jpg',
+        folderTokens: {
+          site: 'danbooru',
+          date: '2026-07-21',
+          gallery: 'danbooru-search-project_sekai',
+        },
+      });
+      expect(asset.tags).toEqual(expect.arrayContaining([
+        'author:kanadenishizawa',
+        'copyright:project sekai',
+        'character:shinonome ena',
+        '1girl',
+        'highres',
+        'source:published:2026-07-21',
+      ]));
+      expect(toAddItemInput(asset, ['folder-id'])).toMatchObject({
+        name: asset.name,
+        website: asset.sourceUrl,
+        url: asset.originUrl,
+        folders: ['folder-id'],
+        annotation: 'https://danbooru.donmai.us/posts?tags=kanadenishizawa&z=1',
+      });
+    } finally {
+      ADAPTER.matcher = previousMatcher;
+    }
+  });
+
   it('uses one stable Anime Pictures post URL across navigation variants', () => {
     const chapter = {
       title: 'Posts',

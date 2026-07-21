@@ -112,7 +112,7 @@ Current source mapping rules:
 
 ```text
 Danbooru / Gelbooru / e621 / Rule34.us
-  use data-tag-string attributes from post cards and detail pages, descendant metadata, numeric Danbooru category/tag-type classes, detail-page tag lists, and general/meta raw tag attributes; map copyright-like aliases such as parody/series/source-work/franchise and author-like aliases such as illustrator/writer/editor/mangaka; prefer Gelbooru's canonical card tags over its human-readable alt label and exclude volatile card-only score/rating fields; ignore Wiki/search controls and Rule34.us statistics/moderation links; map Gelbooru's textual Posted field to source publication time
+  use data-tag-string attributes from post cards and detail pages, descendant metadata, numeric Danbooru category/tag-type classes, detail-page tag lists, and general/meta raw tag attributes; map copyright-like aliases such as parody/series/source-work/franchise and author-like aliases such as illustrator/writer/editor/mangaka; prefer Gelbooru's canonical card tags over its human-readable alt label and exclude volatile card-only score/rating fields; ignore Danbooru's question-mark Wiki/artist controls, other Wiki/search controls, and Rule34.us statistics/moderation links; map Gelbooru's textual Posted field to source publication time
 
 Pawchive
   parse API tag arrays into individual visible tags; prefer the readable creator name and profile link exposed by the current page when post API payloads omit creator metadata

@@ -242,6 +242,39 @@ describe("booru source tags", () => {
     ]);
   });
 
+  it("ignores current Danbooru wiki controls in categorized tags and author URLs", () => {
+    document.body.innerHTML = `
+      <ul id="tag-list">
+        <li class="flex tag-type-1">
+          <a href="/artists/show_or_new?name=kanadenishizawa&amp;z=1">?</a>
+          <a href="/posts?tags=kanadenishizawa&amp;z=1">kanadenishizawa</a>
+        </li>
+        <li class="flex tag-type-3">
+          <a href="/wiki_pages/project_sekai?z=1">?</a>
+          <a href="/posts?tags=project_sekai&amp;z=1">project sekai</a>
+        </li>
+        <li class="flex tag-type-4">
+          <a href="/wiki_pages/shinonome_ena?z=1">?</a>
+          <a href="/posts?tags=shinonome_ena&amp;z=1">shinonome ena</a>
+        </li>
+        <li class="flex tag-type-0">
+          <a href="/wiki_pages/bare_legs?z=1">?</a>
+          <a href="/posts?tags=bare_legs&amp;z=1">bare legs</a>
+        </li>
+      </ul>
+    `;
+
+    expect(extractBooruSourceTags(document, [])).toEqual([
+      "copyright:project sekai",
+      "character:shinonome ena",
+      "author:kanadenishizawa",
+      "bare legs",
+    ]);
+    expect(extractBooruAuthorUrls(document, "https://danbooru.donmai.us/posts/11832347")).toEqual([
+      "https://danbooru.donmai.us/posts?tags=kanadenishizawa&z=1",
+    ]);
+  });
+
   it("extracts author tag links as traceable author URLs", () => {
     document.body.innerHTML = `
       <ul>
