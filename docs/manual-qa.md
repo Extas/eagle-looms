@@ -54,6 +54,8 @@ https://gelbooru.com/index.php?page=post&s=list
 https://gelbooru.com/index.php?page=post&s=view&id={id}
 https://rule34.us/index.php?r=posts/index
 https://rule34.us/index.php?r=posts/view&id={id}
+https://pawchive.pw/fanbox/user/{id}
+https://pawchive.pw/fanbox/user/{id}/post/{post-id}
 ```
 
 ## UI Checks
@@ -277,6 +279,14 @@ posts search excludes Last stars/sidebar thumbnails
 /posts/{id} imports only the current detail-page image
 detail pages prefer direct images.anime-pictures.net candidates over api download_image endpoints
 Cloudflare challenge HTML should trigger candidate retry/failure messaging, not a false successful image import
+```
+
+Pawchive behavior:
+
+```text
+API tag-array text is split into individual Eagle tags instead of one brace-wrapped tag
+artist and single-post pages prefer the human-readable page author over service/user ids
+author annotations retain a traceable creator profile URL
 ```
 
 NovelAI bridge behavior:

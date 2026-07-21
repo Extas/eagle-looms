@@ -1,3 +1,4 @@
+import { parse as parsePostgresArray } from "postgres-array";
 import { cleanSourceTag, eagleAuthorSourceTags } from "./source-tags";
 
 export type KemonoMetadataSource = {
@@ -18,8 +19,11 @@ type KemonoAuthorSource = {
   service?: unknown,
 };
 
-export function kemonoSourceTags(post: Pick<KemonoMetadataSource, "service" | "user" | "tags" | "artist" | "creator">): string[] {
-  const author = kemonoAuthorName(post);
+export function kemonoSourceTags(
+  post: Pick<KemonoMetadataSource, "service" | "user" | "tags" | "artist" | "creator">,
+  pageAuthor = "",
+): string[] {
+  const author = kemonoAuthorName(post, pageAuthor);
   return eagleAuthorSourceTags(author, kemonoTagValues(post.tags));
 }
 
@@ -34,9 +38,14 @@ export function kemonoPublishedAt(post: Pick<KemonoMetadataSource, "published" |
   return cleanKemonoValue(post.published || post.added || post.edited || "");
 }
 
-function kemonoAuthorName(post: Pick<KemonoMetadataSource, "service" | "user" | "artist" | "creator">): string {
+function kemonoAuthorName(
+  post: Pick<KemonoMetadataSource, "service" | "user" | "artist" | "creator">,
+  pageAuthor = "",
+): string {
   const name = cleanKemonoValue(stringValue(post.artist?.name) || stringValue(post.creator?.name) || stringValue(post.artist?.username) || stringValue(post.creator?.username));
   if (name) return name;
+  const fallbackName = cleanKemonoValue(pageAuthor);
+  if (fallbackName) return fallbackName;
   const service = cleanKemonoValue(stringValue(post.service) || stringValue(post.artist?.service) || stringValue(post.creator?.service));
   const user = cleanKemonoValue(stringValue(post.user) || stringValue(post.artist?.id) || stringValue(post.creator?.id));
   return service && user ? `${service}/${user}` : user;
@@ -47,7 +56,15 @@ function kemonoTagValues(value: unknown): string[] {
     return value.flatMap(kemonoTagValues);
   }
   if (typeof value === "string" || typeof value === "number") {
-    return cleanKemonoValue(String(value)) ? [cleanKemonoValue(String(value))] : [];
+    const raw = String(value);
+    if (typeof value === "string" && /^\{.*\}$/.test(raw.trim())) {
+      try {
+        return parsePostgresArray(raw).flatMap(kemonoTagValues);
+      } catch {
+        // Keep malformed source values visible instead of dropping metadata.
+      }
+    }
+    return cleanKemonoValue(raw) ? [cleanKemonoValue(raw)] : [];
   }
   if (!value || typeof value !== "object") return [];
   const object = value as Record<string, unknown>;

@@ -1,5 +1,6 @@
 import ImageNode from "../../img-node";
 import { kemonoAuthorUrls, kemonoPublishedAt, kemonoSourceTags } from "../../eagle/adapters/kemono";
+import { pawchivePageAuthorFromDocument } from "../../eagle/adapters/pawchive";
 import { isImage, isVideo } from "../../utils/media-helper";
 import { ADAPTER } from "../adapt";
 import { BaseMatcher, OriginMeta, Result } from "../platform"
@@ -170,6 +171,7 @@ class PawchiveMatcher extends BaseMatcher<PawchiveResult[]> {
   }
   async parseImgNodes(results: PawchiveResult[]): Promise<ImageNode[]> {
     const nodes = [];
+    const pageAuthor = pawchivePageAuthorFromDocument(document);
     const newImageNode = (id: string, user: string, service: string, path: string, name: string, server?: string) => {
       const thumb = `https://img.${window.location.hostname}/thumbnail/data/${path}`;
       const href = `${window.location.origin}/${service}/user/${user}/post/${id}`;
@@ -209,8 +211,8 @@ class PawchiveMatcher extends BaseMatcher<PawchiveResult[]> {
             continue;
           }
           originSrcMap.set(node.originSrc!, true);
-          node.setTags(...kemonoSourceTags(chunk.res));
-          node.setAuthorUrls(...kemonoAuthorUrls(chunk.res, window.location.origin));
+          node.setTags(...kemonoSourceTags(chunk.res, pageAuthor.name));
+          node.setAuthorUrls(...pageAuthor.urls, ...kemonoAuthorUrls(chunk.res, window.location.origin));
           node.setPublishedAt(kemonoPublishedAt(chunk.res));
           nodes.push(node);
         }

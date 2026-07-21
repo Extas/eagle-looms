@@ -24,6 +24,20 @@ describe("Kemono Eagle metadata adapter", () => {
     })).toEqual(["author:patreon/12345"]);
   });
 
+  it("uses the visible page author and parses Pawchive PostgreSQL-array tags", () => {
+    expect(kemonoSourceTags({
+      service: "fanbox",
+      user: "6106295",
+      tags: "{ZenlessZoneZero,绝区零,\"tag, with comma\",\"quoted tag\"}",
+    }, "yamomo")).toEqual([
+      "author:yamomo",
+      "ZenlessZoneZero",
+      "绝区零",
+      "tag, with comma",
+      "quoted tag",
+    ]);
+  });
+
   it("derives traceable author URLs and published timestamps", () => {
     expect(kemonoAuthorUrls({
       service: "fanbox",
