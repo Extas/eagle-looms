@@ -128,6 +128,7 @@ Eagle preflight checks duplicates and resolves destination folders before writin
 Eagle preflight reuses identical source/query lookups within the current batch while evaluating each sibling media identity independently
 preflight stage shows Checking Eagle 0/N through N/N on the primary import action while duplicate queries run
 Eagle Import Limit caps new writes after duplicate preflight; duplicate/session-skipped items do not consume the write quota
+the config preview distinguishes that write quota from paged collection: a paged source may stop after the same number of candidates and therefore produce fewer new writes
 the same import limit applies when Import current to Eagle expands one logical item into multiple files
 writing stage shows current progress, such as Writing to Eagle 2/6, on the primary import action
 auto confirmation mode skips the confirmation when will-write is less than or equal to the configured threshold and there are no preflight failures or import-limit omissions

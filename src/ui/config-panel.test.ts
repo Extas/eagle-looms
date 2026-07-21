@@ -83,6 +83,17 @@ describe("ConfigPanel Eagle preview", () => {
       .toContain(i18n.eagleConfigPreviewAddDuplicates.get());
   });
 
+  it("distinguishes the new-item write limit from the paged collection cap", () => {
+    ADAPTER.globalConf.eagleImportLimit = 25;
+    ADAPTER.conf = { ...ADAPTER.globalConf };
+
+    const panel = createPanel();
+    const preview = panel.panel.querySelector("#eagle-config-preview")?.textContent || "";
+
+    expect(preview).toContain("new writes: max 25 after preflight");
+    expect(preview).toContain("paged candidates: may stop at 25");
+  });
+
   it("tests the configured Eagle connection from the preview", async () => {
     probeMock.mockResolvedValue({ app: { version: "4.0.0" }, library: { name: "Test Library" } });
     const panel = createPanel();

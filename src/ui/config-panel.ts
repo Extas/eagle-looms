@@ -335,7 +335,7 @@ function eagleConfigPreviewHTML(): string {
     ? i18n.eagleConfigPreviewDateNames.get()
     : i18n.eagleConfigPreviewSourceNames.get();
   const batchPolicy = i18n.eagleConfigPreviewBatchText.get()
-    .replace("{count}", String(conf.eagleImportLimit))
+    .replaceAll("{count}", String(conf.eagleImportLimit))
     .replace("{duplicates}", conf.eagleSkipDuplicates ? i18n.eagleConfigPreviewSkipDuplicates.get() : i18n.eagleConfigPreviewAddDuplicates.get());
   const confirmPolicy = eagleConfirmPolicyText(conf.eagleConfirmMode, conf.eagleConfirmThreshold);
   const unknownFolderTokens = findUnknownEagleFolderTokens(conf.eagleFolderPath);
