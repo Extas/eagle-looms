@@ -233,6 +233,11 @@ export class EagleDownloader extends Downloader {
         cancelled = true;
         return;
       }
+      if (error instanceof EagleItemWriteOutcomeUnknownError) {
+        this.panel.showEagleImportResult(eagleSummaryParts(stats), true, eagleImportResultLinks(stats));
+        EBUS.emit("notify-message", "error", format(i18n.eagleImportFailedToast.get(), { message: eagleImportErrorMessage(error) }), 10000);
+        return;
+      }
       recordImportFailure(stats, i18n.eagleSummaryTitle.get(), error);
       this.panel.showEagleImportResult(eagleSummaryParts(stats), true, eagleImportResultLinks(stats));
       EBUS.emit("notify-message", "error", format(i18n.eagleImportFailedToast.get(), { message: eagleImportErrorMessage(error) }), 10000);
@@ -358,6 +363,11 @@ export class EagleDownloader extends Downloader {
     } catch (error) {
       if (error instanceof Error && error.message === "abort") {
         cancelled = true;
+        return;
+      }
+      if (error instanceof EagleItemWriteOutcomeUnknownError) {
+        this.panel.showEagleImportResult(eagleSummaryParts(stats), true, eagleImportResultLinks(stats));
+        EBUS.emit("notify-message", "error", format(i18n.eagleImportFailedToast.get(), { message: eagleImportErrorMessage(error) }), 8000);
         return;
       }
       recordImportFailure(stats, i18n.eagleSummaryTitle.get(), error);
@@ -556,6 +566,7 @@ export class EagleDownloader extends Downloader {
     } catch (error) {
       if (this.importStopRequested || (error instanceof Error && error.message === "abort")) throw error;
       recordImportFailure(stats, job.finalName || asset.name, error);
+      if (error instanceof EagleItemWriteOutcomeUnknownError) throw error;
     }
   }
 

@@ -10,6 +10,7 @@ import { EAGLE_RAW_RECORD_SCHEMA, type EagleRawRecord } from './raw-record';
 
 const eagleProbeMock = vi.hoisted(() => vi.fn());
 const eagleLibraryInfoMock = vi.hoisted(() => vi.fn());
+const eagleAddItemMock = vi.hoisted(() => vi.fn());
 
 vi.mock("$", () => ({
   GM: { xmlHttpRequest: vi.fn() },
@@ -38,6 +39,7 @@ vi.mock("./eagle-web-api", () => ({
 
     probe = eagleProbeMock;
     libraryInfo = eagleLibraryInfoMock;
+    addItem = eagleAddItemMock;
   },
 }));
 
@@ -1018,9 +1020,9 @@ describe('Eagle downloader duplicate checks', () => {
   });
 
   it.each([
-    ['request timeout', () => Promise.reject(new Error('request timed out'))],
-    ['missing item id', () => Promise.resolve('')],
-  ])('reports an uncertain item write after %s without retrying the non-idempotent request', async (_case, addItem) => {
+    ['request timeout', () => Promise.reject(new Error('request timed out')), 'request timed out'],
+    ['missing item id', () => Promise.resolve(''), 'Eagle did not return an item ID.'],
+  ])('reports an uncertain item write after %s without retrying the non-idempotent request', async (_case, addItem, expectedError) => {
     ADAPTER.conf = defaultConf();
     const downloader = Object.assign(Object.create(EagleDownloader.prototype), {
       folderIdsForJob: vi.fn().mockResolvedValue(['folder-id']),
@@ -1043,7 +1045,7 @@ describe('Eagle downloader duplicate checks', () => {
       failures: [],
     };
 
-    await downloader.writeJob(api, new Map(), {
+    await expect(downloader.writeJob(api, new Map(), {
       asset: {
         ...eagleAsset('source image.jpg'),
         node: { authorUrls: [] },
@@ -1053,12 +1055,69 @@ describe('Eagle downloader duplicate checks', () => {
       folderKeys: ['Eagle Looms/site/date'],
       folderKey: 'Eagle Looms/site/date',
       preflightChecked: true,
-    }, stats, new Set());
+    }, stats, new Set())).rejects.toThrow(expectedError);
 
     expect(api.addItem).toHaveBeenCalledTimes(1);
     expect(stats.imported).toBe(0);
     expect(stats.failed).toBe(1);
     expect(stats.failures.join(' ')).toContain('may already exist');
+  });
+
+  it('stops a bulk batch after the first uncertain item write', async () => {
+    const chapter = { title: 'Chapter', filteredQueue: [{}] };
+    const firstAsset = {
+      ...eagleAsset('first.jpg'),
+      node: { authorUrls: [] },
+      meta: { authorUrls: [] },
+    };
+    const secondAsset = {
+      ...eagleAsset('second.jpg'),
+      sourceUrl: 'https://example.test/posts/2',
+      originUrl: 'https://img.example.test/2.jpg',
+    };
+    const jobs = [firstAsset, secondAsset].map(asset => ({
+      asset,
+      folderPaths: [['Eagle Looms', 'site', 'date']],
+      folderKeys: ['Eagle Looms/site/date'],
+      folderKey: 'Eagle Looms/site/date',
+      preflightChecked: true,
+    }));
+    const panel = {
+      flushUI: vi.fn(),
+      setImportProgress: vi.fn(),
+      confirmEagleImportPlan: vi.fn(),
+      showEagleImportResult: vi.fn(),
+    };
+    const downloader = Object.assign(Object.create(EagleDownloader.prototype), {
+      panel,
+      pageFetcher: { chapters: [chapter] },
+      cherryPicks: [],
+      meta: vi.fn().mockReturnValue({}),
+      assetsForChapter: vi.fn().mockReturnValue([firstAsset, secondAsset]),
+      jobForAsset: vi.fn((_template: string, asset: typeof firstAsset) => jobs.find(job => job.asset === asset)),
+      preflightJobs: vi.fn().mockResolvedValue({ writable: 2, sessionSkipped: 0, duplicateSkipped: 0, failed: 0 }),
+      folderIdsForJob: vi.fn().mockResolvedValue(['folder-id']),
+      abort: vi.fn(),
+      downloading: false,
+      done: false,
+    }) as any as EagleDownloader;
+    ADAPTER.conf = defaultConf();
+    eagleProbeMock.mockReset();
+    eagleProbeMock.mockResolvedValue({ library: { name: 'Test Library', path: 'D:/Test.library' } });
+    eagleLibraryInfoMock.mockReset();
+    eagleLibraryInfoMock.mockResolvedValue({ name: 'Test Library', path: 'D:/Test.library', folders: [] });
+    eagleAddItemMock.mockReset();
+    eagleAddItemMock.mockRejectedValueOnce(new Error('request timed out')).mockResolvedValueOnce('second-item');
+
+    await downloader.download([chapter as any]);
+
+    expect(eagleAddItemMock).toHaveBeenCalledTimes(1);
+    expect(panel.showEagleImportResult).toHaveBeenCalledTimes(1);
+    expect(panel.showEagleImportResult).toHaveBeenCalledWith(
+      expect.arrayContaining(['planned 2', 'imported 0', 'failed 1', expect.stringContaining('may already exist')]),
+      true,
+      [],
+    );
   });
 
   it('reuses resolved folder ids across case-only path variants', async () => {
