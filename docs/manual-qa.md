@@ -251,6 +251,7 @@ Duplicate behavior:
 ```text
 rerunning import skips exact source/origin/legacy-raw-record/legacy-annotation duplicates
 relative post and media links collected from list pages are stored as absolute HTTP(S) URLs and remain duplicate-queryable after reload
+Anime Pictures post links with by_tag/lang navigation state or the legacy pictures/view_post route resolve to the same stable /posts/{id} source identity
 same-session re-import skips before querying Eagle again
 same-session skips are scoped to the current Eagle library, so switching libraries does not suppress a valid import into the new library
 turning off Skip Eagle Duplicates clearly states that existing-library matches are allowed while same-session repeats remain skipped

@@ -699,6 +699,39 @@ describe('Eagle downloader duplicate checks', () => {
     });
   });
 
+  it('uses one stable Anime Pictures post URL across navigation variants', () => {
+    const chapter = {
+      title: 'Posts',
+      source: 'https://anime-pictures.net/posts?page=0&search_tag=bang+dream',
+      filteredQueue: [{
+        stage: EAGLE_IMPORT_DONE_STAGE,
+        data: new Uint8Array([1]),
+        contentType: 'image/png',
+        node: {
+          title: '908175.png',
+          href: '/posts/908175?by_tag=201352&lang=en',
+          originSrc: 'https://images.anime-pictures.net/pictures/908175.png',
+          tags: new Set<string>(['copyright:bang dream!']),
+          authorUrls: [],
+        },
+      }],
+    };
+    const downloader = Object.create(EagleDownloader.prototype) as EagleDownloader;
+    ADAPTER.conf = defaultConf();
+
+    const [asset] = (downloader as any).assetsForChapter(
+      chapter,
+      { picked: () => true },
+      '',
+      new GalleryMeta(chapter.source, 'bang dream'),
+      '2026-07-21',
+    );
+
+    expect(asset.sourceUrl).toBe('https://anime-pictures.net/posts/908175');
+    expect(asset.website).toBe(asset.sourceUrl);
+    expect(duplicateUrls(asset)).toContain('https://anime-pictures.net/posts/908175');
+  });
+
   it('uses semantic booru names while preserving date and scoped source identity', () => {
     const chapter = {
       title: 'Posts',

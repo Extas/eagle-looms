@@ -20,6 +20,7 @@ import { i18n } from "../utils/i18n";
 import { eagleAnnotationForAsset } from "./annotation";
 import { twitterEagleItemBaseName } from "./adapters/twitter";
 import { booruEagleItemBaseName } from "./adapters/booru";
+import { canonicalEagleSourceUrl } from "./source-url";
 import pLimit from "p-limit";
 
 const FILENAME_INVALIDCHAR = /[\\/:*?"<>|\n\t]/g;
@@ -370,7 +371,7 @@ export class EagleDownloader extends Downloader {
     for (let i = 0; i < chapter.filteredQueue.length; i++) {
       const imf = chapter.filteredQueue[i];
       if (!picked.picked(i) || !isReadyForEagleImport(imf)) continue;
-      const sourceUrl = absoluteHttpUrl(imf.node.href, chapter.source || meta.url) || imf.node.href;
+      const sourceUrl = canonicalEagleSourceUrl(imf.node.href, chapter.source || meta.url);
       const originUrl = absoluteHttpUrl(imf.node.originSrc, sourceUrl);
       const sourceTags = eagleSourceTags(imf, meta, sourceUrl);
       const sourceBaseName = twitterEagleItemBaseName(directory, imf.node.title, sourceUrl, sourceTags);
