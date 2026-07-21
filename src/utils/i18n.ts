@@ -1564,6 +1564,12 @@ pero desactivará la lupa y la capacidad de arrastrar y mover imágenes.`,
     'Eagle Web API timed out. Check Eagle is responsive, then retry or use Config > Test Eagle. ({message})',
     'Eagle Web API agoto el tiempo. Revisa que Eagle responda y reintenta o usa Config > Test Eagle. ({message})',
   ],
+  eagleImportWriteOutcomeUnknown: [
+    'Eagle did not confirm whether this item was written; it may already exist. Keep Skip Eagle Duplicates enabled and run the import again. If duplicate checks are off, inspect Eagle before retrying. ({message})',
+    'Eagle 未确认这个条目是否已写入；它可能已经存在。请保持“跳过 Eagle 重复项”开启后重新导入；如果已关闭去重，请先在 Eagle 中检查再重试。（{message}）',
+    'Eagle did not confirm whether this item was written; it may already exist. Keep Skip Eagle Duplicates enabled and run the import again. If duplicate checks are off, inspect Eagle before retrying. ({message})',
+    'Eagle no confirmo si este elemento se escribio; puede que ya exista. Mantén activado Omitir duplicados de Eagle y vuelve a importar. Si esta desactivado, revisa Eagle antes de reintentar. ({message})',
+  ],
   eagleImportApiUnauthorized: [
     'Eagle API authorization failed. Check the API token in Config and Eagle Developer settings, then retry. ({message})',
     'Eagle API 授权失败。请检查配置与 Eagle 开发者设置中的 API token 后重试。（{message}）',

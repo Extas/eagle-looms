@@ -1017,6 +1017,50 @@ describe('Eagle downloader duplicate checks', () => {
     clearSessionImportedAssets();
   });
 
+  it.each([
+    ['request timeout', () => Promise.reject(new Error('request timed out'))],
+    ['missing item id', () => Promise.resolve('')],
+  ])('reports an uncertain item write after %s without retrying the non-idempotent request', async (_case, addItem) => {
+    ADAPTER.conf = defaultConf();
+    const downloader = Object.assign(Object.create(EagleDownloader.prototype), {
+      folderIdsForJob: vi.fn().mockResolvedValue(['folder-id']),
+    }) as any;
+    const api = {
+      baseUrl: 'http://localhost:41595',
+      addItem: vi.fn(addItem),
+    };
+    const stats = {
+      planned: 1,
+      imported: 0,
+      skipped: 0,
+      sessionSkipped: 0,
+      duplicateSkipped: 0,
+      failed: 0,
+      folders: [],
+      folderLinks: [],
+      itemLinks: [],
+      skippedItems: [],
+      failures: [],
+    };
+
+    await downloader.writeJob(api, new Map(), {
+      asset: {
+        ...eagleAsset('source image.jpg'),
+        node: { authorUrls: [] },
+        meta: { authorUrls: [] },
+      },
+      folderPaths: [['Eagle Looms', 'site', 'date']],
+      folderKeys: ['Eagle Looms/site/date'],
+      folderKey: 'Eagle Looms/site/date',
+      preflightChecked: true,
+    }, stats, new Set());
+
+    expect(api.addItem).toHaveBeenCalledTimes(1);
+    expect(stats.imported).toBe(0);
+    expect(stats.failed).toBe(1);
+    expect(stats.failures.join(' ')).toContain('may already exist');
+  });
+
   it('reuses resolved folder ids across case-only path variants', async () => {
     const getFolders = vi.fn().mockResolvedValue([{
       id: 'root',

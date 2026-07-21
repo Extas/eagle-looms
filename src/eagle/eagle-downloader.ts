@@ -81,6 +81,13 @@ type EagleImportPreflight = {
 
 type EagleImportEndStage = Extract<DownloaderPanelStage, "downloadFailed" | "downloaded" | "downloadStart" | "importNoNewItems">;
 
+class EagleItemWriteOutcomeUnknownError extends Error {
+  constructor(readonly original: unknown) {
+    super(errorText(original));
+    this.name = "EagleItemWriteOutcomeUnknownError";
+  }
+}
+
 export class EagleDownloader extends Downloader {
   private importStopRequested = false;
   private importRunId = 0;
@@ -531,8 +538,17 @@ export class EagleDownloader extends Downloader {
       asset.name = job.finalName || createEagleItemName(asset.name, usedNames);
       const jobFolderIds = await this.folderIdsForJob(api, folderIds, job, stats, runId);
       this.assertImportActive(runId);
-      const id = await api.addItem(toAddItemInput(asset, jobFolderIds));
-      if (!id) throw new Error("Eagle did not return an item ID.");
+      let id: string;
+      try {
+        id = await api.addItem(toAddItemInput(asset, jobFolderIds));
+      } catch (error) {
+        const kind = classifyEagleApiError(error);
+        if (kind === "connection" || kind === "response" || kind === "timeout") {
+          throw new EagleItemWriteOutcomeUnknownError(error);
+        }
+        throw error;
+      }
+      if (!id) throw new EagleItemWriteOutcomeUnknownError(new Error("Eagle did not return an item ID."));
       recordUniqueLink(stats.itemLinks, asset.name, eagleItemUrl(api, id));
       markSessionImported(asset, sessionLibraryKey);
       stats.imported += 1;
@@ -611,6 +627,10 @@ export function hasIncompleteImportResult(stats: Pick<EagleImportSummaryStats, "
 }
 
 export function eagleImportErrorMessage(error: unknown): string {
+  if (error instanceof EagleItemWriteOutcomeUnknownError) {
+    const message = compactImportErrorText(redactEagleApiSecrets(errorText(error.original)));
+    return compactImportErrorText(format(i18n.eagleImportWriteOutcomeUnknown.get(), { message }));
+  }
   const message = compactImportErrorText(redactEagleApiSecrets(error instanceof Error ? error.message : String(error || "unknown error")));
   const kind = classifyEagleApiError(error);
   let result = message;
@@ -624,6 +644,10 @@ export function eagleImportErrorMessage(error: unknown): string {
     result = format(i18n.eagleImportApiTimedOut.get(), { message });
   }
   return compactImportErrorText(result);
+}
+
+function errorText(error: unknown): string {
+  return error instanceof Error ? error.message : String(error || "unknown error");
 }
 
 function compactImportErrorText(value: string): string {

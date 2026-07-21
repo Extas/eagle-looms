@@ -177,6 +177,7 @@ failure details copied from the result panel use the current UI language for Eag
 Eagle connection failures point users to start Eagle, check the Eagle API URL, and use Config > Test Eagle
 native fetch fallback requests time out with the same diagnosis as userscript GM requests instead of waiting indefinitely
 native fetch timeout remains active until the complete JSON or image response body has been read
+item/add is never retried automatically; timeout, connection loss, or an invalid success response reports that the item may already exist and directs duplicate-safe recovery
 Eagle 401/403 or invalid-token failures point users to the API token in Config and Eagle Developer settings
 oversized or multiline API failures remain compact in notifications and result panels while preserving the actionable diagnosis
 HTML or otherwise non-JSON responses identify the configured endpoint as a likely non-Eagle/V2 API URL
