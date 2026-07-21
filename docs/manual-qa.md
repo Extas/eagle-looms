@@ -344,6 +344,7 @@ actual copyright, character, artist, general, and metadata tag links remain impo
 NovelAI bridge behavior:
 
 ```text
+the panel is titled NovelAI -> Eagle; Set source resolves lineage and starts monitoring, while Watch On/Off only pauses or resumes that monitor
 Eagle item links inherit the source item's existing folder assignments for generated results
 the compact panel shows readable target folder paths before monitoring instead of only folder counts or opaque ids
 generated results keep the source identity in the structured name and source page in Website without a machine JSON annotation

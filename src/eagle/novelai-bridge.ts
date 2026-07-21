@@ -47,7 +47,7 @@ interface BridgeElements {
   body: HTMLElement;
   apiInput: HTMLInputElement;
   urlInput: HTMLInputElement;
-  importButton: HTMLButtonElement;
+  sourceButton: HTMLButtonElement;
   monitorButton: HTMLButtonElement;
   monitorLimitInput: HTMLInputElement;
   settingsButton: HTMLButtonElement;
@@ -632,7 +632,7 @@ class NovelAiEagleBridge {
     this.elements = createPanel(this.config);
     document.body.appendChild(this.elements.root);
     this.bindEvents();
-    this.setStatus("Paste a source URL, then Watch. Eagle item import is deferred.");
+    this.setStatus("Paste a source URL, choose Set source, then generate in NovelAI.");
     this.updateMonitorUi();
   }
 
@@ -655,9 +655,9 @@ class NovelAiEagleBridge {
     elements.urlInput.addEventListener("keydown", (event) => {
       if (event.key !== "Enter") return;
       event.preventDefault();
-      void this.watchSourceUrl();
+      void this.setSourceAndWatch();
     });
-    elements.importButton.addEventListener("click", () => void this.watchSourceUrl());
+    elements.sourceButton.addEventListener("click", () => void this.setSourceAndWatch());
     elements.settingsButton.addEventListener("click", () => {
       const open = elements.settingsPanel.dataset.open === "true";
       elements.settingsPanel.dataset.open = open ? "false" : "true";
@@ -698,7 +698,7 @@ class NovelAiEagleBridge {
     });
   }
 
-  private async watchSourceUrl(): Promise<void> {
+  private async setSourceAndWatch(): Promise<void> {
     const elements = this.elements;
     if (!elements) return;
     const rawSourceUrl = elements.urlInput.value.trim();
@@ -937,8 +937,8 @@ class NovelAiEagleBridge {
   private setBusy(busy: boolean): void {
     const elements = this.elements;
     if (!elements) return;
-    elements.importButton.disabled = busy;
-    elements.importButton.textContent = busy ? "..." : "Watch";
+    elements.sourceButton.disabled = busy;
+    elements.sourceButton.textContent = busy ? "..." : "Set source";
   }
 
   private setStatus(message: string, isError = false): void {
@@ -1128,12 +1128,12 @@ function createPanel(config: NovelAiBridgeConfig): BridgeElements {
       }
     </style>
     <div class="el-nai-main">
-      <strong>Eagle -> NAI</strong>
+      <strong>NovelAI -> Eagle</strong>
       <label class="el-nai-url">
         <span>URL</span>
         <input data-el="url" type="url" autocomplete="off" spellcheck="false" placeholder="https://x.com/...">
       </label>
-      <button data-el="import" type="button">Watch</button>
+      <button data-el="set-source" type="button" title="Resolve this source and start watching new NovelAI results">Set source</button>
       <button data-el="monitor" type="button">Watch On</button>
       <input data-el="limit" type="number" min="1" max="${MAX_MONITOR_LIMIT}" step="1" title="Auto-stop after this many NovelAI result imports">
       <button data-el="settings" type="button" title="Eagle API settings">API</button>
@@ -1155,7 +1155,7 @@ function createPanel(config: NovelAiBridgeConfig): BridgeElements {
     body: root,
     apiInput: root.querySelector<HTMLInputElement>("[data-el='api']")!,
     urlInput: root.querySelector<HTMLInputElement>("[data-el='url']")!,
-    importButton: root.querySelector<HTMLButtonElement>("[data-el='import']")!,
+    sourceButton: root.querySelector<HTMLButtonElement>("[data-el='set-source']")!,
     monitorButton: root.querySelector<HTMLButtonElement>("[data-el='monitor']")!,
     monitorLimitInput: root.querySelector<HTMLInputElement>("[data-el='limit']")!,
     settingsButton: root.querySelector<HTMLButtonElement>("[data-el='settings']")!,
