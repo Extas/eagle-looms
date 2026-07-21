@@ -351,6 +351,9 @@ infrastructure tags such as site/gallery/chapter/ext/mime are not copied to gene
 identical result bytes are saved only once per page session, even when NovelAI re-renders them under a new blob URL
 session-duplicate results do not consume the configured monitor result limit
 generated results smaller than 64 pixels on either edge are rejected and do not consume the monitor result limit
+any Eagle item/add failure stops the NovelAI monitor before another automatic write attempt
+timeouts, connection loss, invalid responses, and missing item ids warn that the result may already exist and require inspecting Eagle before restarting
+the compact status line exposes its full message on hover and never reveals an Eagle API token
 ```
 
 ## Known External Limitation

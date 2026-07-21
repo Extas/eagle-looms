@@ -5,11 +5,13 @@ import {
   eagleItemImageCandidates,
   eagleItemLink,
   isNovelAiImageToolsUrl,
+  NovelAiEagleWriteError,
   novelAiGeneratedTags,
   novelAiResultFingerprint,
   novelAiSourceFromEagleItem,
   novelAiSourceFromUrl,
   novelAiTargetFolderLabel,
+  novelAiWriteFailureStatus,
   normalizeNovelAiResultBlob,
   normalizeMonitorLimit,
   parseEagleItemId,
@@ -176,6 +178,19 @@ describe("NovelAI Eagle bridge", () => {
 
     await expect(novelAiResultFingerprint(png)).resolves.toBe("ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad");
     await expect(novelAiResultFingerprint(jpeg)).resolves.toBe("ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad");
+  });
+
+  it("distinguishes uncertain Eagle writes from definite failures", () => {
+    const timeout = new NovelAiEagleWriteError(new Error("request timed out for ?token=secret"));
+    const authorization = new NovelAiEagleWriteError(new Error("403 Forbidden"));
+    const missingId = new NovelAiEagleWriteError(new Error("missing item id"), true);
+
+    expect(timeout.outcomeUnknown).toBe(true);
+    expect(timeout.message).toBe("request timed out for ?token=***");
+    expect(novelAiWriteFailureStatus(timeout)).toContain("may already exist");
+    expect(authorization.outcomeUnknown).toBe(false);
+    expect(novelAiWriteFailureStatus(authorization)).toContain("Fix the error");
+    expect(missingId.outcomeUnknown).toBe(true);
   });
 
   it("normalizes NovelAI result blobs from binary signatures", async () => {

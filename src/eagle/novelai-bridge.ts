@@ -1,5 +1,5 @@
 import type { EagleFolder, EagleItem } from "../types";
-import { EagleWebApi, redactEagleApiSecrets, type AddItemInput } from "./eagle-web-api";
+import { classifyEagleApiError, EagleWebApi, redactEagleApiSecrets, type AddItemInput } from "./eagle-web-api";
 import { indexFolderPaths } from "./folders";
 import { normalizeEagleBaseUrl } from "./options";
 import { arrayBufferToBase64, requestArrayBuffer } from "./transport";
@@ -111,6 +111,25 @@ interface NovelAiResultImageData {
   size: number;
   fingerprint: string;
   via: "page-bridge" | "fetch";
+}
+
+export class NovelAiEagleWriteError extends Error {
+  readonly outcomeUnknown: boolean;
+
+  constructor(error: unknown, forceOutcomeUnknown = false) {
+    const message = redactEagleApiSecrets(errorMessage(error));
+    super(message);
+    this.name = "NovelAiEagleWriteError";
+    const kind = classifyEagleApiError(error);
+    this.outcomeUnknown = forceOutcomeUnknown || kind === "connection" || kind === "response" || kind === "timeout";
+  }
+}
+
+export function novelAiWriteFailureStatus(error: NovelAiEagleWriteError): string {
+  if (error.outcomeUnknown) {
+    return `Eagle did not confirm this result; it may already exist. Watch stopped. Inspect Eagle before restarting. (${error.message})`;
+  }
+  return `Eagle save failed. Watch stopped. Fix the error, restart Watch, then generate again. (${error.message})`;
 }
 
 const NOVEL_AI_PAGE_BRIDGE_SOURCE = String.raw`
@@ -764,11 +783,17 @@ class NovelAiEagleBridge {
           logNovelAiResult("result import failed", {
             src: shortUrl(src),
             error: errorMessage(error),
+            writeOutcomeUnknown: error instanceof NovelAiEagleWriteError ? error.outcomeUnknown : false,
           }, "warn");
           debugNovelAi("result", "import failed", {
             src: shortUrl(src),
             error: errorMessage(error),
           }, "warn");
+          if (error instanceof NovelAiEagleWriteError) {
+            this.stopMonitor();
+            this.setStatus(novelAiWriteFailureStatus(error), true);
+            break;
+          }
           this.setStatus(`Result import failed: ${errorMessage(error)}`, true);
         }
       }
@@ -833,10 +858,16 @@ class NovelAiEagleBridge {
         dataUrlChars: image.dataUrl.length,
       });
       const api = new EagleWebApi(this.config.eagleBaseUrl);
-      const id = await api.addItem(input);
+      let id: string;
+      try {
+        id = await api.addItem(input);
+      } catch (error) {
+        throw new NovelAiEagleWriteError(error);
+      }
+      if (!id) throw new NovelAiEagleWriteError(new Error("Eagle did not return an item ID"), true);
       this.importedResultSources.add(src);
       this.importedResultFingerprints.add(image.fingerprint);
-      if (id) this.savedResultIds.push(id);
+      this.savedResultIds.push(id);
       this.importedResultCount += 1;
       logNovelAiResult("result saved", {
         id: id || "(no id returned)",
@@ -914,6 +945,7 @@ class NovelAiEagleBridge {
     const elements = this.elements;
     if (!elements) return;
     elements.status.textContent = message;
+    elements.status.title = message;
     elements.status.dataset.state = isError ? "error" : "ok";
   }
 
