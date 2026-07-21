@@ -6,6 +6,7 @@ import {
   eagleItemLink,
   isNovelAiImageToolsUrl,
   novelAiGeneratedTags,
+  novelAiResultFingerprint,
   novelAiSourceFromEagleItem,
   novelAiSourceFromUrl,
   normalizeNovelAiResultBlob,
@@ -148,6 +149,14 @@ describe("NovelAI Eagle bridge", () => {
       "author:knokzm",
       "blue eyes",
     ]);
+  });
+
+  it("fingerprints result bytes independently of blob metadata", async () => {
+    const png = new Blob(["abc"], { type: "image/png" });
+    const jpeg = new Blob(["abc"], { type: "image/jpeg" });
+
+    await expect(novelAiResultFingerprint(png)).resolves.toBe("ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad");
+    await expect(novelAiResultFingerprint(jpeg)).resolves.toBe("ba7816bf8f01cfea414140de5dae2223b00361a396177a9cb410ff61f20015ad");
   });
 
   it("normalizes NovelAI result blobs from binary signatures", async () => {

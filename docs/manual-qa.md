@@ -347,6 +347,8 @@ NovelAI bridge behavior:
 Eagle item links inherit the source item's existing folder assignments for generated results
 generated results keep the source identity in the structured name and source page in Website without a machine JSON annotation
 infrastructure tags such as site/gallery/chapter/ext/mime are not copied to generated results
+identical result bytes are saved only once per page session, even when NovelAI re-renders them under a new blob URL
+session-duplicate results do not consume the configured monitor result limit
 generated results smaller than 64 pixels on either edge are rejected and do not consume the monitor result limit
 ```
 

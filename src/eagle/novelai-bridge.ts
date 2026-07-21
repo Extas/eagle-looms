@@ -107,6 +107,7 @@ interface NovelAiResultImageData {
   dataUrl: string;
   contentType: string;
   size: number;
+  fingerprint: string;
   via: "page-bridge" | "fetch";
 }
 
@@ -586,6 +587,7 @@ class NovelAiEagleBridge {
   private monitorBaseline = new Set<string>();
   private importedResultSources = new Set<string>();
   private importingResultSources = new Set<string>();
+  private importedResultFingerprints = new Set<string>();
   private importedResultCount = 0;
   private savedResultIds: string[] = [];
   private destroyed = false;
@@ -780,7 +782,18 @@ class NovelAiEagleBridge {
         via: image.via,
         type: image.contentType,
         size: image.size,
+        fingerprint: image.fingerprint.slice(0, 12),
       });
+      if (this.importedResultFingerprints.has(image.fingerprint)) {
+        this.importedResultSources.add(src);
+        logNovelAiResult("result skipped as session duplicate", {
+          src: shortUrl(src),
+          fingerprint: image.fingerprint.slice(0, 12),
+          source: source.title,
+        });
+        this.setStatus("Skipped a result already saved in this page session.");
+        return;
+      }
       const input = buildNovelAiGeneratedItemInput({
         source,
         generatedAt: new Date(),
@@ -808,6 +821,7 @@ class NovelAiEagleBridge {
       const api = new EagleWebApi(this.config.eagleBaseUrl);
       const id = await api.addItem(input);
       this.importedResultSources.add(src);
+      this.importedResultFingerprints.add(image.fingerprint);
       if (id) this.savedResultIds.push(id);
       this.importedResultCount += 1;
       logNovelAiResult("result saved", {
@@ -1518,12 +1532,7 @@ async function readNovelAiResultImage(src: string, traceId: string): Promise<Nov
     if (summary.dataUrl) {
       const blob = decodeDataUrlToBlob(summary.dataUrl, summary.type || fallbackType);
       const normalized = await normalizeNovelAiResultBlob(blob, src);
-      return {
-        dataUrl: await blobToDataUrl(normalized.blob, normalized.contentType),
-        contentType: normalized.contentType,
-        size: normalized.blob.size,
-        via: "page-bridge",
-      };
+      return await toNovelAiResultImageData(normalized, "page-bridge");
     }
     if (summary.error) {
       debugNovelAi(traceId, "page result read failed", {
@@ -1535,12 +1544,30 @@ async function readNovelAiResultImage(src: string, traceId: string): Promise<Nov
 
   const blob = await downloadImageBlob(src, fallbackType);
   const normalized = await normalizeNovelAiResultBlob(blob, src);
+  return await toNovelAiResultImageData(normalized, "fetch");
+}
+
+async function toNovelAiResultImageData(
+  normalized: { blob: Blob; contentType: string },
+  via: NovelAiResultImageData["via"],
+): Promise<NovelAiResultImageData> {
+  const buffer = await normalized.blob.arrayBuffer();
   return {
-    dataUrl: await blobToDataUrl(normalized.blob, normalized.contentType),
+    dataUrl: `data:${normalized.contentType};base64,${arrayBufferToBase64(buffer)}`,
     contentType: normalized.contentType,
     size: normalized.blob.size,
-    via: "fetch",
+    fingerprint: await sha256Hex(buffer),
+    via,
   };
+}
+
+export async function novelAiResultFingerprint(blob: Blob): Promise<string> {
+  return await sha256Hex(await blob.arrayBuffer());
+}
+
+async function sha256Hex(buffer: ArrayBuffer): Promise<string> {
+  const digest = await globalThis.crypto.subtle.digest("SHA-256", buffer);
+  return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, "0")).join("");
 }
 
 export async function normalizeNovelAiResultBlob(blob: Blob, url: string): Promise<{ blob: Blob; contentType: string }> {
