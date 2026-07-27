@@ -207,9 +207,7 @@ export class DownloaderPanel {
           cleanup(true);
         }
       });
-      copyButton?.addEventListener("click", async () => {
-        copyButton.textContent = await copyText(planText) ? i18n.eagleImportResultCopied.get() : i18n.eagleImportResultCopyFailed.get();
-      });
+      bindCopyFeedback(copyButton, planText, i18n.eagleImportConfirmCopy.get());
       cancelButton?.addEventListener("click", () => cleanup(false));
       confirmButton?.addEventListener("click", () => cleanup(true));
       relocateElement(div, this.startBTN, this.root.offsetWidth, this.root.offsetHeight);
@@ -239,10 +237,11 @@ export class DownloaderPanel {
       </div>
     `;
     this.eagleResultElement.querySelector<HTMLButtonElement>('[data-action="clear"]')?.addEventListener("click", () => this.clearEagleImportResult());
-    this.eagleResultElement.querySelector<HTMLButtonElement>('[data-action="copy"]')?.addEventListener("click", async event => {
-      const button = event.currentTarget as HTMLButtonElement;
-      button.textContent = await copyText(resultText) ? i18n.eagleImportResultCopied.get() : i18n.eagleImportResultCopyFailed.get();
-    });
+    bindCopyFeedback(
+      this.eagleResultElement.querySelector<HTMLButtonElement>('[data-action="copy"]'),
+      resultText,
+      i18n.eagleImportResultCopy.get(),
+    );
   }
 
   clearEagleImportResult() {
@@ -487,6 +486,23 @@ async function copyText(value: string): Promise<boolean> {
   } finally {
     textArea.remove();
   }
+}
+
+function bindCopyFeedback(button: HTMLButtonElement | null | undefined, value: string, idleLabel: string): void {
+  if (!button) return;
+  let latestAttempt = 0;
+  let resetTimer: ReturnType<typeof setTimeout> | undefined;
+  button.addEventListener("click", async () => {
+    const attempt = ++latestAttempt;
+    if (resetTimer !== undefined) clearTimeout(resetTimer);
+    button.textContent = i18n.eagleImportResultCopying.get();
+    const copied = await copyText(value);
+    if (attempt !== latestAttempt || !button.isConnected) return;
+    button.textContent = copied ? i18n.eagleImportResultCopied.get() : i18n.eagleImportResultCopyFailed.get();
+    resetTimer = setTimeout(() => {
+      if (attempt === latestAttempt && button.isConnected) button.textContent = idleLabel;
+    }, 1600);
+  });
 }
 
 function focusNextInDialog(dialog: HTMLElement, reverse: boolean): void {

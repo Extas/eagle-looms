@@ -1474,6 +1474,12 @@ pero desactivará la lupa y la capacidad de arrastrar y mover imágenes.`,
     'Copy details',
     'Copiar detalles'
   ],
+  eagleImportResultCopying: [
+    'Copying...',
+    '正在复制...',
+    'Copying...',
+    'Copiando...'
+  ],
   eagleImportResultCopied: [
     'Copied',
     '已复制',

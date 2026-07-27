@@ -24,6 +24,7 @@ function createPanel(): DownloaderPanel {
 
 describe("DownloaderPanel Eagle import confirmation", () => {
   afterEach(() => {
+    vi.useRealTimers();
     document.body.innerHTML = "";
     vi.restoreAllMocks();
   });
@@ -216,6 +217,7 @@ describe("DownloaderPanel Eagle import confirmation", () => {
   });
 
   it("shows compact confirmation details and copies the complete import plan", async () => {
+    vi.useFakeTimers();
     const panel = createPanel();
     const writeText = vi.fn().mockResolvedValue(undefined);
     Object.defineProperty(navigator, "clipboard", {
@@ -242,6 +244,7 @@ describe("DownloaderPanel Eagle import confirmation", () => {
     expect(details.open).toBe(false);
 
     copyButton.click();
+    expect(copyButton.textContent).toBe(i18n.eagleImportResultCopying.get());
     await Promise.resolve();
     await Promise.resolve();
 
@@ -255,6 +258,8 @@ describe("DownloaderPanel Eagle import confirmation", () => {
       "additional source tags max 20",
     ].join("\n"));
     expect(copyButton.textContent).toBe(i18n.eagleImportResultCopied.get());
+    vi.advanceTimersByTime(1600);
+    expect(copyButton.textContent).toBe(i18n.eagleImportConfirmCopy.get());
     expect(document.querySelector(".ehvp-eagle-import-confirm")).not.toBeNull();
     expect(settled).toBe(false);
 
@@ -303,6 +308,7 @@ describe("DownloaderPanel Eagle import confirmation", () => {
   });
 
   it("copies Eagle import result details for troubleshooting", async () => {
+    vi.useFakeTimers();
     const panel = createPanel();
     const writeText = vi.fn().mockResolvedValue(undefined);
     Object.defineProperty(navigator, "clipboard", {
@@ -314,7 +320,9 @@ describe("DownloaderPanel Eagle import confirmation", () => {
       { label: "Eagle Looms/site/a", url: "http://localhost:41595/folder?id=folder-1" },
     ]);
 
-    panel.eagleResultElement.querySelector<HTMLButtonElement>('[data-action="copy"]')?.click();
+    const copyButton = panel.eagleResultElement.querySelector<HTMLButtonElement>('[data-action="copy"]')!;
+    copyButton.click();
+    expect(copyButton.textContent).toBe(i18n.eagleImportResultCopying.get());
     await Promise.resolve();
     await Promise.resolve();
 
@@ -324,7 +332,46 @@ describe("DownloaderPanel Eagle import confirmation", () => {
       "first failures a.png: timeout",
       "Eagle Looms/site/a: http://localhost:41595/folder?id=folder-1",
     ].join("\n"));
-    expect(panel.eagleResultElement.querySelector<HTMLButtonElement>('[data-action="copy"]')?.textContent).toBe(i18n.eagleImportResultCopied.get());
+    expect(copyButton.textContent).toBe(i18n.eagleImportResultCopied.get());
+    vi.advanceTimersByTime(1600);
+    expect(copyButton.textContent).toBe(i18n.eagleImportResultCopy.get());
+  });
+
+  it("ignores an older copy result after a newer copy succeeds", async () => {
+    vi.useFakeTimers();
+    const panel = createPanel();
+    let rejectFirst!: (reason?: unknown) => void;
+    let resolveSecond!: () => void;
+    const writeText = vi.fn()
+      .mockReturnValueOnce(new Promise<void>((_, reject) => {
+        rejectFirst = reject;
+      }))
+      .mockReturnValueOnce(new Promise<void>(resolve => {
+        resolveSecond = resolve;
+      }));
+    Object.defineProperty(navigator, "clipboard", {
+      configurable: true,
+      value: { writeText },
+    });
+    Object.defineProperty(document, "execCommand", {
+      configurable: true,
+      value: vi.fn().mockReturnValue(false),
+    });
+    panel.showEagleImportResult(["imported 1"], false);
+    const copyButton = panel.eagleResultElement.querySelector<HTMLButtonElement>('[data-action="copy"]')!;
+
+    copyButton.click();
+    copyButton.click();
+    resolveSecond();
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(copyButton.textContent).toBe(i18n.eagleImportResultCopied.get());
+
+    rejectFirst(new Error("clipboard denied"));
+    await Promise.resolve();
+    await Promise.resolve();
+    expect(writeText).toHaveBeenCalledTimes(2);
+    expect(copyButton.textContent).toBe(i18n.eagleImportResultCopied.get());
   });
 
   it("falls back when Clipboard API rejects because the page is not focused", async () => {
