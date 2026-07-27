@@ -139,6 +139,58 @@ type TwitterStatusIdentity = {
   statusId: string,
 };
 
+type TwitterXhrResponse = {
+  text: string,
+  status?: number,
+  statusText?: string,
+};
+
+export function parseTwitterApiJsonText(text: string, label = "Twitter API response"): any {
+  const trimmed = text.trim();
+  if (!trimmed) throw new Error(`empty ${label}`);
+  try {
+    return JSON.parse(trimmed);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    const snippet = trimmed.replace(/\s+/g, " ").slice(0, 120);
+    throw new Error(`invalid JSON in ${label}: ${message}; body starts: ${snippet}`);
+  }
+}
+
+export async function readTwitterApiJsonResponse(response: Response): Promise<any> {
+  const json = parseTwitterApiJsonText(
+    await response.text(),
+    twitterApiResponseLabel(response.status, response.statusText),
+  );
+  return validateTwitterApiJsonResponse(json, response.status, response.statusText);
+}
+
+function parseTwitterApiXhrResponse(response: TwitterXhrResponse): any {
+  const json = parseTwitterApiJsonText(
+    response.text,
+    twitterApiResponseLabel(response.status, response.statusText),
+  );
+  return validateTwitterApiJsonResponse(json, response.status, response.statusText);
+}
+
+function validateTwitterApiJsonResponse(json: any, status?: number, statusText?: string): any {
+  const graphQlMessage = json?.errors?.[0]?.message;
+  if (graphQlMessage) throw new Error(graphQlMessage);
+  if (typeof status === "number" && (status < 200 || status >= 300)) {
+    throw new Error(`HTTP ${status}${statusText ? ` ${statusText}` : ""}`);
+  }
+  return json;
+}
+
+function twitterApiResponseLabel(status?: number, statusText?: string): string {
+  if (typeof status !== "number") return "Twitter API response";
+  return `Twitter API response (HTTP ${status}${statusText ? ` ${statusText}` : ""})`;
+}
+
+function twitterApiQueryError(error: unknown): Error {
+  return new Error(`twitter api query error: ${error instanceof Error ? error.message : String(error)}`);
+}
+
 // Adapted from X.com Enhanced Gallery 2.1.2, Copyright (c) 2024-2026 PiesP, MIT.
 const TWITTER_STATUS_QUERY_ID = "zAz9764BcLZOJ0JU2wrd1A";
 const TWITTER_STATUS_FEATURES = {
@@ -212,10 +264,7 @@ class TwitterStatusAPI implements TwitterAPIClient {
     try {
       const url = twitterStatusEndpointURL(this.identity.statusId, window.location.origin);
       const response = await window.fetch(url, { headers: createHeader(this.uuid), signal: AbortSignal.timeout(10000) });
-      const json = await response.json();
-      if (!response.ok || json?.errors?.[0]?.message) {
-        throw new Error(json?.errors?.[0]?.message || `HTTP ${response.status}`);
-      }
+      const json = await readTwitterApiJsonResponse(response);
       const item = twitterStatusItemFromResponse(json);
       if (!item) throw new Error("response has no media");
       return [[item], undefined];
@@ -224,7 +273,8 @@ class TwitterStatusAPI implements TwitterAPIClient {
     }
 
     try {
-      const json = await simpleFetch(twitterSyndicationURL(this.identity.statusId), "json");
+      const text = await simpleFetch(twitterSyndicationURL(this.identity.statusId), "text");
+      const json = parseTwitterApiJsonText(text, "Twitter public fallback response");
       const item = twitterStatusItemFromSyndication(json);
       if (!item) throw new Error("response has no media");
       return [[item], undefined];
@@ -266,10 +316,7 @@ class TwitterUserMediasAPI implements TwitterAPIClient {
     }
     try {
       const res = await window.fetch(url, { headers: createHeader(this.uuid), signal: AbortSignal.timeout(10000) });
-      const json = await res.json();
-      if (res.status !== 200 && json?.errors?.[0].message) {
-        throw new Error(json?.errors?.[0].message);
-      }
+      const json = await readTwitterApiJsonResponse(res);
       if (chapter.id === 0) {
         const instructions = json.data.user.result.timeline.timeline.instructions as Instructions;
         const entries = instructions.find(ins => ins.type === "TimelineAddEntries") as HomeForYouEntries | undefined;
@@ -295,7 +342,7 @@ class TwitterUserMediasAPI implements TwitterAPIClient {
         return [items, cursor];
       }
     } catch (error) {
-      throw new Error(`twitter api query error: ${error}`);
+      throw twitterApiQueryError(error);
     }
   }
 
@@ -321,10 +368,7 @@ class TwitterListsAPI implements TwitterAPIClient {
     const url = `${window.location.origin}/i/api/graphql/LSefrrxhpeX8HITbKfWz9g/ListLatestTweetsTimeline?variables=${encodeURIComponent(variables)}${features}`;
     try {
       const res = await window.fetch(url, { headers: createHeader(this.uuid), signal: AbortSignal.timeout(10000) });
-      const json = await res.json();
-      if (res.status !== 200 && json?.errors?.[0].message) {
-        throw new Error(json?.errors?.[0].message);
-      }
+      const json = await readTwitterApiJsonResponse(res);
       const instructions = json.data.list.tweets_timeline.timeline.instructions as Instructions;
       const entries = instructions.find(ins => ins.type === "TimelineAddEntries") as HomeForYouEntries | undefined;
       if (!entries) {
@@ -333,7 +377,7 @@ class TwitterListsAPI implements TwitterAPIClient {
       const { items, cursor } = homeForYouEntriesToItems(entries);
       return [items, cursor];
     } catch (error) {
-      throw new Error(`twitter api query error: ${error}`);
+      throw twitterApiQueryError(error);
     }
   }
 
@@ -384,22 +428,23 @@ class TwitterHomeForYouAPI implements TwitterAPIClient {
       const h: Record<string, string> = {};
       headers.forEach((v, k) => { h[k] = v });
       // window.fetch on x.com cannot send post query with body, property "body" no permissions
-      const text = await new Promise<string>((resolve, reject) => {
+      const response = await new Promise<TwitterXhrResponse>((resolve, reject) => {
         GM_XHR({
           method: (body) ? "POST" : "GET",
           url,
           headers: h,
           data: (body) ? body : undefined,
           timeout: 20000,
-          onload: (event) => resolve(event.response),
+          onload: (event) => resolve({
+            text: String(event.response ?? event.responseText ?? ""),
+            status: event.status,
+            statusText: event.statusText,
+          }),
           ontimeout: () => reject("timeout"),
           onerror: (reason) => reject(reason),
         });
       });
-      const json = JSON.parse(text);
-      if (json?.errors?.[0].message) {
-        throw new Error(json?.errors?.[0].message);
-      }
+      const json = parseTwitterApiXhrResponse(response);
       const instructions = (() => {
         if (chapter.id === 3) {
           if (json?.data?.user?.result?.timeline_v2?.timeline?.instructions) {
@@ -424,7 +469,7 @@ class TwitterHomeForYouAPI implements TwitterAPIClient {
       this.chapterCursors[chapter.id] = cursor;
       return [items, cursor];
     } catch (error) {
-      throw new Error(`twitter api query error: ${error}`);
+      throw twitterApiQueryError(error);
     }
   }
 

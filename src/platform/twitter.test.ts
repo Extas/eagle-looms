@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import { defaultConf } from "../config";
 import { twitterItemAuthorUrls, twitterItemPublishedAt, twitterItemSourceTags } from "../eagle/adapters/twitter";
 import { ADAPTER } from "./adapt";
-import { TwitterMatcher, twitterGalleryTitleFromURL, twitterStatusEndpointURL, twitterStatusIdentityFromURL, twitterStatusItemFromResponse, twitterStatusItemFromSyndication, twitterSyndicationURL } from "./matchers/twitter";
+import { parseTwitterApiJsonText, readTwitterApiJsonResponse, TwitterMatcher, twitterGalleryTitleFromURL, twitterStatusEndpointURL, twitterStatusIdentityFromURL, twitterStatusItemFromResponse, twitterStatusItemFromSyndication, twitterSyndicationURL } from "./matchers/twitter";
 
 vi.mock("$", () => ({
   GM: {
@@ -154,5 +154,36 @@ describe("Twitter matcher metadata", () => {
       mimeType: "video/mp4",
       publishedAt: "2026-07-21T05:39:28Z",
     });
+  });
+});
+
+describe("Twitter API response parsing", () => {
+  it("reports empty response bodies with their HTTP status", async () => {
+    await expect(readTwitterApiJsonResponse(new Response("", { status: 200 })))
+      .rejects.toThrow("empty Twitter API response (HTTP 200)");
+  });
+
+  it("reports non-JSON bodies with a response preview", async () => {
+    await expect(readTwitterApiJsonResponse(new Response("<html>login expired</html>", { status: 200 })))
+      .rejects.toThrow(/invalid JSON in Twitter API response \(HTTP 200\).*body starts: <html>login expired<\/html>/);
+  });
+
+  it("prefers the GraphQL error message over the HTTP status", async () => {
+    const body = JSON.stringify({ errors: [{ message: "Rate limit exceeded" }] });
+
+    await expect(readTwitterApiJsonResponse(new Response(body, { status: 429 })))
+      .rejects.toThrow("Rate limit exceeded");
+  });
+
+  it("reports an unsuccessful HTTP status when the JSON has no GraphQL error", async () => {
+    await expect(readTwitterApiJsonResponse(new Response('{"data":null}', {
+      status: 503,
+      statusText: "Service Unavailable",
+    }))).rejects.toThrow("HTTP 503 Service Unavailable");
+  });
+
+  it("uses the same empty-body guard for text responses", () => {
+    expect(() => parseTwitterApiJsonText("", "Twitter public fallback response"))
+      .toThrow("empty Twitter public fallback response");
   });
 });
