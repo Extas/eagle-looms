@@ -1044,6 +1044,18 @@ export function styleCSS() {
   flex-direction: column;
   overflow: hidden;
 }
+.ehvp-add-chapter-url-prompt .ehvp-modal-body {
+  display: flex;
+  justify-content: center;
+}
+.ehvp-add-chapter-url-input {
+  box-sizing: border-box;
+  width: min(250px, 75vw);
+  padding: 0.3em;
+  color: #000;
+  background-color: #ffffff80;
+  border: 1px solid #000;
+}
 .ehvp-modal-title {
   font-weight: 700;
   margin-bottom: 0.5em;

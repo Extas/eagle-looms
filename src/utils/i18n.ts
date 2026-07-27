@@ -1690,6 +1690,12 @@ pero desactivará la lupa y la capacidad de arrastrar y mover imágenes.`,
     '새 챕터 추가',
     'Agregar capítulos',
   ],
+  addNewChaptersFailed: [
+    'Could not add chapters: {message}',
+    '添加章节失败：{message}',
+    '챕터를 추가하지 못했습니다: {message}',
+    'No se pudieron añadir capítulos: {message}',
+  ],
   cherryPick: [
     'Cherry Pick',
     '范围选择',
