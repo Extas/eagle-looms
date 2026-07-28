@@ -483,12 +483,15 @@ export class TwitterMatcher extends BaseMatcher<Item[]> {
 
   constructor() {
     super();
-    const status = twitterStatusIdentityFromURL(window.location.href);
+    const pageKind = twitterPageKindFromURL(window.location.href);
+    const status = pageKind === "status"
+      ? twitterStatusIdentityFromURL(window.location.href)
+      : undefined;
     if (status) {
       this.api = new TwitterStatusAPI(status);
-    } else if (/\/home$/.test(window.location.href)) {
+    } else if (pageKind === "home") {
       this.api = new TwitterHomeForYouAPI();
-    } else if (/i\/lists\/\d+$/.test(window.location.href)) {
+    } else if (pageKind === "list") {
       this.api = new TwitterListsAPI();
     } else {
       this.api = new TwitterUserMediasAPI();
@@ -609,12 +612,27 @@ export class TwitterMatcher extends BaseMatcher<Item[]> {
 export function twitterGalleryTitleFromURL(href: string, fallbackTitle = "twitter", date = new Date()): string {
   const url = new URL(href, "https://x.com/");
   const path = url.pathname.replace(/\/+$/, "") || "/";
-  if (path === "/home") return datedGalleryTitle(["twitter", "home"], date);
+  const pageKind = twitterPageKindFromURL(href);
+  if (pageKind === "home") return datedGalleryTitle(["twitter", "home"], date);
   const listId = path.match(/^\/i\/lists\/([^/]+)/)?.[1];
   if (listId) return datedGalleryTitle(["twitter", "list", listId], date);
-  if (twitterStatusIdentityFromURL(href)) return datedGalleryTitle(["twitter", "post"], date);
+  if (pageKind === "status") return datedGalleryTitle(["twitter", "post"], date);
   if (path.match(/^\/[^/]+/)) return datedGalleryTitle(["twitter", "user"], date);
   return datedGalleryTitle(["twitter", cleanGalleryTitlePart(fallbackTitle)], date);
+}
+
+export type TwitterPageKind = "home" | "list" | "status" | "user";
+
+export function twitterPageKindFromURL(href: string): TwitterPageKind {
+  if (twitterStatusIdentityFromURL(href)) return "status";
+  try {
+    const path = new URL(href, "https://x.com/").pathname.replace(/\/+$/, "") || "/";
+    if (path === "/home" || path === "/i/timeline") return "home";
+    if (/^\/i\/lists\/\d+$/.test(path)) return "list";
+  } catch {
+    // The matcher only calls this with the current page URL; keep a safe user-page fallback.
+  }
+  return "user";
 }
 
 export function twitterStatusIdentityFromURL(href: string): TwitterStatusIdentity | undefined {
@@ -866,11 +884,15 @@ function checkoutMedias(item: Item): [Media[], string | undefined] {
   return [ret, tweewId];
 
 }
+
+export const TWITTER_WORK_URLS = [
+  /(\/x|twitter).com\/(?!(explore|notifications|messages|jobs|lists)$|i\/(?!list)|search\?)\w+/,
+  /^https?:\/\/(?:x|twitter)\.com\/i\/timeline(?:[/?#]|$)/i,
+];
+
 ADAPTER.addSetup({
   name: "Twitter | X",
-  workURLs: [
-    /(\/x|twitter).com\/(?!(explore|notifications|messages|jobs|lists)$|i\/(?!list)|search\?)\w+/
-  ],
+  workURLs: TWITTER_WORK_URLS,
   match: ["https://x.com/*"],
   constructor: () => new TwitterMatcher(),
 });

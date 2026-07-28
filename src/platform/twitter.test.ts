@@ -2,7 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import { defaultConf } from "../config";
 import { twitterItemAuthorUrls, twitterItemPublishedAt, twitterItemSourceTags } from "../eagle/adapters/twitter";
 import { ADAPTER } from "./adapt";
-import { parseTwitterApiJsonText, readTwitterApiJsonResponse, TwitterMatcher, twitterGalleryTitleFromURL, twitterStatusEndpointURL, twitterStatusIdentityFromURL, twitterStatusItemFromResponse, twitterStatusItemFromSyndication, twitterSyndicationURL } from "./matchers/twitter";
+import { parseTwitterApiJsonText, readTwitterApiJsonResponse, TWITTER_WORK_URLS, TwitterMatcher, twitterGalleryTitleFromURL, twitterPageKindFromURL, twitterStatusEndpointURL, twitterStatusIdentityFromURL, twitterStatusItemFromResponse, twitterStatusItemFromSyndication, twitterSyndicationURL } from "./matchers/twitter";
 
 vi.mock("$", () => ({
   GM: {
@@ -18,6 +18,14 @@ describe("Twitter matcher metadata", () => {
   it("uses stable date-based gallery names instead of parsed item counts", () => {
     expect(twitterGalleryTitleFromURL("https://x.com/home", "", date)).toBe("twitter-home-2026-05-31");
     expect(twitterGalleryTitleFromURL("https://twitter.com/home", "", date)).toBe("twitter-home-2026-05-31");
+  });
+
+  it("activates the authenticated internal timeline as a home feed", () => {
+    const href = "https://x.com/i/timeline";
+
+    expect(TWITTER_WORK_URLS.some(pattern => pattern.test(href))).toBe(true);
+    expect(twitterPageKindFromURL(href)).toBe("home");
+    expect(twitterGalleryTitleFromURL(href, "", date)).toBe("twitter-home-2026-05-31");
   });
 
   it("keeps user and list timelines readable without author folders", () => {

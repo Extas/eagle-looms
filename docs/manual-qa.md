@@ -59,6 +59,7 @@ https://rule34.us/index.php?r=posts/index
 https://rule34.us/index.php?r=posts/view&id={id}
 https://pawchive.pw/fanbox/user/{id}
 https://pawchive.pw/fanbox/user/{id}/post/{post-id}
+https://x.com/i/timeline
 ```
 
 ## UI Checks
@@ -67,6 +68,7 @@ Expected:
 
 ```text
 Comic Looms control bar appears
+authenticated X /i/timeline opens the same For you / Following / Your Likes collection as /home
 Enter/Open shows the full-view grid
 existing chapter selection, cherry-pick ranges, loading status, progress canvas, retry failed still work
 Import panel primary action says Load missing & import / 加载缺失并导入
@@ -285,7 +287,7 @@ annotation-free V2 items can use exact source URL plus the stable source media n
 Folder naming behavior:
 
 ```text
-Twitter / X home folders use twitter-home-YYYY-MM-DD instead of parsed post/media counts
+Twitter / X /home and /i/timeline folders use twitter-home-YYYY-MM-DD instead of parsed post/media counts
 Twitter / X user timelines use twitter-user-YYYY-MM-DD without the author name; list timelines include list identity plus local date
 Twitter / X item names use the media-bearing source author instead of generic User Media chapter text
 Twitter / X falls back to the media source URL for author name, tag, and profile URL when GraphQL user metadata is missing
