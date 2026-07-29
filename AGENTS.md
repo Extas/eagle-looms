@@ -153,6 +153,22 @@ For each small feature iteration, increment the last number by one:
 
 Only run the full automated validation gate when the middle version number changes, i.e. once every 100 small iterations (`1.1.1`, `1.2.1`, ...). For ordinary small-version bumps, prefer targeted local checks or manual review unless a risky change requires more.
 
+### GitHub Publication
+
+A package version is complete only after its source and installable userscript are published to GitHub. For every version bump:
+
+```text
+run the checks required by the validation cadence and build dist/eagle-looms.user.js
+commit the version and its complete intended change set
+push that commit to the tracked origin branch, normally origin/main
+create and push the v{package.json version} tag
+publish a GitHub Release named v{package.json version}
+attach dist/eagle-looms.user.js and dist/eagle-looms.meta.js to the release
+verify the remote branch, tag, release, and required userscript asset before reporting completion
+```
+
+Do not leave a bumped version only in the worktree or a local commit, and do not describe a build-only result as published. Documentation-only or agent-guidance changes that do not bump `package.json` still require a normal commit and push, but they do not create another product release.
+
 ## Validation
 
 When validation is due by the versioning cadence above or is specifically requested, run the narrowest useful gate first and finish with the appropriate project gate:
