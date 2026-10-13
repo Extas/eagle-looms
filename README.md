@@ -16,3 +16,7 @@ Automatic checks follow the script manager's own settings. The installation scri
 ## License
 
 Adapted from [Comic Looms](https://github.com/MapoMagpie/comic-looms). See [LICENSE](LICENSE) and [NOTICE](NOTICE).
+
+## Requirements
+
+Since 1.1.79 the userscript saves selected images to a **local Booru library** (default `http://127.0.0.1:8773`, no login) instead of Eagle. Reading, collecting and ZIP download do not need it; only the save action does. Versions up to 1.1.77 saved to Eagle; see the release notes before updating.
